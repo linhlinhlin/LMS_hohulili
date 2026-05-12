@@ -22,9 +22,9 @@
         [sub]="activeAdmins() + ' đang hoạt động'" />
 
       <app-kpi-card
-        [value]="superAdmins()"
-        label="Super Admin"
-        sub="Quyền cao nhất" />
+        [value]="orgAdmins()"
+        label="Org Admin"
+        sub="Quyền org_admin" />
 
       <app-kpi-card
         [value]="blockedAdmins()"
@@ -33,9 +33,9 @@
         variant="error" />
 
       <app-kpi-card
-        [value]="recentlyActive()"
-        label="Hoạt động gần đây"
-        sub="Trong 7 ngày qua" />
+        [value]="restrictedAdmins()"
+        label="Hạn chế"
+        sub="Tài khoản bị hạn chế" />
     </div>
 
     <!-- Search & Filter -->
@@ -70,7 +70,7 @@
       <div class="filter-summary">
         <p class="filter-summary-text">
           Hiển thị <span class="filter-count">{{ filteredAdmins().length }}</span>
-          trong tổng số <span class="filter-count">{{ totalAdmins() }}</span> quản trị viên
+          trong tổng số <span class="filter-count">{{ totalItems() }}</span> quản trị viên
         </p>
       </div>
     </div>
@@ -107,8 +107,7 @@
                 <!-- Issue #229: column "Tổ chức" multi-org admin scoping. -->
                 <th>Tổ chức</th>
                 <th>Trạng thái</th>
-                <th>Hoạt động cuối</th>
-                <th>Đăng nhập</th>
+                <th>Ngày tạo</th>
                 <th class="text-center">Thao tác</th>
               </tr>
             </thead>
@@ -141,6 +140,7 @@
                       <option value="STUDENT">Học viên</option>
                       <option value="TEACHER">Giảng viên</option>
                       <option value="ADMIN">Quản trị viên</option>
+                      <option value="ORG_ADMIN">Quyền org_admin</option>
                     </select>
                   </td>
                   <!-- Issue #229: Tổ chức column — 3 trạng thái:
@@ -166,22 +166,8 @@
                       {{ getStatusLabel(admin.accountStatus) }}
                     </span>
                   </td>
-                  <!-- Last Login — relative time (Linear/GitHub/Stripe pattern,
-                       đồng bộ users/all PR #224). cursor-help + title chỉ khi
-                       có lastLogin (tránh hand cursor + tooltip rỗng). -->
-                  <td class="date-text"
-                      [class.cursor-help]="admin.lastLogin"
-                      [attr.title]="admin.lastLogin || null">
-                    {{ admin.lastLogin ? formatRelativeTime(admin.lastLogin) : 'Chưa đăng nhập' }}
-                  </td>
-                  <!-- Login Count -->
-                  <td>
-                    <div class="login-count">
-                      <svg fill="currentColor" viewBox="0 0 20 20">
-                        <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5z"></path>
-                      </svg>
-                      {{ admin.loginCount || 0 }} lần
-                    </div>
+                  <td class="date-text">
+                    {{ formatDateValue(admin.createdAt) }}
                   </td>
                   <!-- Actions — CC-10: replaced inline status select + revoke
                        icon button with shared kebab menu. Status pill
@@ -199,6 +185,36 @@
             </tbody>
           </table>
         </div>
+        @if (totalPages() > 1) {
+          <div class="pagination-bar">
+            <div class="pagination-info">
+              Hiển thị <strong>{{ pageStart() }}</strong> - <strong>{{ pageEnd() }}</strong>
+              trong tổng số <strong>{{ totalItems() }}</strong> quản trị viên
+            </div>
+            <div class="pagination-controls" aria-label="Phân trang quản trị viên">
+              <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1"
+                      class="pagination-btn pagination-arrow" aria-label="Trang trước">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              @for (page of paginationPages(); track $index) {
+                @if (page === -1) {
+                  <span class="pagination-ellipsis">...</span>
+                } @else {
+                  <button (click)="goToPage(page)"
+                          class="pagination-btn"
+                          [class.active]="currentPage() === page"
+                          [attr.aria-current]="currentPage() === page ? 'page' : null">
+                    {{ page }}
+                  </button>
+                }
+              }
+              <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                      class="pagination-btn pagination-arrow" aria-label="Trang tiếp theo">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        }
       }
     </div>
   </div>

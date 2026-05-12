@@ -178,7 +178,7 @@ export class OfflineSyncService {
     if (!force && !this.offlineSettings.autoSyncWhenOnline()) {
       return { synced: 0, failed: 0, pending: await this.getPendingCount() };
     }
-    if (this.syncInProgress || !this.network.online()) {
+    if (this.syncInProgress || !this.network.online() || (!force && this.network.shouldDeferNonCriticalSync())) {
       return { synced: 0, failed: 0, pending: await this.getPendingCount() };
     }
 
@@ -268,7 +268,7 @@ export class OfflineSyncService {
    */
   async syncWithPriority(force = false): Promise<void> {
     if (!force && !this.offlineSettings.autoSyncWhenOnline()) return;
-    if (this.syncInProgress || !this.network.online()) return;
+    if (this.syncInProgress || !this.network.online() || (!force && this.network.shouldDeferNonCriticalSync())) return;
 
     // Step 1: Sync all queued operations (progress, submissions, quiz attempts)
     const result = await this.syncAll(force);

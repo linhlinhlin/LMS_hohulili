@@ -3,6 +3,7 @@ package com.example.lms.identity.infrastructure.persistence.repository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -19,7 +20,7 @@ import java.util.UUID;
  * not directly by application or domain layers.
  */
 @Repository
-public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
+public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID>, JpaSpecificationExecutor<UserJpaEntity> {
 
     // Custom JPQL — avoids Hibernate 6.x UUID[] ClassCastException with findAllById
     @org.springframework.data.jpa.repository.Query("SELECT u FROM UserJpaEntity u WHERE u.id IN :ids")
@@ -135,4 +136,3 @@ public interface UserJpaRepository extends JpaRepository<UserJpaEntity, UUID> {
     @Query("SELECT COUNT(u) FROM UserJpaEntity u WHERE u.organizationId IS NOT NULL")
     long countByOrganizationIdIsNotNull();
 }
-

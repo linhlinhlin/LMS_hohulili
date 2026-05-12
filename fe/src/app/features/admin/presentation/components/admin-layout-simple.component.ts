@@ -3,7 +3,10 @@ import { Component, ChangeDetectionStrategy, ViewEncapsulation, inject, signal, 
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../../core/services/auth.service';
+import { SidebarStateService } from '../../../../shared/services/sidebar-state.service';
 import { SidebarComponent } from '../../../../shared/components/navigation/sidebar.component';
+import { SkipLinkComponent } from '../../../../shared/components/skip-link/skip-link.component';
+import { FocusTrapDirective } from '../../../../shared/directives/focus-trap.directive';
 import { getSidebarConfig } from '../../../../shared/components/navigation/sidebar.config';
 import { ChatPanelComponent } from '../../../ai-chat/presentation/components/chat-panel/chat-panel.component';
 import { FloatingChatBubbleComponent } from '../../../ai-chat/presentation/components/floating-chat-bubble/floating-chat-bubble.component';
@@ -11,36 +14,55 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
 
 @Component({
   selector: 'app-admin-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, FloatingChatBubbleComponent, SkipLinkComponent, FocusTrapDirective],
   encapsulation: ViewEncapsulation.None,
   template: `
     <div class="min-h-screen flex">
+      <!-- WCAG 2.4.1 Bypass Blocks — first focusable element jumps to <main>. -->
+      <app-skip-link/>
       <!-- Desktop Sidebar -->
       @if (!shouldHideSidebar()) {
         <div class="hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-50"
-             [class.lg:w-16]="isSidebarCollapsed()"
-             [class.lg:w-72]="!isSidebarCollapsed()">
+             [class.lg:w-16]="sidebarState.collapsed()"
+             [class.lg:w-72]="!sidebarState.collapsed()">
           <app-sidebar [config]="adminSidebarConfig"
-                       [collapsed]="isSidebarCollapsed()"
-                       (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
+                       [collapsed]="sidebarState.collapsed()"
+                       (toggleCollapse)="sidebarState.toggleCollapsed()"></app-sidebar>
         </div>
       }
 
-      <!-- Mobile sidebar overlay -->
+      <!-- Mobile sidebar overlay — dialog semantics + auto-close on leaf nav -->
       @if (isMobileSidebarOpen() && !shouldHideSidebar()) {
-        <div class="fixed inset-0 z-50 lg:hidden"
-          (click)="toggleMobileSidebar()">
-          <div class="fixed inset-0 bg-black bg-opacity-50"></div>
-          <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg">
-            <app-sidebar [config]="adminSidebarConfig" [collapsed]="false"></app-sidebar>
+        <div id="mobile-sidebar-drawer"
+             class="fixed inset-0 z-50 lg:hidden"
+             role="dialog"
+             aria-modal="true"
+             aria-label="Menu điều hướng"
+             [appFocusTrap]="isMobileSidebarOpen()"
+             (escape)="closeMobileSidebar()">
+          <div class="fixed inset-0 bg-black bg-opacity-50" (click)="closeMobileSidebar()"></div>
+          <div class="fixed inset-y-0 left-0 w-72 bg-white shadow-lg flex flex-col"
+               (click)="$event.stopPropagation()">
+            <button type="button"
+                    (click)="closeMobileSidebar()"
+                    aria-label="Đóng menu điều hướng"
+                    class="self-end m-3 inline-flex h-9 w-9 items-center justify-center rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-[#0056D2]">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+            <app-sidebar [config]="adminSidebarConfig"
+                         [collapsed]="false"
+                         (itemClick)="closeMobileSidebar()"></app-sidebar>
           </div>
         </div>
       }
 
       <!-- Main content + AI Sidebar wrapper -->
       <div class="flex flex-1 min-w-0 min-h-screen"
-           [class.lg:pl-16]="!shouldHideSidebar() && isSidebarCollapsed()"
-           [class.lg:pl-72]="!shouldHideSidebar() && !isSidebarCollapsed()">
+           [class.lg:pl-16]="!shouldHideSidebar() && sidebarState.collapsed()"
+           [class.lg:pl-72]="!shouldHideSidebar() && !sidebarState.collapsed()">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
@@ -52,7 +74,9 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
                   <div class="flex items-center">
                     <button (click)="toggleMobileSidebar()"
                       class="p-2 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-gray-500 transition-colors"
-                      aria-label="Open sidebar">
+                      [attr.aria-expanded]="isMobileSidebarOpen()"
+                      aria-controls="mobile-sidebar-drawer"
+                      aria-label="Mở menu điều hướng">
                       <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                       </svg>
@@ -73,7 +97,7 @@ import { AiAvailabilityService } from '../../../ai-chat/application/services/ai-
           }
 
           <!-- Page content -->
-          <main class="flex-1">
+          <main id="main-content" tabindex="-1" class="flex-1">
             <router-outlet></router-outlet>
           </main>
         </div>
@@ -283,11 +307,11 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   protected isMobileSidebarOpen = signal(false);
 
-  // CC-04 — sidebar collapse parity với teacher / student. Persisted in
-  // localStorage under `admin_sidebar_collapsed` (separate key per portal
-  // so an admin's preference doesn't leak into other portals nếu cùng
-  // user role-switch).
-  protected isSidebarCollapsed = signal(false);
+  /** Sidebar collapsed/mobileOpen/hidden state — single source of truth shared
+   *  across all 4 portals via SidebarStateService (signals + localStorage +
+   *  cross-tab sync). Replaces the old per-portal `admin_sidebar_collapsed`
+   *  localStorage key. Per spec FR-005 — one storage entry across roles. */
+  protected sidebarState = inject(SidebarStateService);
 
   // Sidebar config — use shared config based on user role
   protected get adminSidebarConfig() {
@@ -326,7 +350,6 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
   });
 
   ngOnInit(): void {
-    this.loadSidebarCollapsed();
     this.loadAiSidebarState();
     this.loadAiSidebarWidth();
 
@@ -355,24 +378,11 @@ export class AdminLayoutSimpleComponent implements OnInit, OnDestroy {
     this.isMobileSidebarOpen.update(open => !open);
   }
 
-  toggleSidebarCollapse(): void {
-    this.isSidebarCollapsed.update(v => !v);
-    try {
-      localStorage?.setItem('admin_sidebar_collapsed', this.isSidebarCollapsed().toString());
-    } catch {
-      // Storage may be disabled in private mode — silently ignore.
-    }
-  }
-
-  private loadSidebarCollapsed(): void {
-    try {
-      const saved = localStorage?.getItem('admin_sidebar_collapsed');
-      if (saved !== null && saved !== undefined) {
-        this.isSidebarCollapsed.set(saved === 'true');
-      }
-    } catch {
-      // ignore
-    }
+  /** Auto-close drawer after a leaf nav item is tapped (mobile UX standard).
+   *  Called from <app-sidebar (itemClick)> binding and from the explicit ×
+   *  close button + Escape handler in the drawer template. Per spec FR-012. */
+  closeMobileSidebar(): void {
+    this.isMobileSidebarOpen.set(false);
   }
 
   // --- AI Sidebar ---

@@ -1,12 +1,50 @@
 import { Injectable, inject } from '@angular/core';
 import { ApiClient } from './api-client';
 import { COURSE_ENDPOINTS } from '../endpoints/course.endpoints';
-import { ApiResponse } from '../types/common.types';
-import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter } from '../types/course.types';
+import { ApiResponse, PaginationInfo } from '../types/common.types';
+import { CreateCourseRequest, CourseDetail, CourseSummary, CourseContentChapter, DeliveryMode } from '../types/course.types';
 import { EnrollStudentRequest } from '../types/enrollment.types';
 import { map, tap } from 'rxjs/operators';
 import { Observable } from 'rxjs';
 import { ApiCacheService } from '../../core/services/api-cache.service';
+
+function mapSpringPagePagination(page: any): PaginationInfo | undefined {
+  if (!page || typeof page !== 'object' || !Array.isArray(page.content)) {
+    return undefined;
+  }
+
+  return {
+    totalItems: page.totalElements ?? page.content.length ?? 0,
+    totalPages: page.totalPages ?? 0,
+    page: (page.number ?? 0) + 1,
+    limit: page.size ?? page.content.length ?? 0,
+    first: !!page.first,
+    last: !!page.last
+  };
+}
+
+function firstNonEmptyString(...values: unknown[]): string {
+  for (const value of values) {
+    if (typeof value === 'string' && value.trim().length > 0) {
+      return value;
+    }
+  }
+  return '';
+}
+
+function normalizeCourseThumbnail<T extends Record<string, any>>(course: T): T {
+  const thumbnailUrl = firstNonEmptyString(
+    course['thumbnailUrl'],
+    course['thumbnail'],
+    course['coverImageUrl'],
+    course['imageUrl']
+  );
+
+  return {
+    ...course,
+    thumbnailUrl
+  };
+}
 
 @Injectable({ providedIn: 'root' })
 export class CourseApi {
@@ -18,7 +56,12 @@ export class CourseApi {
   }
 
   getCourseById(id: string) {
-    return this.api.getWithResponse<CourseDetail>(COURSE_ENDPOINTS.BY_ID(id));
+    return this.api.getWithResponse<CourseDetail>(COURSE_ENDPOINTS.BY_ID(id)).pipe(
+      map((res: ApiResponse<CourseDetail>) => ({
+        ...res,
+        data: res?.data ? normalizeCourseThumbnail(res.data as any) : res?.data
+      }) as ApiResponse<CourseDetail>)
+    );
   }
 
   updateCourse(id: string, payload: Partial<CreateCourseRequest>) {
@@ -34,18 +77,20 @@ export class CourseApi {
     // Unwrap Spring Page response to a flat array - fetch all for client-side pagination
     return this.api.getWithResponse<any>(`${COURSE_ENDPOINTS.TEACHER.MY_COURSES}?page=0&size=100`).pipe(
       map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = (res?.data?.content ?? []).map((c: any) => ({
-          ...c,
-          enrolledCount: c.enrolledCount ?? c.studentsCount ?? 0,
-          thumbnailUrl: c.thumbnail ?? c.thumbnailUrl,
-          deliveryMode: c.deliveryMode,
-          sectionCount: c.sectionCount ?? 0,
-          lessonCount: c.lessonCount ?? 0,
-          categoryName: c.categoryName,
-          updatedAt: c.updatedAt,
-          maxStudents: c.maxStudents,
-          teacherRole: c.teacherRole
-        }));
+        const content: CourseSummary[] = (res?.data?.content ?? []).map((c: any) => {
+          const course = normalizeCourseThumbnail(c);
+          return {
+            ...course,
+            enrolledCount: course.enrolledCount ?? course.studentsCount ?? 0,
+            deliveryMode: course.deliveryMode,
+            sectionCount: course.sectionCount ?? 0,
+            lessonCount: course.lessonCount ?? 0,
+            categoryName: course.categoryName,
+            updatedAt: course.updatedAt,
+            maxStudents: course.maxStudents,
+            teacherRole: course.teacherRole
+          };
+        });
         return {
           data: content,
           pagination: res?.pagination,
@@ -55,26 +100,32 @@ export class CourseApi {
     );
   }
 
-  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string; category?: string; sort?: string; order?: string }): Observable<ApiResponse<CourseSummary[]>> {
+  publicCourses(params?: { page?: number; size?: number; search?: string; teacher?: string; category?: string; sort?: string; order?: string; deliveryMode?: DeliveryMode }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.BASE, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+        const page = res?.data;
+        const content: CourseSummary[] = (page?.content ?? []).map((course: any) =>
+          normalizeCourseThumbnail(course)
+        );
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination: mapSpringPagePagination(page) ?? res?.pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })
     );
   }
 
-  enrolledCourses(params?: { page?: number; size?: number }): Observable<ApiResponse<CourseSummary[]>> {
+  enrolledCourses(params?: { page?: number; size?: number; search?: string; category?: string; sort?: string; order?: string; deliveryMode?: DeliveryMode }): Observable<ApiResponse<CourseSummary[]>> {
     return this.api.getWithResponse<any>(COURSE_ENDPOINTS.STUDENT.ENROLLED, { params }).pipe(
       map((res: ApiResponse<any>) => {
-        const content: CourseSummary[] = res?.data?.content ?? [];
+        const page = res?.data;
+        const content: CourseSummary[] = (page?.content ?? []).map((course: any) =>
+          normalizeCourseThumbnail(course)
+        );
         return {
           data: content,
-          pagination: res?.pagination,
+          pagination: mapSpringPagePagination(page) ?? res?.pagination,
           message: res?.message
         } as ApiResponse<CourseSummary[]>;
       })

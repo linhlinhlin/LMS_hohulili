@@ -3,7 +3,10 @@ import { Component, ChangeDetectionStrategy, inject, signal, computed, OnInit, O
 import { RouterModule, RouterOutlet, Router, NavigationEnd } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { AuthService } from '../../../core/services/auth.service';
+import { SidebarStateService } from '../../../shared/services/sidebar-state.service';
 import { SidebarComponent, SidebarConfig } from '../../../shared/components/navigation/sidebar.component';
+import { SkipLinkComponent } from '../../../shared/components/skip-link/skip-link.component';
+import { FocusTrapDirective } from '../../../shared/directives/focus-trap.directive';
 import { studentSidebarConfig as baseStudentSidebarConfig } from '../../../shared/components/navigation/sidebar.config';
 import { NotificationService } from '../../../core/services/notification.service';
 import { MessagingService } from '../../../core/services/messaging.service';
@@ -15,32 +18,38 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
 
 @Component({
   selector: 'app-student-layout-simple',
-  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent],
+  imports: [RouterModule, RouterOutlet, SidebarComponent, ChatPanelComponent, SkipLinkComponent, FocusTrapDirective],
   template: `
     <!-- Modern gradient background -->
     <div class="min-h-screen flex flex-col">
+      <!-- WCAG 2.4.1 Bypass Blocks — first focusable element jumps to <main>. -->
+      <app-skip-link/>
       <!-- Desktop Sidebar - Full Height -->
       @if (!shouldHideSidebar()) {
-        <div [class]="'hidden md:flex md:flex-col md:fixed md:inset-y-0 md:z-40 transition-all duration-300 '
-          + (sidebarCollapsed() ? 'md:w-16' : 'md:w-72')">
+        <div [class]="'hidden lg:flex lg:flex-col lg:fixed lg:inset-y-0 lg:z-40 transition-all duration-300 '
+          + (sidebarState.collapsed() ? 'lg:w-16' : 'lg:w-72')">
           <app-sidebar [config]="studentSidebarConfig()"
-            [collapsed]="sidebarCollapsed()"
-            (toggleCollapse)="toggleSidebarCollapse()"></app-sidebar>
+            [collapsed]="sidebarState.collapsed()"
+            (toggleCollapse)="sidebarState.toggleCollapsed()"></app-sidebar>
         </div>
       }
 
       <!-- Mobile sidebar overlay — always rendered, animated via CSS -->
       @if (!shouldHideSidebar()) {
-        <div class="mobile-sidebar-overlay md:hidden"
+        <div id="mobile-sidebar-drawer"
+             class="mobile-sidebar-overlay lg:hidden"
              [class.open]="isMobileSidebarOpen()"
              [attr.aria-hidden]="!isMobileSidebarOpen()"
              [attr.aria-modal]="isMobileSidebarOpen() ? 'true' : null"
              [attr.inert]="isMobileSidebarOpen() ? null : ''"
-             role="dialog">
+             role="dialog"
+             [appFocusTrap]="isMobileSidebarOpen()"
+             (escape)="closeMobileSidebar()">
           <div class="mobile-sidebar-backdrop" (click)="toggleMobileSidebar()"></div>
           <div class="mobile-sidebar-panel">
             <app-sidebar [config]="studentSidebarConfig()"
-              [collapsed]="false"></app-sidebar>
+              [collapsed]="false"
+              (itemClick)="closeMobileSidebar()"></app-sidebar>
           </div>
         </div>
       }
@@ -49,12 +58,12 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
       <div [class]="shouldHideSidebar()
         ? 'flex flex-1 min-h-0'
         : 'flex flex-1 min-h-0 transition-all duration-300 '
-          + (sidebarCollapsed() ? 'md:pl-16' : 'md:pl-72')">
+          + (sidebarState.collapsed() ? 'lg:pl-16' : 'lg:pl-72')">
 
         <!-- Main content column -->
         <div class="flex flex-col flex-1 min-w-0">
           <!-- Mobile top bar — sticky + collapses in full-screen views -->
-          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 md:hidden shadow-sm overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
+          <header class="sticky top-0 z-30 bg-white/80 backdrop-blur-xl border-b border-gray-200/50 lg:hidden shadow-sm overflow-hidden transition-[max-height,opacity] duration-300 ease-out"
                   [class.max-h-14]="!shouldHideMobileChrome()"
                   [class.max-h-0]="shouldHideMobileChrome()"
                   [class.opacity-0]="shouldHideMobileChrome()"
@@ -64,6 +73,8 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
                 <div class="flex items-center space-x-3">
                   <button (click)="toggleMobileSidebar()"
                     aria-label="Mở menu điều hướng"
+                    [attr.aria-expanded]="isMobileSidebarOpen()"
+                    aria-controls="mobile-sidebar-drawer"
                     class="inline-flex h-11 w-11 items-center justify-center rounded-xl text-gray-600 hover:text-gray-900 hover:bg-gray-100/80 focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-all duration-200">
                     <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                       <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -89,12 +100,12 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
           </header>
 
           <!-- Page content with modern spacing -->
-          <main class="flex-1 overflow-auto bg-transparent">
+          <main id="main-content" tabindex="-1" class="flex-1 overflow-auto bg-transparent">
             <router-outlet></router-outlet>
           </main>
 
           <!-- Mobile Bottom Navigation — slides down in full-screen views -->
-            <nav class="mobile-bottom-nav md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg transition-[transform,opacity] duration-300 ease-out"
+            <nav class="mobile-bottom-nav lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-gray-200 shadow-lg transition-[transform,opacity] duration-300 ease-out"
                  [class.translate-y-full]="shouldHideMobileChrome()"
                  [class.opacity-0]="shouldHideMobileChrome()"
                  [class.pointer-events-none]="shouldHideMobileChrome()">
@@ -152,7 +163,7 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
             </nav>
 
           <!-- Bottom padding for mobile navigation — collapses when nav hidden -->
-            <div class="md:hidden transition-[height] duration-300 ease-out"
+            <div class="lg:hidden transition-[height] duration-300 ease-out"
                  [class.h-16]="!shouldHideMobileChrome()"
                  [class.h-0]="shouldHideMobileChrome()"></div>
         </div>
@@ -433,6 +444,10 @@ import { AiAvailabilityService } from '../../ai-chat/application/services/ai-ava
     .tab-item.tab-active {
       color: #0056D2;
     }
+    /* Match sidebar active-item font weight (font-semibold = 600) per spec FR-037. */
+    .tab-item.tab-active .tab-label {
+      font-weight: 600;
+    }
 
     .tab-label {
       font-size: 10px;
@@ -467,7 +482,11 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     const url = this.currentUrl();
     return url.startsWith('/student/tasks') || url.startsWith('/student/quiz');
   });
-  protected sidebarCollapsed = signal(false);
+  /** Sidebar collapsed/mobileOpen/hidden state — single source of truth shared
+   *  with teacher + admin portals via SidebarStateService (signals + localStorage
+   *  + cross-tab sync). Replaces the old per-portal `student_sidebar_collapsed`
+   *  localStorage key + duplicated signal/load/toggle methods. */
+  protected sidebarState = inject(SidebarStateService);
 
   // User avatar — show real avatar if exists, fallback to initials circle
   protected userAvatarUrl = computed(() => {
@@ -532,8 +551,8 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     });
 
     // Load sidebar state from localStorage on initialization
+    // (sidebar collapsed state now hydrated by SidebarStateService)
     this.loadSidebarState();
-    this.loadCollapsedState();
     this.loadAiSidebarState();
     this.loadAiSidebarWidth();
 
@@ -594,21 +613,15 @@ export class StudentLayoutSimpleComponent implements OnInit, OnDestroy {
     }
   }
 
-  toggleSidebarCollapse(): void {
-    this.sidebarCollapsed.update(v => !v);
-    if (typeof window !== 'undefined' && window.localStorage) {
-      localStorage.setItem('student_sidebar_collapsed', this.sidebarCollapsed().toString());
-    }
-  }
-
-  private loadCollapsedState(): void {
-    if (typeof window !== 'undefined' && window.localStorage) {
-      this.sidebarCollapsed.set(localStorage.getItem('student_sidebar_collapsed') === 'true');
-    }
-  }
-
   toggleMobileSidebar(): void {
     this.isMobileSidebarOpen.update(open => !open);
+  }
+
+  /** Auto-close drawer after a leaf nav item is tapped (mobile UX standard).
+   *  Called from <app-sidebar (itemClick)> binding; idempotent on desktop
+   *  where mobileOpen is already false. Per spec FR-012. */
+  closeMobileSidebar(): void {
+    this.isMobileSidebarOpen.set(false);
   }
 
   // --- AI Sidebar (Desktop) ---

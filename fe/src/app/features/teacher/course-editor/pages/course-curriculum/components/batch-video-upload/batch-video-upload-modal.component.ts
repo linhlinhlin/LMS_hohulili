@@ -49,6 +49,7 @@ import {
           role="dialog"
           aria-modal="true"
           aria-labelledby="batch-upload-title"
+          data-wiii-id="batch-video-upload-dialog"
         >
           <!-- Header -->
           <div class="px-6 py-4 border-b border-gray-200 flex items-start justify-between flex-shrink-0">
@@ -61,6 +62,7 @@ import {
             <button
               type="button"
               (click)="requestClose()"
+              data-wiii-id="close-batch-video-upload"
               class="text-gray-400 hover:text-gray-600 p-1.5 rounded-md hover:bg-gray-100 flex-shrink-0 ml-4"
               aria-label="Đóng"
             >
@@ -126,11 +128,13 @@ import {
                 <button
                   type="button"
                   (click)="onBackToPick()"
+                  data-wiii-id="back-to-batch-video-picker"
                   class="px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg"
                 >Chọn lại file</button>
                 <button
                   type="button"
                   (click)="onConfirmStart()"
+                  data-wiii-id="start-batch-video-upload"
                   [disabled]="svc.aggregateProgress().totalCount === 0"
                   class="px-4 py-1.5 text-sm font-semibold text-white bg-[#0056D2] hover:bg-[#004BB8] rounded-lg disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1.5"
                 >
@@ -157,6 +161,7 @@ import {
     <ng-template #pickStage>
       <div class="space-y-4">
         <div
+          data-wiii-id="batch-video-upload-dropzone"
           (drop)="onFileDrop($event)"
           (dragover)="$event.preventDefault()"
           (dragenter)="dragHover.set(true)"
@@ -173,6 +178,7 @@ import {
           <label class="inline-block mt-2 cursor-pointer">
             <input
               type="file"
+              data-wiii-id="batch-video-upload-input"
               multiple
               accept="video/*"
               (change)="onFilePickerChange($event)"

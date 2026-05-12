@@ -83,6 +83,33 @@ export interface H5PInteractiveVideoParameters {
     assets: {
       interactions: H5PInteractiveVideoInteraction[];
       bookmarks: Array<{ time: number; label: string }>;
+      endscreens?: Array<{ time: number; label?: string }>;
+    };
+    /**
+     * H5P-standard behaviour block (note British spelling). Mirrors HoliLihu's
+     * `spec.behavior` so global playback rules survive a round-trip.
+     */
+    behaviour?: {
+      preventSkipping?: boolean;
+      preventSkippingMode?: 'none' | 'forward' | 'both';
+      showBookmarksMenuOnLoad?: boolean;
+      showRewind10?: boolean;
+      pauseOnInteractions?: boolean;
+    };
+    /**
+     * H5P-standard summary task. HoliLihu's `spec.endScreen` maps onto this so
+     * teacher-authored end-of-video review surfaces survive a round-trip.
+     */
+    summary?: {
+      task?: {
+        params?: {
+          intro?: string;
+          summary?: string;
+          requireAnswerBeforeSubmit?: boolean;
+          showScore?: boolean;
+          atSeconds?: number | null;
+        };
+      };
     };
   };
 }
@@ -90,6 +117,8 @@ export interface H5PInteractiveVideoParameters {
 export interface H5PInteractiveVideoInteraction {
   x: number;
   y: number;
+  width?: number;
+  height?: number;
   duration: { from: number; to: number };
   pause: boolean;
   displayType: 'poster' | 'button';
@@ -135,13 +164,82 @@ export function importInteractiveVideoBundle(value: unknown): InteractiveVideoSp
     return null;
   }
 
+  const root = getH5PInteractiveVideoRoot(value);
   return normalizeInteractiveVideoSpecV2({
     version: 2,
     enabled: true,
+    behavior: fromH5PBehaviour(root?.behaviour),
+    bookmarks: fromH5PBookmarks(root?.assets?.bookmarks),
+    endScreen: fromH5PSummary(root?.summary),
     timeline: sortInteractiveVideoTimeline(
       h5pInteractions.map((interaction, index) => fromH5PInteraction(interaction, index)),
     ),
   });
+}
+
+function getH5PInteractiveVideoRoot(
+  value: unknown,
+): H5PInteractiveVideoParameters['interactiveVideo'] | null {
+  if (!value || typeof value !== 'object') {
+    return null;
+  }
+  const source = value as {
+    h5pParameters?: H5PInteractiveVideoParameters;
+    interactiveVideo?: H5PInteractiveVideoParameters['interactiveVideo'];
+  };
+  return source.h5pParameters?.interactiveVideo ?? source.interactiveVideo ?? null;
+}
+
+function fromH5PBookmarks(
+  bookmarks: H5PInteractiveVideoParameters['interactiveVideo']['assets']['bookmarks'] | undefined,
+): InteractiveVideoSpec['bookmarks'] {
+  if (!Array.isArray(bookmarks)) {
+    return undefined;
+  }
+  return bookmarks
+    .filter((entry): entry is { time: number; label: string } =>
+      !!entry && typeof entry.time === 'number' && typeof entry.label === 'string',
+    )
+    .map((entry, index) => ({
+      id: `h5p-bookmark-${index + 1}`,
+      timeSeconds: Math.max(0, Math.round(entry.time)),
+      label: entry.label,
+    }));
+}
+
+function fromH5PBehaviour(
+  behaviour: H5PInteractiveVideoParameters['interactiveVideo']['behaviour'],
+): InteractiveVideoSpec['behavior'] {
+  if (!behaviour) {
+    return undefined;
+  }
+  const explicitMode = behaviour.preventSkippingMode;
+  const inferredMode = behaviour.preventSkipping ? 'forward' : 'none';
+  return {
+    preventSkippingMode: explicitMode === 'none' || explicitMode === 'forward' || explicitMode === 'both'
+      ? explicitMode
+      : inferredMode,
+    showBookmarksOnLoad: behaviour.showBookmarksMenuOnLoad === true,
+    showRewind10: behaviour.showRewind10 === true,
+    pauseOnInteraction: behaviour.pauseOnInteractions !== false,
+  };
+}
+
+function fromH5PSummary(
+  summary: H5PInteractiveVideoParameters['interactiveVideo']['summary'],
+): InteractiveVideoSpec['endScreen'] {
+  const params = summary?.task?.params;
+  if (!params) {
+    return undefined;
+  }
+  return {
+    enabled: true,
+    atSeconds: typeof params.atSeconds === 'number' ? params.atSeconds : null,
+    requireAnswerBeforeSubmit: params.requireAnswerBeforeSubmit === true,
+    showScore: params.showScore === true,
+    title: params.intro ?? null,
+    body: params.summary ?? null,
+  };
 }
 
 export async function exportInteractiveVideoH5PPackage(
@@ -214,17 +312,58 @@ function exportToH5PParameters(
   spec: InteractiveVideoSpec,
   videoUrl: string | null,
 ): H5PInteractiveVideoParameters {
+  const bookmarks = (spec.bookmarks ?? []).map(bookmark => ({
+    time: bookmark.timeSeconds,
+    label: bookmark.label,
+  }));
+
   return {
     interactiveVideo: {
       video: videoUrl ? { files: [{ path: videoUrl, mime: inferMimeType(videoUrl) }] } : undefined,
       assets: {
         interactions: spec.timeline.map(toH5PInteraction),
-        bookmarks: spec.timeline
-          .filter(interaction => interaction.title)
-          .map(interaction => ({
-            time: interaction.atSeconds,
-            label: interaction.title ?? interaction.id,
-          })),
+        // Bookmarks are first-class in V2; previously these were synthesised
+        // from interaction titles, which conflated the two and dropped any
+        // standalone bookmarks teachers added.
+        bookmarks,
+      },
+      behaviour: toH5PBehaviour(spec.behavior),
+      summary: toH5PSummary(spec.endScreen ?? null),
+    },
+  };
+}
+
+function toH5PBehaviour(
+  behavior: InteractiveVideoSpec['behavior'],
+): H5PInteractiveVideoParameters['interactiveVideo']['behaviour'] {
+  if (!behavior) {
+    return undefined;
+  }
+  const mode = behavior.preventSkippingMode ?? 'none';
+  return {
+    preventSkipping: mode !== 'none',
+    preventSkippingMode: mode,
+    showBookmarksMenuOnLoad: behavior.showBookmarksOnLoad === true,
+    showRewind10: behavior.showRewind10 === true,
+    // Default true mirrors normalizer (`!== false`); only emit explicit false.
+    pauseOnInteractions: behavior.pauseOnInteraction !== false,
+  };
+}
+
+function toH5PSummary(
+  endScreen: InteractiveVideoSpec['endScreen'],
+): H5PInteractiveVideoParameters['interactiveVideo']['summary'] {
+  if (!endScreen) {
+    return undefined;
+  }
+  return {
+    task: {
+      params: {
+        intro: endScreen.title ?? undefined,
+        summary: endScreen.body ?? undefined,
+        requireAnswerBeforeSubmit: endScreen.requireAnswerBeforeSubmit === true,
+        showScore: endScreen.showScore === true,
+        atSeconds: endScreen.atSeconds ?? null,
       },
     },
   };
@@ -234,16 +373,23 @@ function toH5PInteraction(interaction: InteractiveVideoInteraction): H5PInteract
   const choices = interaction.choices ?? [];
   const firstCorrect = choices.find(choice => choice.isCorrect === true);
   const firstWrong = choices.find(choice => choice.isCorrect !== true);
+  const position = interaction.position ?? null;
+  const displayType = interaction.displayType === 'button' ? 'button' : 'poster';
 
   return {
-    x: 10,
-    y: 10,
+    // Map HoliLihu's percent-based InteractiveVideoPosition into H5P's spatial
+    // fields. Falling back to centre (50, 50) keeps imports without explicit
+    // position visible rather than collapsed onto the top-left corner.
+    x: clampH5PPercent(position?.xPercent, 50),
+    y: clampH5PPercent(position?.yPercent, 50),
+    width: position?.widthPercent == null ? undefined : clampH5PPercent(position.widthPercent, 0),
+    height: position?.heightPercent == null ? undefined : clampH5PPercent(position.heightPercent, 0),
     duration: {
       from: interaction.atSeconds,
       to: interaction.endSeconds ?? interaction.atSeconds,
     },
     pause: interaction.pause !== false,
-    displayType: 'poster',
+    displayType,
     action: {
       library: interaction.type === 'single_choice' || interaction.type === 'branch'
         ? 'H5P.MultiChoice 1.16'
@@ -306,6 +452,11 @@ function fromH5PInteraction(
     body: toText(params['text']) ?? toText(params['question']) ?? null,
     pause: interaction.pause !== false,
     required: false,
+    displayType: interaction.displayType === 'button' ? 'button' : 'poster',
+    // Restore spatial placement; H5P encodes percent values directly on the
+    // interaction record. Without this, every imported interaction collapses
+    // onto the same centre point in HoliLihu's canvas.
+    position: readH5PPosition(interaction),
     choices: hasChoices
       ? answers.map((answer, answerIndex) => ({
           id: `h5p-${index + 1}-choice-${answerIndex + 1}`,
@@ -318,6 +469,28 @@ function fromH5PInteraction(
       : [],
     hotspots: [],
   };
+}
+
+function readH5PPosition(interaction: H5PInteractiveVideoInteraction): InteractiveVideoInteraction['position'] {
+  const xPercent = clampH5PPercent(interaction.x, NaN);
+  const yPercent = clampH5PPercent(interaction.y, NaN);
+  if (!Number.isFinite(xPercent) || !Number.isFinite(yPercent)) {
+    return null;
+  }
+  return {
+    xPercent,
+    yPercent,
+    widthPercent: interaction.width == null ? null : clampH5PPercent(interaction.width, 0),
+    heightPercent: interaction.height == null ? null : clampH5PPercent(interaction.height, 0),
+  };
+}
+
+function clampH5PPercent(value: unknown, fallback: number): number {
+  const next = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(next)) {
+    return fallback;
+  }
+  return Math.min(100, Math.max(0, Math.round(next)));
 }
 
 function getH5PInteractions(value: unknown): H5PInteractiveVideoInteraction[] {

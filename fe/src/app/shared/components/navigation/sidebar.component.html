@@ -1,7 +1,8 @@
 <div class="sidebar-container" [class]="getSidebarClasses()" [class.sidebar-collapsed]="collapsed()">
-    <!-- Header -->
+    <!-- Header — brand row + integrated collapse toggle (Stripe/Carbon pattern).
+         Toggle lives inside the header flex row, never floating outside the edge. -->
     <div class="sidebar-header">
-        <div class="flex items-center space-x-3">
+        <div class="sidebar-header-brand">
             <!-- Brand Logo -->
             <img src="/icons/logo-master.png" alt="LMS Maritime" class="sidebar-brand-logo">
 
@@ -13,9 +14,13 @@
             </div>
         </div>
 
-        <!-- Collapse toggle button -->
-        <button class="collapse-toggle" (click)="toggleCollapse.emit()" aria-label="Thu gọn sidebar">
-            <app-icon [name]="collapsed() ? 'chevron-right' : 'chevron-left'" size="xs"/>
+        <!-- Collapse toggle — desktop only; aligned vertically inside header row -->
+        <button type="button"
+                class="sidebar-toggle"
+                (click)="toggleCollapse.emit()"
+                [attr.aria-expanded]="!collapsed()"
+                [attr.aria-label]="collapsed() ? 'Mở rộng menu điều hướng' : 'Thu gọn menu điều hướng'">
+            <app-icon [name]="collapsed() ? 'chevron-right' : 'chevron-left'" size="sm"/>
         </button>
     </div>
 
@@ -64,27 +69,38 @@
                 <div class="nav-item-container">
                     <a [routerLink]="item.route" [queryParams]="item.queryParams"
                        [class.active]="isOrgItemActive(item)"
+                       [attr.aria-current]="isOrgItemActive(item) ? 'page' : null"
+                       [attr.aria-label]="item.label"
+                       [appSidebarTooltip]="item.label"
+                       [tooltipEnabled]="collapsed()"
+                       (click)="itemClick.emit(item)"
                        class="nav-item">
                         <div class="nav-icon" [class]="getIconClasses(item)">
                             <app-icon [name]="item.icon" size="sm"/>
                         </div>
                         <span class="nav-label">{{ item.label }}</span>
-                        <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
                     </a>
                 </div>
             }
         </nav>
     } @else {
     <!-- Navigation Menu (system mode) -->
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" role="navigation" aria-label="Điều hướng chính">
         @for (item of config().menuItems; track item.route; let i = $index) {
         @if (shouldShowGroupTitle(i)) {
             <div class="nav-group-title">{{ item.group }}</div>
         }
         <div class="nav-item-container">
-            <a [routerLink]="item.route" routerLinkActive="active"
+            <a [routerLink]="item.route" routerLinkActive="active" #rla="routerLinkActive"
                 [routerLinkActiveOptions]="{exact: item.exact ?? false}"
                 [class.force-active]="isItemActive(item)"
+                [attr.aria-current]="rla.isActive || isItemActive(item) ? 'page' : null"
+                [attr.aria-expanded]="item.children?.length ? isSubMenuOpen(item) : null"
+                [attr.aria-controls]="item.children?.length ? itemDomId(item) + '-submenu' : null"
+                [attr.aria-label]="item.label"
+                [appSidebarTooltip]="item.label"
+                [tooltipEnabled]="collapsed()"
+                (click)="onLeafClick(item)"
                 class="nav-item"
                 [class.has-children]="!!item.children?.length">
                 <div class="nav-icon" [class]="getIconClasses(item)">
@@ -94,16 +110,21 @@
                 @if (item.badge) {
                 <span class="nav-badge">{{ item.badge }}</span>
                 }
-                <span class="nav-tooltip" aria-hidden="true">{{ item.label }}</span>
             </a>
 
             <!-- Sub-menu items -->
             @if (item.children && isSubMenuOpen(item)) {
-            <div class="sub-menu">
+            <div class="sub-menu" [id]="itemDomId(item) + '-submenu'">
                 @for (child of item.children; track child.route) {
                 <div class="sub-menu-block">
-                    <a [routerLink]="child.route" routerLinkActive="active"
-                        [routerLinkActiveOptions]="{exact: child.exact ?? false}" class="sub-menu-item"
+                    <a [routerLink]="child.route" routerLinkActive="active" #childRla="routerLinkActive"
+                        [routerLinkActiveOptions]="{exact: child.exact ?? false}"
+                        [attr.aria-current]="childRla.isActive ? 'page' : null"
+                        [attr.aria-expanded]="child.children?.length ? isSubMenuOpen(child) : null"
+                        [attr.aria-controls]="child.children?.length ? itemDomId(child) + '-submenu' : null"
+                        [attr.aria-label]="child.label"
+                        (click)="onLeafClick(child)"
+                        class="sub-menu-item"
                         [class.has-children]="!!child.children?.length">
                         <div class="sub-icon" [class]="getIconClasses(child)">
                             <app-icon [name]="child.icon" size="xs"/>
@@ -112,10 +133,14 @@
                     </a>
 
                     @if (child.children && isSubMenuOpen(child)) {
-                    <div class="sub-menu sub-menu--nested">
+                    <div class="sub-menu sub-menu--nested" [id]="itemDomId(child) + '-submenu'">
                         @for (grandChild of child.children; track grandChild.route) {
-                        <a [routerLink]="grandChild.route" routerLinkActive="active"
-                            [routerLinkActiveOptions]="{exact: grandChild.exact ?? false}" class="sub-menu-item sub-menu-item--nested">
+                        <a [routerLink]="grandChild.route" routerLinkActive="active" #gcRla="routerLinkActive"
+                            [routerLinkActiveOptions]="{exact: grandChild.exact ?? false}"
+                            [attr.aria-current]="gcRla.isActive ? 'page' : null"
+                            [attr.aria-label]="grandChild.label"
+                            (click)="itemClick.emit(grandChild)"
+                            class="sub-menu-item sub-menu-item--nested">
                             <div class="sub-icon" [class]="getIconClasses(grandChild)">
                                 <app-icon [name]="grandChild.icon" size="xs"/>
                             </div>

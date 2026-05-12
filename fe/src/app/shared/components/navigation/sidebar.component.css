@@ -1,8 +1,26 @@
 /* Component-specific styles - avoiding Tailwind @apply conflicts */
+
+/* Host element MUST be a flex column with explicit height so the inner
+   nav-scroll + sticky footer layout works inside both the desktop wrapper
+   (lg:fixed lg:inset-y-0) and the mobile drawer panel (top:0; bottom:0).
+   `flex: 1; min-height: 0` covers flex-column parents (desktop wrapper);
+   `height: 100%` covers fixed-positioned parents (mobile drawer panel).
+   Both safely coexist — flex:1 is ignored if parent isn't flex. */
+app-sidebar {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  height: 100%;
+  min-height: 0;
+}
+
 .sidebar-container {
   background: white;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  height: 100vh;
+  /* Was `height: 100vh` — but on mobile 100vh INCLUDES the URL bar height,
+     so the footer (user account card) was pushed below the visible drawer.
+     Using 100% defers sizing to the parent which already constrains height. */
+  height: 100%;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(229, 231, 235, 0.5);
@@ -10,11 +28,28 @@
   overflow: hidden;
 }
 
+/* Sidebar footer must never be squeezed out of the flex column when the
+   nav has many items — `flex-shrink: 0` reserves its intrinsic height. */
+.sidebar-footer {
+  flex-shrink: 0;
+}
+
 .sidebar-header {
   padding: 1.5rem;
   background: white;
   border-bottom: 1px solid rgba(229, 231, 235, 0.5);
-  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sidebar-header-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar-logo {
@@ -152,25 +187,8 @@
   color: #dc2626;
 }
 
-/* Tooltip - hidden by default */
-.nav-tooltip {
-  display: none;
-  position: absolute;
-  left: calc(100% + 8px);
-  top: 50%;
-  transform: translateY(-50%);
-  opacity: 0;
-  pointer-events: none;
-  z-index: 100;
-  background: #1f2937;
-  color: white;
-  font-size: 12px;
-  font-weight: 500;
-  padding: 6px 10px;
-  border-radius: 6px;
-  white-space: nowrap;
-  transition: opacity 0.15s ease;
-}
+/* Legacy .nav-tooltip removed — now handled by SidebarTooltipDirective
+   (custom popover with aria-describedby, 500 ms delay, reduced-motion aware). */
 
 .sub-menu {
   margin-left: 1rem;
@@ -293,7 +311,9 @@
 .user-email-label {
   display: block;
   font-size: 0.6875rem;
-  color: #9ca3af;
+  /* WCAG 2.4 AA — #9ca3af on white = 2.85:1 (fail). #6b7280 = 4.83:1 (pass).
+     axe-core a11y spec verified. */
+  color: #6b7280;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -397,36 +417,41 @@
   background-color: #fef2f2;
 }
 
-/* ===== Collapse toggle button (desktop only — no collapse in mobile overlay) ===== */
-.collapse-toggle {
-  position: absolute;
-  right: -12px;
-  top: 24px;
-  width: 24px;
-  height: 24px;
-  background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 9999px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+/* ===== Collapse toggle (desktop only) — Stripe/Carbon in-header pattern.
+   Lives inside the sidebar header flex row, never floating outside the edge.
+   Hidden on mobile because the drawer has its own close affordance. ===== */
+.sidebar-toggle {
   display: none;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  z-index: 50;
+  width: 32px;
+  height: 32px;
+  border-radius: 0.5rem;
+  background: transparent;
+  border: 1px solid transparent;
   color: #6b7280;
-  transition: all 0.2s;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
 }
 
-@media (min-width: 768px) {
-  .collapse-toggle {
-    display: flex;
+@media (min-width: 1024px) {
+  .sidebar-toggle {
+    display: inline-flex;
   }
 }
 
-.collapse-toggle:hover {
+.sidebar-toggle:hover {
   background: #f3f4f6;
   color: #111827;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  border-color: #e5e7eb;
+}
+
+.sidebar-toggle:focus-visible {
+  outline: 2px solid #0056D2;
+  outline-offset: 2px;
+  background: #f3f4f6;
+  color: #111827;
 }
 
 /* ===== Collapsed state overrides ===== */
@@ -437,16 +462,12 @@
   align-items: center;
 }
 
-.sidebar-collapsed .sidebar-header > div {
+.sidebar-collapsed .sidebar-header-brand {
   justify-content: center;
 }
 
 .sidebar-collapsed .sidebar-header-text {
   display: none;
-}
-
-.sidebar-collapsed .sidebar-header .space-x-3 > :not(:first-child) {
-  margin-left: 0;
 }
 
 .sidebar-collapsed .nav-group-title {
@@ -517,12 +538,6 @@
     opacity: 1;
     transform: translateX(0);
   }
-}
-
-/* Show tooltip on hover in collapsed state */
-.sidebar-collapsed .nav-item:hover .nav-tooltip {
-  display: block;
-  opacity: 1;
 }
 
 /* Active state in collapsed mode */
@@ -791,4 +806,38 @@
 @keyframes default-star-pulse {
   0%, 100% { transform: scale(1); }
   50% { transform: scale(1.12); }
+}
+
+/* ===== Reduced motion (WCAG 2.3.3) ===== */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-container,
+  .sidebar-toggle,
+  .sidebar-org-context,
+  .sidebar-org-default-star,
+  .nav-item,
+  .sub-menu-item {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ===== Focus visible (WCAG 2.4.7) — every interactive sidebar element. ===== */
+.nav-item:focus-visible,
+.sub-menu-item:focus-visible,
+.sidebar-org-back:focus-visible,
+.user-menu-trigger:focus-visible,
+.user-menu-item:focus-visible {
+  outline: 2px solid #0056D2;
+  outline-offset: 2px;
+  border-radius: 0.5rem;
+}
+
+/* ===== Touch target size (WCAG 2.5.8 + Material 48 dp) on mobile. ===== */
+@media (max-width: 1023px) {
+  .nav-item,
+  .sub-menu-item {
+    min-height: 48px;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
 }

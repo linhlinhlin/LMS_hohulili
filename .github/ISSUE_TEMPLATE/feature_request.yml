@@ -1,0 +1,71 @@
+name: Feature request
+description: Đề xuất tính năng hoặc cải tiến có giá trị người dùng rõ ràng.
+title: "feat: "
+labels:
+  - type/feature
+  - needs-triage
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: Ai bị ảnh hưởng, vấn đề hiện tại là gì, vì sao cần giải quyết.
+      placeholder: Học viên cần...
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: Mô tả hướng giải quyết ở mức sản phẩm, chưa cần implementation chi tiết.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Acceptance criteria
+      value: |
+        - [ ]
+        - [ ]
+        - [ ]
+    validations:
+      required: true
+  - type: dropdown
+    id: role
+    attributes:
+      label: Vai trò bị ảnh hưởng
+      multiple: true
+      options:
+        - STUDENT
+        - TEACHER
+        - ORG_ADMIN
+        - ADMIN
+        - Public visitor
+        - Operator / maintainer
+    validations:
+      required: true
+  - type: dropdown
+    id: surface
+    attributes:
+      label: Surface
+      multiple: true
+      options:
+        - Frontend
+        - Backend
+        - PWA / offline
+        - Video / media
+        - Payment
+        - Auth / RBAC
+        - DevOps / CI
+        - Documentation
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Những hướng đã cân nhắc và lý do loại bỏ.
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks & open questions
+      value: |
+        -

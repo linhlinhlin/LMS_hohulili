@@ -87,13 +87,17 @@ class CourseQueryControllerV3ContractTest {
         when(teacher.getId()).thenReturn(teacherId);
         when(teacher.getFullName()).thenReturn("Teacher Name");
 
-        when(courseRepository.findByStatus(any(), any())).thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
+        when(courseRepository.findByStatusAndFilters(eq(Course.CourseStatus.APPROVED), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
         when(userJpaRepository.findAllById(any())).thenReturn(List.of(teacher));
         when(enrollmentJpaRepository.countEnrollmentsByCourseIds(any())).thenReturn(
                 java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 7L})
         );
+        when(chapterRepository.countByCourseIds(any())).thenReturn(
+                java.util.Collections.singletonList(new Object[] {approvedPaidCourse.getId(), 3L})
+        );
 
-        var response = controller.getPublicCourses(0, 20, null, null, null, null);
+        var response = controller.getPublicCourses(0, 20, null, null, null, null, null);
 
         assertThat(response.getBody()).isNotNull();
         ApiResponse<?> body = response.getBody();
@@ -107,6 +111,33 @@ class CourseQueryControllerV3ContractTest {
         assertThat(item.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(1_500_000));
         assertThat(item.getSalePrice()).isEqualByComparingTo(BigDecimal.valueOf(1_200_000));
         assertThat(item.getEnrolledCount()).isEqualTo(7);
+    }
+
+    @Test
+    @DisplayName("public course list should use the published thumbnail snapshot")
+    void getPublicCoursesUsesPublishedThumbnailSnapshot() {
+        approvedPaidCourse.updateThumbnail("https://cdn.example.com/draft-cover.jpg");
+        Map<String, Object> publishedDetail = Map.of(
+                "thumbnailUrl", "https://cdn.example.com/published-cover.jpg"
+        );
+
+        when(courseRepository.findByStatusAndFilters(eq(Course.CourseStatus.APPROVED), any(), any(), any(), any()))
+                .thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(enrollmentJpaRepository.countEnrollmentsByCourseIds(any())).thenReturn(List.of());
+        when(chapterRepository.countByCourseIds(any())).thenReturn(List.of());
+        when(coursePublicationService.getPublishedDetails(any(), eq(null)))
+                .thenReturn(Map.of(approvedPaidCourse.getId(), publishedDetail));
+
+        var response = controller.getPublicCourses(0, 20, null, null, null, null, null);
+
+        assertThat(response.getBody()).isNotNull();
+        @SuppressWarnings("unchecked")
+        var page = (org.springframework.data.domain.Page<CourseQueryControllerV3.CourseSummaryResponse>)
+                response.getBody().getData();
+
+        assertThat(page.getContent().getFirst().getThumbnailUrl())
+                .isEqualTo("https://cdn.example.com/published-cover.jpg");
     }
 
     @Test

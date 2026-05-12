@@ -39,6 +39,7 @@ export interface CourseSummary {
   code: string;
   title: string;
   description: string;
+  thumbnailUrl?: string;
   status: string;
   teacherName: string;
   enrolledCount: number;
@@ -58,7 +59,6 @@ export interface CourseSummary {
   maxStudents?: number;
   averageRating?: number;
   // Enrollment fields (from StudentEnrollmentControllerV3)
-  thumbnailUrl?: string;
   progress?: number;
   totalLessons?: number;
   completedLessons?: number;
@@ -84,6 +84,7 @@ export interface CourseDetail {
   code: string;
   title: string;
   description: string;
+  thumbnailUrl?: string;
   status: string;
   reviewState?: string;
   draftChangeStatus?: string | null;
@@ -303,6 +304,8 @@ export interface SectionDetail { // New L3 Section
   cfObjectKey?: string;
   interactiveVideoSpec?: InteractiveVideoSpec | null;
   fileUrl: string;
+  previewPdfUrl?: string;
+  previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | string | null;
   duration: number;
   orderIndex: number;
   lessonId: string;

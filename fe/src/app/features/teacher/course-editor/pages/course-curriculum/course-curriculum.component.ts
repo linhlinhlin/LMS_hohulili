@@ -1711,6 +1711,16 @@ export class CourseCurriculumComponent implements OnDestroy {
         this.toast.success('Tạo khóa học bằng AI hoàn tất!');
       }
     });
+  private operatorApplySub = this.wiiiContextService.operatorApplyResult$
+    .pipe(takeUntilDestroyed(this.destroyRef))
+    .subscribe(result => {
+      if (!result.success) return;
+      const courseId = this.store.courseTree()?.id;
+      if (courseId) {
+        this.store.loadCourse(courseId, true);
+      }
+      this.toast.success('Đã áp dụng nội dung Wiii sau khi duyệt bản xem trước.');
+    });
 
   /** Open Wiii AI sidebar for course generation from document */
   openAiCourseGeneration(): void {

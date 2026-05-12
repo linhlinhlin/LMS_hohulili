@@ -8,6 +8,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Ch
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.ChapterJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.model.Enrollment;
@@ -39,6 +40,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.text.Normalizer;
 import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -68,6 +70,7 @@ public class StudentEnrollmentControllerV3 {
     private final QuizJpaRepositoryV3 quizJpaRepository;
     private final QuizAttemptJpaRepository quizAttemptJpaRepository;
     private final com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository paymentTransactionJpaRepository;
+    private final CoursePublicationService coursePublicationService;
 
     @Operation(summary = "Get student's enrolled courses")
     @GetMapping("/courses/enrolled")
@@ -75,7 +78,12 @@ public class StudentEnrollmentControllerV3 {
     public ResponseEntity<ApiResponse<Page<EnrolledCourseResponse>>> getEnrolledCourses(
             @AuthenticationPrincipal UserJpaEntity currentUser,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String deliveryMode,
+            @RequestParam(required = false, defaultValue = "recent") String sort,
+            @RequestParam(required = false, defaultValue = "desc") String order
     ) {
         if (currentUser == null) {
             return ResponseEntity.ok(ApiResponse.success(
@@ -99,6 +107,34 @@ public class StudentEnrollmentControllerV3 {
         Set<UUID> courseIds = courseEnrollments.keySet();
         Map<UUID, CourseJpaEntity> courseMap = courseJpaRepository.findAllById(courseIds).stream()
                 .collect(Collectors.toMap(CourseJpaEntity::getId, c -> c));
+
+        Set<UUID> categoryFilterIds = resolveCategoryFilterIds(category);
+        boolean categoryFilterRequested = hasText(category);
+        CourseJpaEntity.DeliveryMode deliveryModeFilter = parseDeliveryMode(deliveryMode);
+        String normalizedSearch = normalizeSearch(search);
+        if (categoryFilterRequested && categoryFilterIds.isEmpty()) {
+            courseEnrollments = Map.of();
+            courseMap = Map.of();
+        } else if (categoryFilterRequested || deliveryModeFilter != null || normalizedSearch != null) {
+            Map<UUID, List<Enrollment>> filteredEnrollments = new LinkedHashMap<>();
+            for (Map.Entry<UUID, List<Enrollment>> entry : courseEnrollments.entrySet()) {
+                CourseJpaEntity course = courseMap.get(entry.getKey());
+                if (matchesEnrolledCourseFilters(
+                        course,
+                        categoryFilterIds,
+                        categoryFilterRequested,
+                        deliveryModeFilter,
+                        normalizedSearch)) {
+                    filteredEnrollments.put(entry.getKey(), entry.getValue());
+                }
+            }
+            courseEnrollments = filteredEnrollments;
+            Set<UUID> filteredCourseIds = courseEnrollments.keySet();
+            courseMap = courseMap.entrySet().stream()
+                    .filter(entry -> filteredCourseIds.contains(entry.getKey()))
+                    .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        }
+        courseIds = courseEnrollments.keySet();
 
         // Batch-load teacher names
         Set<UUID> teacherIds = courseMap.values().stream()
@@ -140,8 +176,12 @@ public class StudentEnrollmentControllerV3 {
                         studentId, courseIds,
                         com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity.PaymentStatus.COMPLETED))
                 : Set.of();
+        Map<UUID, Map<String, Object>> publishedDetails = Optional
+                .ofNullable(coursePublicationService.getPublishedDetails(courseIds, studentId))
+                .orElse(Map.of());
 
         // Build response with real course data
+        Map<UUID, CourseJpaEntity> finalCourseMap = courseMap;
         List<EnrolledCourseResponse> courseResponses = courseEnrollments.entrySet().stream()
                 .map(entry -> {
                     UUID courseId = entry.getKey();
@@ -151,7 +191,7 @@ public class StudentEnrollmentControllerV3 {
                                     e -> e.getEnrolledAt() != null ? e.getEnrolledAt() : Instant.EPOCH))
                             .orElse(entry.getValue().getFirst());
                     LearningClass lc = enrollment.getLearningClass();
-                    CourseJpaEntity course = courseMap.get(courseId);
+                    CourseJpaEntity course = finalCourseMap.get(courseId);
 
                     String description = course != null && course.getDescription() != null
                             ? course.getDescription() : "";
@@ -171,7 +211,7 @@ public class StudentEnrollmentControllerV3 {
                             .description(description)
                             .teacherName(teacherName)
                             .categoryName(categoryName)
-                            .thumbnailUrl(course != null ? (course.getThumbnailUrl() != null ? course.getThumbnailUrl() : course.getIntroVideoUrl()) : null)
+                            .thumbnailUrl(resolvePublishedThumbnailUrl(course, publishedDetails.get(courseId)))
                             .status(enrollment.getStatus().name().toLowerCase())
                             .progress(enrollment.getCompletionPercent() != null ? enrollment.getCompletionPercent() : 0)
                             .totalLessons(lessonCountMap.getOrDefault(courseId, 0L).intValue())
@@ -190,15 +230,7 @@ public class StudentEnrollmentControllerV3 {
                 })
                 .collect(Collectors.toList());
 
-        // Sort by lastAccessedAt DESC (SOTA: Canvas/Coursera "most recently accessed" pattern)
-        courseResponses.sort((a, b) -> {
-            String aTime = a.getLastAccessedAt();
-            String bTime = b.getLastAccessedAt();
-            if (aTime == null && bTime == null) return 0;
-            if (aTime == null) return 1;
-            if (bTime == null) return -1;
-            return bTime.compareTo(aTime);
-        });
+        sortEnrolledCourseResponses(courseResponses, sort, order);
         
         // Apply pagination manually (0-indexed, Spring Data standard)
         int safePage = Math.max(0, page);
@@ -1062,6 +1094,103 @@ private Map<String, Object> buildSectionCompletionResponse(
                 .count();
         int percent = (int) Math.min(100, Math.round((double) completedCount / totalLessons * 100));
         enrollment.updateCompletionPercent(percent);
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private String normalizeSearch(String search) {
+        return hasText(search) ? normalizeForSearch(search) : null;
+    }
+
+    private String normalizeForSearch(String value) {
+        if (value == null) return "";
+        String normalized = Normalizer.normalize(value.trim(), Normalizer.Form.NFD)
+                .replace('đ', 'd')
+                .replace('Đ', 'D')
+                .replaceAll("\\p{M}+", "");
+        return normalized.toLowerCase(Locale.ROOT);
+    }
+
+    private CourseJpaEntity.DeliveryMode parseDeliveryMode(String value) {
+        if (!hasText(value)) return null;
+        try {
+            return CourseJpaEntity.DeliveryMode.valueOf(value.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ignored) {
+            return null;
+        }
+    }
+
+    private Set<UUID> resolveCategoryFilterIds(String category) {
+        if (!hasText(category)) return Set.of();
+        Optional<CourseCategoryJpaEntity> matchedCategory = categoryJpaRepository
+                .findByCode(category.trim().toUpperCase(Locale.ROOT))
+                .or(() -> categoryJpaRepository.findBySlug(category.trim().toLowerCase(Locale.ROOT)));
+        if (matchedCategory.isEmpty()) return Set.of();
+
+        CourseCategoryJpaEntity rootOrLeaf = matchedCategory.get();
+        Set<UUID> categoryIds = new LinkedHashSet<>();
+        categoryIds.add(rootOrLeaf.getId());
+        categoryJpaRepository.findByParentIdOrderBySortOrder(rootOrLeaf.getId()).stream()
+                .map(CourseCategoryJpaEntity::getId)
+                .forEach(categoryIds::add);
+        return categoryIds;
+    }
+
+    private boolean matchesEnrolledCourseFilters(
+            CourseJpaEntity course,
+            Set<UUID> categoryFilterIds,
+            boolean categoryFilterRequested,
+            CourseJpaEntity.DeliveryMode deliveryModeFilter,
+            String normalizedSearch
+    ) {
+        if (course == null) return false;
+        if (categoryFilterRequested
+                && (course.getCategoryId() == null || !categoryFilterIds.contains(course.getCategoryId()))) {
+            return false;
+        }
+        if (deliveryModeFilter != null && course.getDeliveryMode() != deliveryModeFilter) {
+            return false;
+        }
+        return normalizedSearch == null
+                || normalizeForSearch(course.getTitle()).contains(normalizedSearch);
+    }
+
+    private String resolvePublishedThumbnailUrl(CourseJpaEntity course, Map<String, Object> publishedDetail) {
+        if (publishedDetail != null && publishedDetail.containsKey("thumbnailUrl")) {
+            Object thumbnailUrl = publishedDetail.get("thumbnailUrl");
+            return thumbnailUrl instanceof String value ? value : null;
+        }
+        return course != null ? course.getThumbnailUrl() : null;
+    }
+
+    private void sortEnrolledCourseResponses(List<EnrolledCourseResponse> courseResponses, String sort, String order) {
+        String sortKey = hasText(sort) ? sort.trim().toLowerCase(Locale.ROOT) : "recent";
+        boolean ascending = "asc".equalsIgnoreCase(order);
+        Comparator<EnrolledCourseResponse> comparator = switch (sortKey) {
+            case "az", "title" -> Comparator.comparing(
+                    response -> Optional.ofNullable(response.getTitle()).orElse(""),
+                    String.CASE_INSENSITIVE_ORDER
+            );
+            case "progress" -> Comparator.comparing(
+                    response -> Optional.ofNullable(response.getProgress()).orElse(0)
+            );
+            default -> this::compareLastAccessedAscending;
+        };
+        if (!ascending) {
+            comparator = comparator.reversed();
+        }
+        courseResponses.sort(comparator);
+    }
+
+    private int compareLastAccessedAscending(EnrolledCourseResponse a, EnrolledCourseResponse b) {
+        String aTime = a.getLastAccessedAt();
+        String bTime = b.getLastAccessedAt();
+        if (aTime == null && bTime == null) return 0;
+        if (aTime == null) return -1;
+        if (bTime == null) return 1;
+        return aTime.compareTo(bTime);
     }
 
     private long countTotalLessonsForCourse(UUID courseId) {

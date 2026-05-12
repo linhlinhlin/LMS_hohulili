@@ -1,0 +1,44 @@
+name: Research / architecture decision
+description: Nghiên cứu kỹ thuật, ADR, hoặc quyết định kiến trúc cần thảo luận trước khi code.
+title: "research: "
+labels:
+  - status/research
+  - needs-triage
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Research question
+      description: Câu hỏi cần trả lời hoặc quyết định cần chốt.
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Project context
+      description: Ràng buộc LMS Maritime, role, PWA, video, deploy, hoặc dữ liệu liên quan.
+    validations:
+      required: true
+  - type: textarea
+    id: options
+    attributes:
+      label: Options to compare
+      value: |
+        1.
+        2.
+        3.
+  - type: textarea
+    id: decision_criteria
+    attributes:
+      label: Decision criteria
+      value: |
+        - Security:
+        - Maintainability:
+        - Cost:
+        - Offline/PWA impact:
+        - Migration risk:
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Tài liệu chính thức, paper, issue, PR, hoặc benchmark liên quan.

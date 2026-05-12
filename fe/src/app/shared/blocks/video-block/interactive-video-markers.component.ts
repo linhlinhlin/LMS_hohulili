@@ -12,12 +12,13 @@ interface InteractiveVideoMarker {
   imports: [],
   template: `
     @if (visibleMarkers().length > 0) {
-      <div class="pointer-events-none absolute inset-x-3 bottom-10 z-10">
-        @if (upcomingInteraction(); as next) {
-          <div class="mb-2 flex justify-end">
+      <div class="pointer-events-none border-t border-white/10 bg-slate-950/95 px-3 py-2 text-white">
+        @if (showUpcomingHint()) {
+          @if (upcomingInteraction(); as next) {
+            <div class="mb-1.5 flex justify-end">
             <button
               type="button"
-              class="pointer-events-auto inline-flex max-w-md items-center gap-2 rounded-full bg-slate-950/85 px-3 py-1.5 text-[11px] font-semibold text-white shadow-lg backdrop-blur transition-colors hover:bg-slate-950 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+              class="pointer-events-auto inline-flex max-w-md items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-[11px] font-semibold text-white shadow-sm transition-colors hover:bg-white/15 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
               [attr.aria-label]="'Tới tương tác tại ' + formatTime(next.atSeconds)"
               (click)="markerSelected.emit(next.atSeconds)">
               <span class="h-2 w-2 shrink-0 rounded-full bg-sky-300"></span>
@@ -25,15 +26,16 @@ interface InteractiveVideoMarker {
                 Sắp tới: {{ interactionLabel(next) }} tại {{ formatTime(next.atSeconds) }}
               </span>
             </button>
-          </div>
+            </div>
+          }
         }
 
-        <div class="pointer-events-auto relative h-3 rounded-full bg-slate-950/35 px-1 shadow-sm backdrop-blur">
+        <div class="pointer-events-auto relative h-4 rounded-full bg-white/10 px-1 shadow-inner">
           <div class="absolute left-1 right-1 top-1/2 h-1 -translate-y-1/2 rounded-full bg-white/25"></div>
           @for (marker of visibleMarkers(); track marker.interaction.id) {
             <button
               type="button"
-              class="absolute top-1/2 flex h-3 w-3 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#0056D2] shadow transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
+              class="absolute top-1/2 flex h-3.5 w-3.5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#0056D2] shadow transition-transform hover:scale-125 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
               [class.ring-2]="activeInteractionId() === marker.interaction.id"
               [class.ring-sky-200]="activeInteractionId() === marker.interaction.id"
               [style.left.%]="marker.percent"
@@ -52,6 +54,7 @@ export class InteractiveVideoMarkersComponent {
   readonly durationSeconds = input<number | null>(null);
   readonly currentTimeSeconds = input(0);
   readonly activeInteractionId = input<string | null>(null);
+  readonly showUpcomingHint = input(true);
   readonly markerSelected = output<number>();
 
   readonly scaleSeconds = computed(() => {

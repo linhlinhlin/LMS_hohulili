@@ -277,7 +277,7 @@ export class CourseService {
       title: course.title,
       description: course.description || '',
       shortDescription: course.description?.substring(0, 100) || '',
-      thumbnail: (course as CourseDetail & { thumbnailUrl?: string }).thumbnailUrl || null as any,
+      thumbnail: course.thumbnailUrl || null as any,
       instructor: {
         id: course.teacherId || '',
         name: course.teacherName || 'Giảng viên',

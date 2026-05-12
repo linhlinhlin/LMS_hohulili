@@ -396,6 +396,12 @@ export class LearningService {
     const offlineFileUrl = (section.fileOfflineUri && section.fileOfflineUri !== 'undefined' && section.fileOfflineUri !== 'null')
       ? section.fileOfflineUri
       : undefined;
+    const previewPdfUrl = (section.previewPdfUrl && section.previewPdfUrl !== 'undefined' && section.previewPdfUrl !== 'null')
+      ? section.previewPdfUrl
+      : undefined;
+    const previewStatus = (section.previewStatus && section.previewStatus !== 'undefined' && section.previewStatus !== 'null')
+      ? section.previewStatus
+      : undefined;
 
     return {
       id: section.id,
@@ -418,6 +424,8 @@ export class LearningService {
         : undefined,
       videoOfflineUri: offlineVideoUrl,
       fileUrl: offlineFileUrl || ((section.fileUrl && section.fileUrl !== 'undefined' && section.fileUrl !== 'null') ? section.fileUrl : undefined),
+      previewPdfUrl,
+      previewStatus,
       duration: section.duration,
       orderIndex: section.orderIndex ?? 0,
       isRequired: section.isRequired ?? false,
@@ -825,12 +833,24 @@ export class LearningService {
    */
   private mapLessonResponse(data: any): LessonDetail {
     let mappedSections: SectionContent[] = (data.sections || []).map((s: any) => this.mapSectionContent(s));
+    const fromCourseContent = this.findSectionsFromCourseContent(data.id);
 
     if (mappedSections.length === 0) {
-      const fromCourseContent = this.findSectionsFromCourseContent(data.id);
       if (fromCourseContent && fromCourseContent.length > 0) {
         mappedSections = fromCourseContent;
       }
+    } else if (fromCourseContent && fromCourseContent.length > 0) {
+      const cachedById = new Map(fromCourseContent.map(section => [section.id, section]));
+      mappedSections = mappedSections.map(section => {
+        const cached = cachedById.get(section.id);
+        if (!cached) return section;
+        return {
+          ...section,
+          fileUrl: section.fileUrl ?? cached.fileUrl,
+          previewPdfUrl: section.previewPdfUrl ?? cached.previewPdfUrl,
+          previewStatus: section.previewStatus ?? cached.previewStatus,
+        };
+      });
     }
 
     return {

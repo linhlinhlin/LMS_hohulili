@@ -137,7 +137,7 @@ export function createInteractiveVideoDragDrop(): InteractiveVideoDragDrop {
   const distractorDraggable = createInteractiveVideoDragDropDraggable(1);
 
   return {
-    instruction: 'Kéo những đáp án đúng vào vùng ảnh. Để nguyên đáp án sai ở ngoài.',
+    instruction: 'Chọn các vật dụng phù hợp rồi kéo vào vùng trên hình.',
     backgroundImage: null,
     dropZones: [
       { ...answerZone, correctDraggableIds: [correctDraggable.id] },
@@ -913,8 +913,11 @@ function clampToVideoDuration(value: number, maxSeconds: number | null): number 
   if (maxSeconds == null) {
     return safe;
   }
-  const upperBound = Math.max(0, maxSeconds - 1);
-  return Math.min(upperBound, safe);
+  // maxSeconds is already `duration - 1` (see getMaxInteractiveSeconds). Don't
+  // subtract another second here — that would push every suggested timestamp
+  // two seconds before the end of the video, mismatching what the typed-time
+  // input accepts and confusing teachers.
+  return Math.min(maxSeconds, safe);
 }
 
 function getFirstInteractionTimeSeconds(maxSeconds: number): number {

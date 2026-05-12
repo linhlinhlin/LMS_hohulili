@@ -71,7 +71,10 @@ class UserControllerV3TeacherKpiTest {
                 userEntity(teacherBId, "teacher-b@m.edu", "Teacher B", UserJpaEntity.UserRole.TEACHER),
                 userEntity(studentId, "student@m.edu", "Student",      UserJpaEntity.UserRole.STUDENT)
         );
-        when(userRepository.findAll(any(PageRequest.class)))
+        when(userRepository.findAll(
+                any(org.springframework.data.jpa.domain.Specification.class),
+                any(PageRequest.class)
+        ))
                 .thenReturn(new PageImpl<>(users));
 
         // Teacher A has 5 courses, Teacher B has 0 (absent from the result set
@@ -81,7 +84,7 @@ class UserControllerV3TeacherKpiTest {
                 .thenReturn(teacherACountRow);
 
         ResponseEntity<ApiResponse<Page<UserControllerV3.UserResponse>>> response =
-                controller.getUsers(1, 10, null, null, null, null, admin);
+                controller.getUsers(1, 10, null, null, null, null, null, false, admin);
 
         @SuppressWarnings("ConstantConditions")
         List<UserControllerV3.UserResponse> rows = response.getBody().getData().getContent();
@@ -103,11 +106,14 @@ class UserControllerV3TeacherKpiTest {
                 userEntity(studentId, "student@m.edu", "Student",      UserJpaEntity.UserRole.STUDENT),
                 userEntity(admin.getId(), "admin@m.edu", "Admin",      UserJpaEntity.UserRole.ADMIN)
         );
-        when(userRepository.findAll(any(PageRequest.class)))
+        when(userRepository.findAll(
+                any(org.springframework.data.jpa.domain.Specification.class),
+                any(PageRequest.class)
+        ))
                 .thenReturn(new PageImpl<>(users));
         when(courseRepository.countCoursesByTeacherIds(any())).thenReturn(List.of());
 
-        controller.getUsers(1, 10, null, null, null, null, admin);
+        controller.getUsers(1, 10, null, null, null, null, null, false, admin);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<Collection<UUID>> captor = ArgumentCaptor.forClass(Collection.class);
@@ -121,10 +127,13 @@ class UserControllerV3TeacherKpiTest {
         List<UserJpaEntity> users = List.of(
                 userEntity(studentId, "student@m.edu", "Student", UserJpaEntity.UserRole.STUDENT)
         );
-        when(userRepository.findAll(any(PageRequest.class)))
+        when(userRepository.findAll(
+                any(org.springframework.data.jpa.domain.Specification.class),
+                any(PageRequest.class)
+        ))
                 .thenReturn(new PageImpl<>(users));
 
-        controller.getUsers(1, 10, null, null, null, null, admin);
+        controller.getUsers(1, 10, null, null, null, null, null, false, admin);
 
         verify(courseRepository, never()).countCoursesByTeacherIds(any());
     }

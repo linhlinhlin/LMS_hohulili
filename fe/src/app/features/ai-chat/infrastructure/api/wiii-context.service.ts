@@ -15,15 +15,20 @@
  */
 import { Injectable, OnDestroy, PLATFORM_ID, effect, inject } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
+import { HttpHeaders } from '@angular/common/http';
 import { Router, NavigationEnd } from '@angular/router';
 import { Subject, Subscription, filter, firstValueFrom } from 'rxjs';
 import { environment } from '../../../../../environments/environment';
 import { PageDataExtractorService, type PageStructuredData } from './page-data-extractor.service';
 import { AuthService } from '../../../../core/services/auth.service';
+import { ChapterApi } from '../../../../api/client/chapter.api';
 import { LessonApi } from '../../../../api/client/lesson.api';
+import { SectionApi } from '../../../../api/client/section.api';
 import { QuizApi } from '../../../../api/endpoints/quiz.api';
+import { CourseEditorStore } from '../../../teacher/course-editor/store/course-editor.store';
 import { CurriculumSelectionService } from '../../../teacher/course-editor/services/curriculum-selection.service';
 import {
+  POINTY_ACTION_CLICK,
   POINTY_ACTION_HIGHLIGHT,
   POINTY_ACTION_SCROLL_TO,
   POINTY_ACTION_SHOW_TOUR,
@@ -34,6 +39,7 @@ import {
   resolvePointySelector,
   runTour,
   showSpotlight,
+  type ClickParams,
   type HighlightParams,
   type ScrollToParams,
   type ShowTourParams,
@@ -107,14 +113,49 @@ interface WiiiHostCapabilities {
 
 const LMS_CONNECTOR_ID = 'maritime-lms';
 
-type OperatorPreviewKind = 'lesson_patch' | 'quiz_commit' | 'quiz_publish';
+export type OperatorPreviewKind = 'lesson_patch' | 'course_plan' | 'quiz_commit' | 'quiz_publish';
 
 interface PendingOperatorPreview {
   kind: OperatorPreviewKind;
   token: string;
   createdAt: number;
+  approvedAt?: number;
+  approvalToken?: string;
   summary: string;
   payload: Record<string, unknown>;
+}
+
+export interface WiiiSourceReference {
+  kind?: string;
+  title?: string;
+  label?: string;
+  excerpt?: string;
+  page?: number;
+  page_start?: number;
+  page_end?: number;
+  chapter_index?: number;
+  lesson_index?: number;
+  block_id?: string;
+}
+
+export interface WiiiOperatorPreviewPanel {
+  token: string;
+  kind: OperatorPreviewKind;
+  createdAt: number;
+  summary: string;
+  applyAction: string;
+  targetLabel: string;
+  changedFields: string[];
+  sourceReferences: WiiiSourceReference[];
+  data: Record<string, unknown>;
+}
+
+export interface WiiiOperatorApplyResult {
+  token: string;
+  kind: OperatorPreviewKind;
+  success: boolean;
+  data?: Record<string, unknown>;
+  error?: string;
 }
 
 interface LessonPreviewBlock {
@@ -131,13 +172,44 @@ interface LessonPreviewBlockDelta {
   after?: LessonPreviewBlock;
 }
 
+interface CoursePlanLesson {
+  title: string;
+  summary: string;
+  activity?: string;
+  quick_check?: string;
+  duration_minutes?: number;
+  source_references?: WiiiSourceReference[];
+}
+
+interface CoursePlanChapter {
+  title: string;
+  summary: string;
+  learning_objectives: string[];
+  lessons: CoursePlanLesson[];
+  source_references?: WiiiSourceReference[];
+}
+
+interface NormalizedCoursePlan {
+  title: string;
+  description: string;
+  audience?: string;
+  duration?: string;
+  chapters: CoursePlanChapter[];
+  assessment_plan: string[];
+  implementation_checklist: string[];
+  source_document_title?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class WiiiContextService implements OnDestroy {
   private readonly router = inject(Router);
   private readonly pageDataExtractor = inject(PageDataExtractorService);
   private readonly authService = inject(AuthService);
+  private readonly chapterApi = inject(ChapterApi);
   private readonly lessonApi = inject(LessonApi);
+  private readonly sectionApi = inject(SectionApi);
   private readonly quizApi = inject(QuizApi);
+  private readonly courseEditorStore = inject(CourseEditorStore);
   private readonly selectionService = inject(CurriculumSelectionService);
   private readonly platformId = inject(PLATFORM_ID);
   private readonly isBrowser = isPlatformBrowser(this.platformId);
@@ -151,6 +223,8 @@ export class WiiiContextService implements OnDestroy {
 
   /** Observable for AI course generation progress events */
   readonly courseProgress$ = new Subject<CourseProgressEvent>();
+  readonly operatorPreview$ = new Subject<WiiiOperatorPreviewPanel>();
+  readonly operatorApplyResult$ = new Subject<WiiiOperatorApplyResult>();
 
   // Stored listener references for cleanup (Expert Fix 10)
   private screenshotListener: ((event: MessageEvent) => void) | null = null;
@@ -487,7 +561,7 @@ export class WiiiContextService implements OnDestroy {
   private buildCapabilities(ctx: WiiiPageContext): WiiiHostCapabilities {
     const role = this.resolveCurrentUserRole();
     const courseId = String(ctx.course_id || '');
-    const selectedLessonId = String(this.selectionService.selectedLessonId() || ctx.lesson_id || '');
+    const selectedLessonId = this.resolveCurrentLessonId({ lesson_id: ctx.lesson_id });
     const hostIdentity = this.buildHostIdentityOverlay();
     const tools: WiiiHostCapabilityTool[] = [
       {
@@ -524,7 +598,8 @@ export class WiiiContextService implements OnDestroy {
         surface: 'host_page',
         result_schema: { type: 'object', properties: { image: { type: 'string' } } },
       },
-      // Wiii Pointy V1 — read-only tutor primitives. No auto-click, no auto-fill.
+      // Wiii Pointy V1.1 — tutor-safe primitives. Safe-click only works on
+      // host-marked navigation-like targets and remains fail-closed.
       // Vendored handlers in `../pointy/`. Quiz answer options must NOT be highlighted
       // (pedagogical guardrail enforced server-side via `lms-pointy-tutor` skill).
       {
@@ -589,6 +664,31 @@ export class WiiiContextService implements OnDestroy {
           },
         },
       },
+      {
+        name: POINTY_ACTION_CLICK,
+        input_schema: {
+          type: 'object',
+          properties: {
+            selector: { type: 'string' },
+            message: { type: 'string' },
+          },
+          required: ['selector'],
+        },
+        requires_confirmation: false,
+        mutates_state: false,
+        permission: 'use:tools',
+        description:
+          'Bấm một mục điều hướng an toàn đã được LMS đánh dấu data-wiii-click-safe="true". Từ chối mặc định với submit, delete, publish, enroll, grade, payment.',
+        roles: ['student', 'teacher', 'admin'],
+        surface: 'host_page',
+        result_schema: {
+          type: 'object',
+          properties: {
+            clicked: { type: 'boolean' },
+            click_kind: { type: 'string' },
+          },
+        },
+      },
     ];
 
     if (role !== 'student' && ctx.page_type === 'course_editor' && courseId) {
@@ -616,15 +716,59 @@ export class WiiiContextService implements OnDestroy {
             properties: {
               course_id: { type: 'string' },
               action: { type: 'string' },
+              title: { type: 'string' },
+              summary: { type: 'string' },
+              course_plan: {
+                type: 'object',
+                properties: {
+                  title: { type: 'string' },
+                  description: { type: 'string' },
+                  chapters: { type: 'array', items: { type: 'object' } },
+                },
+              },
+              source_references: { type: 'array', items: { type: 'object' } },
             },
           },
           requires_confirmation: false,
           mutates_state: false,
           permission: 'manage:courses',
-          description: 'Mở flow AI để tạo outline/chapter từ tài liệu cho khóa học hiện tại.',
+          description: 'Tạo bản xem trước cây khóa học/chương/bài từ tài liệu upload. Chỉ preview, chưa ghi LMS cho tới khi giáo viên bấm Áp dụng.',
           roles: ['teacher', 'admin'],
-          surface: 'ai_sidebar',
-          result_schema: { type: 'object', properties: { opened: { type: 'boolean' } } },
+          surface: 'preview_panel',
+          result_schema: {
+            type: 'object',
+            properties: {
+              preview_token: { type: 'string' },
+              preview_kind: { type: 'string' },
+              summary: { type: 'string' },
+            },
+          },
+        },
+        {
+          name: 'authoring.apply_course_plan',
+          input_schema: {
+            type: 'object',
+            properties: {
+              preview_token: { type: 'string' },
+              approval_token: { type: 'string' },
+            },
+            required: ['preview_token', 'approval_token'],
+          },
+          requires_confirmation: true,
+          mutates_state: true,
+          permission: 'manage:courses',
+          description: 'Tạo các chương/bài draft từ bản xem trước course_plan sau khi giáo viên xác nhận trong LMS.',
+          roles: ['teacher', 'admin'],
+          surface: 'editor_shell',
+          result_schema: {
+            type: 'object',
+            properties: {
+              applied: { type: 'boolean' },
+              course_id: { type: 'string' },
+              chapters_created: { type: 'number' },
+              lessons_created: { type: 'number' },
+            },
+          },
         },
         {
           name: 'authoring.generate_lesson',
@@ -690,6 +834,7 @@ export class WiiiContextService implements OnDestroy {
                 title: { type: 'string' },
                 description: { type: 'string' },
                 content: { type: 'string' },
+                source_references: { type: 'array', items: { type: 'object' } },
               },
             },
             requires_confirmation: false,
@@ -706,7 +851,9 @@ export class WiiiContextService implements OnDestroy {
               type: 'object',
               properties: {
                 preview_token: { type: 'string' },
+                approval_token: { type: 'string' },
               },
+              required: ['preview_token', 'approval_token'],
             },
             requires_confirmation: true,
             mutates_state: true,
@@ -744,7 +891,9 @@ export class WiiiContextService implements OnDestroy {
               type: 'object',
               properties: {
                 preview_token: { type: 'string' },
+                approval_token: { type: 'string' },
               },
+              required: ['preview_token', 'approval_token'],
             },
             requires_confirmation: true,
             mutates_state: true,
@@ -777,7 +926,9 @@ export class WiiiContextService implements OnDestroy {
               type: 'object',
               properties: {
                 preview_token: { type: 'string' },
+                approval_token: { type: 'string' },
               },
+              required: ['preview_token', 'approval_token'],
             },
             requires_confirmation: true,
             mutates_state: true,
@@ -851,6 +1002,10 @@ export class WiiiContextService implements OnDestroy {
     return `${kind}-${Math.random().toString(36).slice(2, 10)}`;
   }
 
+  private createApprovalToken(kind: OperatorPreviewKind): string {
+    return `approved-${kind}-${Math.random().toString(36).slice(2, 10)}`;
+  }
+
   private prunePendingPreviews(): void {
     const now = Date.now();
     for (const [token, preview] of this.pendingOperatorPreviews.entries()) {
@@ -886,6 +1041,85 @@ export class WiiiContextService implements OnDestroy {
     return preview;
   }
 
+  private requireAnyPreview(token: string): PendingOperatorPreview {
+    this.prunePendingPreviews();
+    const preview = this.pendingOperatorPreviews.get(token);
+    if (!preview) {
+      throw new Error('Missing operator preview');
+    }
+    return preview;
+  }
+
+  private requireHostApproval(
+    preview: PendingOperatorPreview,
+    approvalToken: string | undefined,
+  ): void {
+    if (!approvalToken || preview.approvalToken !== approvalToken) {
+      throw new Error('host_preview_approval_required');
+    }
+  }
+
+  async approveOperatorPreview(previewToken: string): Promise<WiiiOperatorApplyResult> {
+    const preview = this.requireAnyPreview(String(previewToken || '').trim());
+    preview.approvalToken = this.createApprovalToken(preview.kind);
+    preview.approvedAt = Date.now();
+
+    try {
+      const result = await this.handleActionRequest(this.applyActionForPreviewKind(preview.kind), {
+        preview_token: preview.token,
+        approval_token: preview.approvalToken,
+      });
+      const event: WiiiOperatorApplyResult = {
+        token: preview.token,
+        kind: preview.kind,
+        success: result.success,
+        data: result.data,
+        error: result.error,
+      };
+      this.operatorApplyResult$.next(event);
+      return event;
+    } catch (error) {
+      const event: WiiiOperatorApplyResult = {
+        token: preview.token,
+        kind: preview.kind,
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+      };
+      this.operatorApplyResult$.next(event);
+      return event;
+    }
+  }
+
+  private applyActionForPreviewKind(kind: OperatorPreviewKind): string {
+    switch (kind) {
+      case 'lesson_patch':
+        return 'authoring.apply_lesson_patch';
+      case 'course_plan':
+        return 'authoring.apply_course_plan';
+      case 'quiz_commit':
+        return 'assessment.apply_quiz_commit';
+      case 'quiz_publish':
+        return 'publish.apply_quiz';
+    }
+  }
+
+  private announceOperatorPreview(
+    preview: PendingOperatorPreview,
+    data: Record<string, unknown>,
+  ): void {
+    this.operatorPreview$.next({
+      token: preview.token,
+      kind: preview.kind,
+      createdAt: preview.createdAt,
+      summary: String(data['summary'] || preview.summary || '').trim(),
+      applyAction: String(data['apply_action'] || this.applyActionForPreviewKind(preview.kind)).trim(),
+      targetLabel: String(data['target_label'] || data['course_title'] || data['lesson_title'] || data['quiz_title'] || preview.kind).trim(),
+      changedFields: this.normalizeStringArray(data['changed_fields']),
+      sourceReferences: this.normalizeSourceReferences(data['source_references']),
+      data,
+    });
+  }
+
   private resolveCurrentCourseId(params: Record<string, unknown>): string {
     return String(
       params['course_id']
@@ -900,9 +1134,33 @@ export class WiiiContextService implements OnDestroy {
       params['lesson_id']
       || params['lessonId']
       || this.selectionService.selectedLessonId()
+      || this.selectionService.selectedLesson()?.id
       || this.lastContext?.lesson_id
+      || this.extractLessonIdFromCurrentUrl()
       || '',
     ).trim();
+  }
+
+  private extractLessonIdFromCurrentUrl(): string {
+    if (!this.isBrowser) {
+      return '';
+    }
+    const url = String(this.router.url || '');
+    if (!url) {
+      return '';
+    }
+
+    const queryText = url.includes('?') ? url.split('?')[1].split('#')[0] : '';
+    if (queryText) {
+      const query = new URLSearchParams(queryText);
+      const fromQuery = query.get('lessonId') || query.get('lesson_id');
+      if (fromQuery) {
+        return fromQuery.trim();
+      }
+    }
+
+    const pathMatch = url.match(/\/lesson\/([^/?#]+)/i);
+    return pathMatch?.[1] ? decodeURIComponent(pathMatch[1]).trim() : '';
   }
 
   private normalizeString(value: unknown): string | undefined {
@@ -917,6 +1175,35 @@ export class WiiiContextService implements OnDestroy {
     return value
       .map((item) => String(item || '').trim())
       .filter((item) => item.length > 0);
+  }
+
+  private normalizeSourceReferences(value: unknown): WiiiSourceReference[] {
+    if (!Array.isArray(value)) {
+      return [];
+    }
+    return value
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .slice(0, 12)
+      .map((item) => ({
+        kind: this.normalizeString(item['kind']),
+        title: this.normalizeString(item['title']),
+        label: this.normalizeString(item['label']),
+        excerpt: this.normalizeString(item['excerpt'] ?? item['text'] ?? item['snippet']),
+        page: this.normalizeOptionalNumber(item['page'] ?? item['page_number']),
+        page_start: this.normalizeOptionalNumber(item['page_start'] ?? item['pageStart'] ?? item['source_page_start']),
+        page_end: this.normalizeOptionalNumber(item['page_end'] ?? item['pageEnd'] ?? item['source_page_end']),
+        chapter_index: this.normalizeOptionalNumber(item['chapter_index'] ?? item['chapterIndex']),
+        lesson_index: this.normalizeOptionalNumber(item['lesson_index'] ?? item['lessonIndex']),
+        block_id: this.normalizeString(item['block_id'] ?? item['blockId']),
+      }));
+  }
+
+  private normalizeOptionalNumber(value: unknown): number | undefined {
+    if (value === null || value === undefined || value === '') {
+      return undefined;
+    }
+    const number = Number(value);
+    return Number.isFinite(number) ? number : undefined;
   }
 
   private buildPreviewExcerpt(value: unknown, maxLength = 240): string {
@@ -939,12 +1226,329 @@ export class WiiiContextService implements OnDestroy {
     return `${normalized.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
   }
 
+  private buildPreviewText(value: unknown, maxLength = 1800): string {
+    const normalized = String(value ?? '')
+      .replace(/\r\n?/g, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .split('\n')
+      .map((line) => line.replace(/[ \t]+/g, ' ').trim())
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+    if (!normalized) {
+      return '';
+    }
+    if (normalized.length <= maxLength) {
+      return normalized;
+    }
+    return `${normalized.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+  }
+
+  private extractLearningObjectivesFromContent(value: unknown): string[] {
+    const text = this.buildPreviewText(value, 5000);
+    if (!text) {
+      return [];
+    }
+
+    const lines = text.split('\n');
+    const objectives: string[] = [];
+    let inObjectiveSection = false;
+
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) {
+        continue;
+      }
+      const normalizedHeading = trimmed
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase();
+
+      if (/^#{1,3}\s*muc tieu hoc tap\b/.test(normalizedHeading)) {
+        inObjectiveSection = true;
+        continue;
+      }
+      if (inObjectiveSection && /^#{1,3}\s+/.test(trimmed)) {
+        break;
+      }
+      if (!inObjectiveSection) {
+        continue;
+      }
+
+      const objective = trimmed
+        .replace(/^[-*•]\s+/, '')
+        .replace(/^\d+[.)-]\s+/, '')
+        .trim();
+      if (objective.length > 0) {
+        objectives.push(objective);
+      }
+      if (objectives.length >= 6) {
+        break;
+      }
+    }
+
+    return objectives;
+  }
+
   private buildActionSummary(prefix: string, details: string[]): string {
     const cleanDetails = details.filter((detail) => detail.trim().length > 0);
     if (cleanDetails.length === 0) {
       return prefix;
     }
     return `${prefix}: ${cleanDetails.join(', ')}.`;
+  }
+
+  private normalizeCoursePlan(raw: unknown): NormalizedCoursePlan {
+    const record = raw && typeof raw === 'object' && !Array.isArray(raw)
+      ? raw as Record<string, unknown>
+      : {};
+    const chapters = this.normalizeCoursePlanChapters(record['chapters']);
+    return {
+      title: this.normalizeString(record['title']) || this.normalizeString(record['course_title']) || 'Khóa học từ tài liệu',
+      description: this.normalizeString(record['description']) || this.normalizeString(record['summary']) || '',
+      audience: this.normalizeString(record['audience']),
+      duration: this.normalizeString(record['duration']),
+      chapters,
+      assessment_plan: this.normalizeStringArray(record['assessment_plan'] || record['assessmentPlan']),
+      implementation_checklist: this.normalizeStringArray(record['implementation_checklist'] || record['implementationChecklist']),
+      source_document_title: this.normalizeString(record['source_document_title'] || record['sourceDocumentTitle']),
+    };
+  }
+
+  private normalizeCoursePlanChapters(raw: unknown): CoursePlanChapter[] {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .slice(0, 6)
+      .map((item, index) => ({
+        title: this.normalizeString(item['title']) || `Chương ${index + 1}`,
+        summary: this.normalizeString(item['summary'] || item['description']) || '',
+        learning_objectives: this.normalizeStringArray(item['learning_objectives'] || item['learningObjectives']).slice(0, 6),
+        lessons: this.normalizeCoursePlanLessons(item['lessons']),
+        source_references: this.normalizeSourceReferences(item['source_references'] || item['sourceReferences']),
+      }))
+      .filter((chapter) => chapter.lessons.length > 0);
+  }
+
+  private normalizeCoursePlanLessons(raw: unknown): CoursePlanLesson[] {
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .slice(0, 6)
+      .map((item, index) => ({
+        title: this.normalizeString(item['title']) || `Bài ${index + 1}`,
+        summary: this.normalizeString(item['summary'] || item['description'] || item['content']) || '',
+        activity: this.normalizeString(item['activity']),
+        quick_check: this.normalizeString(item['quick_check'] || item['quickCheck']),
+        duration_minutes: this.normalizeOptionalNumber(item['duration_minutes'] || item['durationMinutes']),
+        source_references: this.normalizeSourceReferences(item['source_references'] || item['sourceReferences']),
+      }));
+  }
+
+  private collectCoursePlanSourceReferences(plan: NormalizedCoursePlan, explicit: unknown): WiiiSourceReference[] {
+    const refs: WiiiSourceReference[] = [
+      ...this.normalizeSourceReferences(explicit),
+    ];
+    for (const [chapterIndex, chapter] of plan.chapters.entries()) {
+      refs.push(...(chapter.source_references || []).map((ref) => ({
+        ...ref,
+        chapter_index: ref.chapter_index ?? chapterIndex + 1,
+      })));
+      for (const [lessonIndex, lesson] of chapter.lessons.entries()) {
+        refs.push(...(lesson.source_references || []).map((ref) => ({
+          ...ref,
+          chapter_index: ref.chapter_index ?? chapterIndex + 1,
+          lesson_index: ref.lesson_index ?? lessonIndex + 1,
+        })));
+      }
+    }
+    const seen = new Set<string>();
+    return refs.filter((ref) => {
+      const key = [
+        ref.kind || '',
+        ref.title || '',
+        ref.page || '',
+        ref.page_start || '',
+        ref.page_end || '',
+        ref.chapter_index || '',
+        ref.lesson_index || '',
+      ].join('|');
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    }).slice(0, 12);
+  }
+
+  private buildCoursePlanLessonContent(
+    lesson: CoursePlanLesson,
+    chapter: CoursePlanChapter,
+    plan: NormalizedCoursePlan,
+  ): string {
+    const references = lesson.source_references?.length
+      ? lesson.source_references
+      : chapter.source_references || [];
+    const sourceLines = references
+      .slice(0, 4)
+      .map((ref, index) => {
+        const pageStart = ref.page_start ?? ref.page;
+        const pageText = pageStart
+          ? ref.page_end && ref.page_end !== pageStart
+            ? `, trang ${pageStart}-${ref.page_end}`
+            : `, trang ${pageStart}`
+          : '';
+        return `${index + 1}. ${ref.title || ref.label || plan.source_document_title || 'Tài liệu nguồn'}${pageText}${ref.excerpt ? ` - ${ref.excerpt}` : ''}`;
+      });
+    return [
+      `# ${lesson.title}`,
+      '',
+      lesson.summary ? `## Tóm tắt\n${lesson.summary}` : '',
+      chapter.learning_objectives.length
+        ? `## Mục tiêu học tập\n${chapter.learning_objectives.map((item) => `- ${item}`).join('\n')}`
+        : '',
+      lesson.activity ? `## Hoạt động thực hành\n${lesson.activity}` : '',
+      lesson.quick_check ? `## Câu hỏi kiểm tra nhanh\n${lesson.quick_check}` : '',
+      sourceLines.length ? `## Nguồn đối chiếu\n${sourceLines.join('\n')}` : '',
+    ].filter((part) => part.trim().length > 0).join('\n\n');
+  }
+
+  private async previewCoursePlan(
+    params: Record<string, unknown>,
+  ): Promise<{ success: boolean; data: Record<string, unknown> }> {
+    const courseId = this.resolveCurrentCourseId(params);
+    if (!courseId) {
+      throw new Error('Missing course_id for course plan preview');
+    }
+    const rawPlan = params['course_plan'] || params['coursePlan'] || params['outline'];
+    const plan = this.normalizeCoursePlan(rawPlan || params);
+    if (plan.chapters.length === 0) {
+      throw new Error('Course plan preview needs at least one chapter with lessons');
+    }
+    const sourceReferences = this.collectCoursePlanSourceReferences(
+      plan,
+      params['source_references'] || params['sourceReferences'],
+    );
+    const lessonCount = plan.chapters.reduce((sum, chapter) => sum + chapter.lessons.length, 0);
+    const summary = this.normalizeString(params['summary'])
+      || `Course plan preview ready: ${plan.chapters.length} chapters, ${lessonCount} lessons.`;
+    const preview = this.rememberPreview('course_plan', summary, {
+      course_id: courseId,
+      course_plan: plan,
+      source_references: sourceReferences,
+      changed_fields: ['course_structure'],
+    });
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      course_id: courseId,
+      course_title: plan.title,
+      target_label: plan.title,
+      apply_action: 'authoring.apply_course_plan',
+      summary: `${summary} Giáo viên cần xem cây chương/bài và nguồn trích dẫn trước khi áp dụng.`,
+      changed_fields: ['course_structure'],
+      source_references: sourceReferences,
+      course_plan: plan,
+    };
+    this.announceOperatorPreview(preview, data);
+    return { success: true, data };
+  }
+
+  private async applyCoursePlan(
+    params: Record<string, unknown>,
+  ): Promise<{ success: boolean; data: Record<string, unknown> }> {
+    const previewToken = this.normalizeString(params['preview_token']);
+    if (!previewToken) {
+      throw new Error('Missing preview_token for course plan apply');
+    }
+    const preview = this.requirePreview(previewToken, 'course_plan');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
+    const courseId = String(preview.payload['course_id'] || '').trim();
+    const plan = preview.payload['course_plan'] as NormalizedCoursePlan | undefined;
+    if (!courseId || !plan || !Array.isArray(plan.chapters) || plan.chapters.length === 0) {
+      throw new Error('Course plan preview is missing course structure');
+    }
+
+    let chaptersCreated = 0;
+    let lessonsCreated = 0;
+    const createdChapters: Array<{ id: string; title: string; lesson_count: number }> = [];
+    for (const [chapterIndex, chapter] of plan.chapters.entries()) {
+      const chapterResponse: any = await firstValueFrom(this.chapterApi.createChapter(courseId, {
+        title: chapter.title,
+        description: chapter.summary || undefined,
+        orderIndex: chapterIndex,
+      }));
+      const createdChapter = chapterResponse?.data || chapterResponse;
+      const chapterId = typeof createdChapter === 'string' ? createdChapter : String(createdChapter?.id || '').trim();
+      if (!chapterId) {
+        throw new Error(`Course plan apply could not create chapter ${chapterIndex + 1}`);
+      }
+      chaptersCreated += 1;
+      createdChapters.push({ id: chapterId, title: chapter.title, lesson_count: chapter.lessons.length });
+      if (this.courseEditorStore.courseTree()?.id === courseId) {
+        this.courseEditorStore.addChapterLocal({
+          id: chapterId,
+          title: (typeof createdChapter === 'object' ? createdChapter?.title : null) || chapter.title,
+          description: (typeof createdChapter === 'object' ? createdChapter?.description : null) || chapter.summary || '',
+          orderIndex: (typeof createdChapter === 'object' ? createdChapter?.orderIndex : null) ?? chapterIndex,
+          lessons: [],
+        });
+      }
+
+      for (const [lessonIndex, lesson] of chapter.lessons.entries()) {
+        const lessonResponse: any = await firstValueFrom(this.lessonApi.createLesson(chapterId, {
+          title: lesson.title,
+          description: lesson.summary || undefined,
+          content: this.buildCoursePlanLessonContent(lesson, chapter, plan),
+          durationMinutes: lesson.duration_minutes || 15,
+          orderIndex: lessonIndex,
+          type: 'LECTURE',
+        }));
+        const createdLesson = lessonResponse?.data || lessonResponse;
+        const lessonId = typeof createdLesson === 'string' ? createdLesson : String(createdLesson?.id || '').trim();
+        if (lessonId) {
+          lessonsCreated += 1;
+          if (this.courseEditorStore.courseTree()?.id === courseId) {
+            this.courseEditorStore.addLessonLocal(chapterId, {
+              id: lessonId,
+              title: (typeof createdLesson === 'object' ? createdLesson?.title : null) || lesson.title,
+              type: (typeof createdLesson === 'object' ? (createdLesson?.type || createdLesson?.lessonType) : null) || 'LECTURE',
+              orderIndex: (typeof createdLesson === 'object' ? createdLesson?.orderIndex : null) ?? lessonIndex,
+              isRequired: (typeof createdLesson === 'object' ? createdLesson?.isRequired : null) ?? false,
+              sections: (typeof createdLesson === 'object' ? createdLesson?.sections : null) || [],
+            });
+          }
+        }
+      }
+    }
+    this.pendingOperatorPreviews.delete(previewToken);
+    if (this.courseEditorStore.courseTree()?.id === courseId) {
+      this.courseEditorStore.invalidateCache(courseId);
+      this.courseEditorStore.loadCourse(courseId, true);
+    }
+
+    return {
+      success: true,
+      data: {
+        applied: true,
+        course_id: courseId,
+        course_title: plan.title,
+        chapters_created: chaptersCreated,
+        lessons_created: lessonsCreated,
+        chapters: createdChapters,
+        summary: `Đã tạo ${chaptersCreated} chương và ${lessonsCreated} bài học draft từ tài liệu.`,
+      },
+    };
   }
 
   private extractLessonPreviewBlocks(source: unknown): LessonPreviewBlock[] {
@@ -1053,6 +1657,99 @@ export class WiiiContextService implements OnDestroy {
     return `${type} ${index + 1}`;
   }
 
+  private normalizeLessonSections(lesson: unknown): Array<Record<string, unknown>> {
+    if (!lesson || typeof lesson !== 'object' || Array.isArray(lesson)) {
+      return [];
+    }
+    const record = lesson as Record<string, unknown>;
+    const raw =
+      record['sections']
+      ?? record['contentBlocks']
+      ?? record['content_blocks']
+      ?? [];
+    if (!Array.isArray(raw)) {
+      return [];
+    }
+    return raw
+      .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      .map((item, index) => {
+        const data = item['data'] && typeof item['data'] === 'object' && !Array.isArray(item['data'])
+          ? item['data'] as Record<string, unknown>
+          : {};
+        return {
+          id: this.normalizeString(item['id']) || `block-${index + 1}`,
+          type: this.normalizeString(item['type'] ?? data['type']) || 'TEXT',
+          title: this.normalizeString(item['title'] ?? data['title'] ?? item['label'] ?? data['label']) || `Phần ${index + 1}`,
+          content: this.normalizeString(item['content'] ?? data['content'] ?? item['text'] ?? data['text']) || '',
+          isRequired: item['isRequired'] ?? data['isRequired'] ?? false,
+        };
+      });
+  }
+
+  private resolveLessonContentSection(
+    lesson: unknown,
+    params: Record<string, unknown>,
+  ): Record<string, unknown> | null {
+    const explicitId =
+      this.normalizeString(params['section_id'])
+      || this.normalizeString(params['sectionId'])
+      || this.normalizeString(params['block_id'])
+      || this.normalizeString(params['blockId']);
+    const sections = this.normalizeLessonSections(lesson);
+    if (sections.length === 0) {
+      return null;
+    }
+    if (explicitId) {
+      const explicit = sections.find((section) => String(section['id'] || '') === explicitId);
+      if (explicit) {
+        return explicit;
+      }
+    }
+    return sections.find((section) => String(section['type'] || '').toUpperCase() === 'TEXT')
+      || sections.find((section) => String(section['content'] || '').trim().length > 0)
+      || sections[0]
+      || null;
+  }
+
+  private buildLessonBlocksAfterContentPatch(
+    beforeBlocks: LessonPreviewBlock[],
+    targetSectionId: string | undefined,
+    nextContent: string,
+  ): LessonPreviewBlock[] {
+    const nextExcerpt = this.buildPreviewExcerpt(nextContent, 160);
+    if (!targetSectionId || beforeBlocks.length === 0) {
+      return this.extractLessonPreviewBlocks(nextContent);
+    }
+    let replaced = false;
+    const patched = beforeBlocks.map((block) => {
+      if (block.id !== targetSectionId) {
+        return block;
+      }
+      replaced = true;
+      return {
+        ...block,
+        excerpt: nextExcerpt,
+      };
+    });
+    if (replaced) {
+      return patched;
+    }
+    return [{
+      id: targetSectionId,
+      type: 'TEXT',
+      label: 'Nội dung Wiii đề xuất',
+      excerpt: nextExcerpt,
+    }, ...beforeBlocks].slice(0, 8);
+  }
+
+  private buildSectionFormData(payload: Record<string, unknown>): FormData {
+    const formData = new FormData();
+    formData.append('data', new Blob([JSON.stringify(payload)], {
+      type: 'application/json; charset=utf-8',
+    }));
+    return formData;
+  }
+
   private buildLessonBlockDiff(
     beforeBlocks: LessonPreviewBlock[],
     afterBlocks: LessonPreviewBlock[],
@@ -1108,9 +1805,144 @@ export class WiiiContextService implements OnDestroy {
     };
   }
 
-  private async getLessonDetail(lessonId: string): Promise<any> {
-    const response = await firstValueFrom(this.lessonApi.getLessonById(lessonId));
+  private buildWiiiAuthoringRequestOptions(): { headers: HttpHeaders } {
+    return {
+      headers: new HttpHeaders({
+        'ngsw-bypass': 'true',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
+      }),
+    };
+  }
+
+  private async getLessonDetail(lessonId: string, options?: any): Promise<any> {
+    const request = options === undefined
+      ? this.lessonApi.getLessonById(lessonId)
+      : this.lessonApi.getLessonById(lessonId, options);
+    const response = await firstValueFrom(request);
     return (response as any)?.data || response;
+  }
+
+  private async verifyLessonPatchApplied(
+    lessonId: string,
+    payload: Record<string, unknown>,
+    changedFields: string[],
+    contentSectionId: string,
+    expectedContent: string,
+    options: any,
+  ): Promise<void> {
+    const lesson = await this.getLessonDetail(lessonId, options);
+
+    if (changedFields.includes('title')) {
+      const expectedTitle = String(payload['title'] || '').trim();
+      const actualTitle = String(lesson?.title || '').trim();
+      if (expectedTitle && actualTitle !== expectedTitle) {
+        throw new Error('host_preview_apply_verification_failed:title');
+      }
+    }
+
+    if (changedFields.includes('description')) {
+      const expectedDescription = String(payload['description'] || '').trim();
+      const actualDescription = String(lesson?.description || '').trim();
+      if (expectedDescription && actualDescription !== expectedDescription) {
+        throw new Error('host_preview_apply_verification_failed:description');
+      }
+    }
+
+    if (!changedFields.includes('content')) {
+      return;
+    }
+
+    const actualContent = contentSectionId
+      ? this.findLessonSectionContent(lesson, contentSectionId)
+      : String(lesson?.content || '');
+    if (contentSectionId && !actualContent) {
+      throw new Error('host_preview_apply_verification_failed:section_missing');
+    }
+    if (!this.lessonContentContainsExpected(actualContent, expectedContent)) {
+      throw new Error('host_preview_apply_verification_failed:content');
+    }
+
+    const expectedSectionTitle = String(payload['content_section_next_title'] || '').trim();
+    if (contentSectionId && expectedSectionTitle) {
+      const actualSectionTitle = String(this.findLessonSection(lesson, contentSectionId)?.['title'] || '').trim();
+      if (actualSectionTitle !== expectedSectionTitle) {
+        throw new Error('host_preview_apply_verification_failed:section_title');
+      }
+    }
+  }
+
+  private findLessonSection(lesson: unknown, sectionId: string): Record<string, unknown> | null {
+    return this.normalizeLessonSections(lesson)
+      .find((section) => String(section['id'] || '').trim() === sectionId)
+      || null;
+  }
+
+  private findLessonSectionContent(lesson: unknown, sectionId: string): string {
+    const target = this.findLessonSection(lesson, sectionId);
+    return String(target?.['content'] || '').trim();
+  }
+
+  private lessonContentContainsExpected(actual: unknown, expected: unknown): boolean {
+    const actualText = this.normalizeVerificationText(actual);
+    const expectedText = this.normalizeVerificationText(expected);
+    if (!expectedText) {
+      return true;
+    }
+    if (actualText === expectedText || actualText.includes(expectedText)) {
+      return true;
+    }
+    return this.buildVerificationAnchors(expectedText)
+      .some((anchor) => actualText.includes(anchor));
+  }
+
+  private buildVerificationAnchors(expectedText: string): string[] {
+    const minAnchorLength = expectedText.length < 40 ? Math.max(4, expectedText.length) : 24;
+    const lineAnchors = expectedText
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length >= minAnchorLength)
+      .slice(0, 4)
+      .map((line) => line.slice(0, 220).trim());
+    const windowAnchors = [
+      expectedText.slice(0, 800).trim(),
+      expectedText.slice(Math.max(0, expectedText.length - 800)).trim(),
+    ].filter((anchor) => anchor.length >= minAnchorLength);
+    return [...new Set([...lineAnchors, ...windowAnchors])];
+  }
+
+  private normalizeVerificationText(value: unknown): string {
+    return String(value ?? '')
+      .normalize('NFC')
+      .replace(/\r\n?/g, '\n')
+      .replace(/<br\s*\/?>/gi, '\n')
+      .replace(/<\/p>/gi, '\n')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/&amp;/gi, '&')
+      .replace(/&lt;/gi, '<')
+      .replace(/&gt;/gi, '>')
+      .split('\n')
+      .map((line) => line
+        .replace(/^#{1,6}\s+/, '')
+        .replace(/^[-*\u2022]\s+/, '')
+        .replace(/[ \t]+/g, ' ')
+        .trim())
+      .filter((line) => line.length > 0)
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  }
+
+  private buildContentSectionTitle(lessonTitle: unknown): string {
+    const title = String(lessonTitle || '')
+      .replace(/^Bản nháp:\s*/i, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    if (!title) {
+      return '';
+    }
+    return `Nội dung: ${title}`.slice(0, 120).trim();
   }
 
   private async resolveQuizIdForLesson(lessonId: string, explicitQuizId?: string): Promise<string> {
@@ -1132,6 +1964,16 @@ export class WiiiContextService implements OnDestroy {
     const title = this.normalizeString(params['title']);
     const description = this.normalizeString(params['description']);
     const content = this.normalizeString(params['content']);
+    const sourceReferences = this.normalizeSourceReferences(
+      params['source_references'] || params['sourceReferences'],
+    );
+    const targetContentSection = content
+      ? this.resolveLessonContentSection(lesson, params)
+      : null;
+    const targetContentSectionId = this.normalizeString(targetContentSection?.['id']);
+    const nextContentSectionTitle = targetContentSectionId && title
+      ? this.buildContentSectionTitle(title)
+      : '';
     const changedFields = [
       ...(title ? ['title'] : []),
       ...(description ? ['description'] : []),
@@ -1141,14 +1983,21 @@ export class WiiiContextService implements OnDestroy {
       throw new Error('Lesson patch preview needs at least one field to change');
     }
 
+    const currentLessonTitle = String(lesson?.title || lessonId).trim();
+    const proposedLessonTitle = title ?? currentLessonTitle;
     const summary = this.buildActionSummary(
-      `Lesson patch preview ready for "${lesson?.title || lessonId}"`,
+      `Bản xem trước bài học đã sẵn sàng cho "${proposedLessonTitle}"`,
       changedFields,
     );
+    const reviewSummary = `${summary.replace(/[.!?。]+$/u, '')}. Giáo viên cần xem phần so sánh thay đổi và nguồn trích dẫn trong LMS trước khi áp dụng.`;
     const beforeBlocks = this.extractLessonPreviewBlocks(
-      (lesson as Record<string, unknown> | undefined)?.['contentBlocks'] ?? lesson?.content,
+      (lesson as Record<string, unknown> | undefined)?.['sections']
+      ?? (lesson as Record<string, unknown> | undefined)?.['contentBlocks']
+      ?? lesson?.content,
     );
-    const afterBlocks = this.extractLessonPreviewBlocks(content ?? ((lesson as Record<string, unknown> | undefined)?.['contentBlocks'] ?? lesson?.content));
+    const afterBlocks = content
+      ? this.buildLessonBlocksAfterContentPatch(beforeBlocks, targetContentSectionId, content)
+      : beforeBlocks;
     const blockDiff = this.buildLessonBlockDiff(beforeBlocks, afterBlocks);
     const preview = this.rememberPreview('lesson_patch', summary, {
       lesson_id: lessonId,
@@ -1158,37 +2007,59 @@ export class WiiiContextService implements OnDestroy {
       title: title ?? lesson?.title ?? '',
       description: description ?? lesson?.description ?? '',
       content: content ?? lesson?.content ?? '',
+      content_section_id: targetContentSectionId || '',
+      content_section_title: this.normalizeString(targetContentSection?.['title']) || '',
+      content_section_next_title: nextContentSectionTitle,
       duration_minutes: Number(lesson?.durationMinutes || 0),
       order_index: Number(lesson?.orderIndex || 0),
       is_required: Boolean((lesson as any)?.isRequired ?? false),
+      changed_fields: changedFields,
+      source_references: sourceReferences,
     });
+
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      lesson_id: lessonId,
+      lesson_title: currentLessonTitle,
+      proposed_lesson_title: proposedLessonTitle,
+      course_id: String(lesson?.courseId || this.resolveCurrentCourseId(params) || '').trim() || undefined,
+      apply_action: 'authoring.apply_lesson_patch',
+      summary: reviewSummary,
+      changed_fields: changedFields,
+      content_target: targetContentSectionId
+        ? {
+          section_id: targetContentSectionId,
+          title: this.normalizeString(targetContentSection?.['title']) || targetContentSectionId,
+          proposed_title: nextContentSectionTitle || undefined,
+          type: this.normalizeString(targetContentSection?.['type']) || 'TEXT',
+        }
+        : undefined,
+      target_label: proposedLessonTitle,
+      source_references: sourceReferences,
+      lesson_before: {
+        title: String(lesson?.title || '').trim(),
+        description: String(lesson?.description || '').trim(),
+        content_excerpt: this.buildPreviewExcerpt(lesson?.content),
+        content_preview: this.buildPreviewText(lesson?.content),
+        learning_objectives: this.extractLearningObjectivesFromContent(lesson?.content),
+        blocks: beforeBlocks,
+      },
+      lesson_after: {
+        title: title ?? String(lesson?.title || '').trim(),
+        description: description ?? String(lesson?.description || '').trim(),
+        content_excerpt: this.buildPreviewExcerpt(content ?? lesson?.content),
+        content_preview: this.buildPreviewText(content ?? lesson?.content),
+        learning_objectives: this.extractLearningObjectivesFromContent(content ?? lesson?.content),
+        blocks: afterBlocks,
+      },
+      block_diff: blockDiff,
+    };
+    this.announceOperatorPreview(preview, data);
 
     return {
       success: true,
-      data: {
-        preview_token: preview.token,
-        preview_kind: preview.kind,
-        lesson_id: lessonId,
-        lesson_title: String(lesson?.title || lessonId).trim(),
-        course_id: String(lesson?.courseId || this.resolveCurrentCourseId(params) || '').trim() || undefined,
-        apply_action: 'authoring.apply_lesson_patch',
-        summary: `${summary} Confirm explicitly when you want me to apply it.`,
-        changed_fields: changedFields,
-        target_label: String(lesson?.title || lessonId).trim(),
-        lesson_before: {
-          title: String(lesson?.title || '').trim(),
-          description: String(lesson?.description || '').trim(),
-          content_excerpt: this.buildPreviewExcerpt(lesson?.content),
-          blocks: beforeBlocks,
-        },
-        lesson_after: {
-          title: title ?? String(lesson?.title || '').trim(),
-          description: description ?? String(lesson?.description || '').trim(),
-          content_excerpt: this.buildPreviewExcerpt(content ?? lesson?.content),
-          blocks: afterBlocks,
-        },
-        block_diff: blockDiff,
-      },
+      data,
     };
   }
 
@@ -1201,6 +2072,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     const preview = this.requirePreview(previewToken, 'lesson_patch');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
     const payload = preview.payload;
     const lessonId = String(payload['lesson_id'] || '').trim();
     const courseId = String(payload['course_id'] || '').trim();
@@ -1208,29 +2080,60 @@ export class WiiiContextService implements OnDestroy {
     if (!lessonId || !courseId || !chapterId) {
       throw new Error('Lesson patch preview is missing lesson/course/chapter context');
     }
+    const changedFields = this.normalizeStringArray(payload['changed_fields']);
+    const content = String(payload['content'] || '').trim();
+    const contentSectionId = String(payload['content_section_id'] || '').trim();
+    const contentSectionTitle = String(payload['content_section_next_title'] || '').trim();
+    const metadataChanged = changedFields.some((field) => field === 'title' || field === 'description');
+    const contentChanged = changedFields.includes('content');
+    const requestOptions = this.buildWiiiAuthoringRequestOptions();
 
-    await firstValueFrom(this.lessonApi.updateLesson(lessonId, {
-      courseId,
-      chapterId,
-      title: String(payload['title'] || '').trim() || undefined,
-      description: String(payload['description'] || '').trim() || undefined,
-      lessonType: String(payload['lesson_type'] || 'LECTURE'),
-      content: String(payload['content'] || '').trim() || undefined,
-      durationMinutes: Number(payload['duration_minutes'] || 0),
-      isRequired: Boolean(payload['is_required'] ?? false),
-      isPreview: false,
-      orderIndex: Number(payload['order_index'] || 0),
-    }));
+    if (contentChanged && contentSectionId) {
+      await firstValueFrom(this.sectionApi.updateSection(
+        lessonId,
+        contentSectionId,
+        this.buildSectionFormData({
+          ...(contentSectionTitle ? { title: contentSectionTitle } : {}),
+          content,
+        }),
+        requestOptions,
+      ));
+    }
+
+    if (metadataChanged || (contentChanged && !contentSectionId)) {
+      await firstValueFrom(this.lessonApi.updateLesson(lessonId, {
+        courseId,
+        chapterId,
+        title: String(payload['title'] || '').trim() || undefined,
+        description: String(payload['description'] || '').trim() || undefined,
+        lessonType: String(payload['lesson_type'] || 'LECTURE'),
+        content: contentChanged && !contentSectionId ? content || undefined : undefined,
+        durationMinutes: Number(payload['duration_minutes'] || 0),
+        isRequired: Boolean(payload['is_required'] ?? false),
+        isPreview: false,
+        orderIndex: Number(payload['order_index'] || 0),
+      }, requestOptions));
+    }
+    await this.verifyLessonPatchApplied(
+      lessonId,
+      payload,
+      changedFields,
+      contentSectionId,
+      content,
+      requestOptions,
+    );
     this.pendingOperatorPreviews.delete(previewToken);
 
     return {
       success: true,
       data: {
         applied: true,
+        verified: true,
         lesson_id: lessonId,
         course_id: courseId,
+        content_section_id: contentSectionId || undefined,
         lesson_title: String(payload['title'] || lessonId).trim() || lessonId,
-        summary: `Applied lesson patch to lesson ${lessonId}.`,
+        summary: `Applied and verified lesson patch for lesson ${lessonId}.`,
       },
     };
   }
@@ -1274,28 +2177,31 @@ export class WiiiContextService implements OnDestroy {
       show_correct_answers: params['show_correct_answers'] ?? params['showCorrectAnswers'] ?? true,
     });
 
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      quiz_id: existingQuizId || undefined,
+      lesson_id: lessonId,
+      quiz_title: title,
+      apply_action: 'assessment.apply_quiz_commit',
+      question_count: questionIds.length,
+      summary: `${summary} Review the LMS preview panel before committing it.`,
+      target_label: title,
+      quiz_plan: {
+        mode: existingQuizId ? 'update' : 'create',
+        title,
+        description: this.normalizeString(params['description']) || '',
+        question_count: questionIds.length,
+        time_limit_minutes: Number(params['time_limit_minutes'] || params['timeLimitMinutes'] || 30),
+        max_attempts: Number(params['max_attempts'] || params['maxAttempts'] || 1),
+        passing_score: Number(params['passing_score'] || params['passingScore'] || 60),
+      },
+    };
+    this.announceOperatorPreview(preview, data);
+
     return {
       success: true,
-      data: {
-        preview_token: preview.token,
-        preview_kind: preview.kind,
-        quiz_id: existingQuizId || undefined,
-        lesson_id: lessonId,
-        quiz_title: title,
-        apply_action: 'assessment.apply_quiz_commit',
-        question_count: questionIds.length,
-        summary: `${summary} Confirm explicitly when you want me to commit it.`,
-        target_label: title,
-        quiz_plan: {
-          mode: existingQuizId ? 'update' : 'create',
-          title,
-          description: this.normalizeString(params['description']) || '',
-          question_count: questionIds.length,
-          time_limit_minutes: Number(params['time_limit_minutes'] || params['timeLimitMinutes'] || 30),
-          max_attempts: Number(params['max_attempts'] || params['maxAttempts'] || 1),
-          passing_score: Number(params['passing_score'] || params['passingScore'] || 60),
-        },
-      },
+      data,
     };
   }
 
@@ -1308,6 +2214,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     const preview = this.requirePreview(previewToken, 'quiz_commit');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
     const payload = preview.payload;
     const lessonId = String(payload['lesson_id'] || '').trim();
     if (!lessonId) {
@@ -1381,24 +2288,27 @@ export class WiiiContextService implements OnDestroy {
       title,
     });
 
-    return {
-      success: true,
-      data: {
-        preview_token: preview.token,
-        preview_kind: preview.kind,
+    const data = {
+      preview_token: preview.token,
+      preview_kind: preview.kind,
+      quiz_id: quizId,
+      lesson_id: lessonId,
+      quiz_title: title,
+      apply_action: 'publish.apply_quiz',
+      summary,
+      target_label: title,
+      publish_plan: {
         quiz_id: quizId,
         lesson_id: lessonId,
-        quiz_title: title,
-        apply_action: 'publish.apply_quiz',
-        summary,
-        target_label: title,
-        publish_plan: {
-          quiz_id: quizId,
-          lesson_id: lessonId,
-          title,
-          status: String((quiz as any)?.status || '').trim() || undefined,
-        },
+        title,
+        status: String((quiz as any)?.status || '').trim() || undefined,
       },
+    };
+    this.announceOperatorPreview(preview, data);
+
+    return {
+      success: true,
+      data,
     };
   }
 
@@ -1411,6 +2321,7 @@ export class WiiiContextService implements OnDestroy {
     }
 
     const preview = this.requirePreview(previewToken, 'quiz_publish');
+    this.requireHostApproval(preview, this.normalizeString(params['approval_token'] || params['approvalToken']));
     const quizId = String(preview.payload['quiz_id'] || '').trim();
     if (!quizId) {
       throw new Error('Quiz publish preview is missing quiz_id');
@@ -1501,7 +2412,10 @@ export class WiiiContextService implements OnDestroy {
     if (steps.length === 0) {
       return { success: false, error: 'invalid_tour_steps' };
     }
-    const result = await runTour(steps, { startAt: params.start_at });
+    const result = await runTour(steps, {
+      startAt: params.start_at,
+      resolveSelector: (selector) => resolvePointySelector(selector),
+    });
     // Defensive cleanup if the tour completed without a follow-up call.
     if (result.completed_steps === result.total_steps && !result.cancelled) {
       hideSpotlight();
@@ -1519,6 +2433,59 @@ export class WiiiContextService implements OnDestroy {
     };
   }
 
+  private handlePointyClick(
+    params: ClickParams,
+  ): { success: boolean; data?: Record<string, unknown>; error?: string } {
+    const selector = String(params?.selector || '').trim();
+    if (!selector) {
+      return { success: false, error: 'missing_selector' };
+    }
+    const target = resolvePointySelector(selector);
+    if (!target) {
+      return { success: false, error: `selector_not_found:${selector}` };
+    }
+    if (!(target instanceof HTMLElement) || target.getAttribute('data-wiii-click-safe') !== 'true') {
+      return { success: false, error: `unsafe_click_target:${selector}` };
+    }
+    if (
+      target.hasAttribute('disabled')
+      || target.getAttribute('aria-disabled') === 'true'
+      || (target instanceof HTMLButtonElement && target.disabled)
+    ) {
+      return { success: false, error: `disabled_click_target:${selector}` };
+    }
+    if (!target.isConnected || !this.isVisiblePointyTarget(target)) {
+      return { success: false, error: `target_not_visible:${selector}` };
+    }
+    if (typeof target.scrollIntoView === 'function') {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    moveCursorToRect(target.getBoundingClientRect(), { duration_ms: 260 });
+    showSpotlight(target, {
+      message: params.message || 'Wiii đang mở mục này cho bạn.',
+      duration_ms: 900,
+    });
+    target.click();
+    return {
+      success: true,
+      data: {
+        summary: `Đã bấm ${describeTarget(target)}`,
+        clicked: true,
+        click_kind: target.getAttribute('data-wiii-click-kind') || 'safe',
+      },
+    };
+  }
+
+  private isVisiblePointyTarget(target: HTMLElement): boolean {
+    if (typeof window === 'undefined') {
+      return true;
+    }
+    const style = window.getComputedStyle(target);
+    return style.display !== 'none'
+      && style.visibility !== 'hidden'
+      && style.opacity !== '0';
+  }
+
   private async handleActionRequest(
     action: string,
     params: Record<string, unknown>,
@@ -1532,6 +2499,8 @@ export class WiiiContextService implements OnDestroy {
         return this.handlePointyScrollTo(params as unknown as ScrollToParams);
       case POINTY_ACTION_SHOW_TOUR:
         return this.handlePointyShowTour(params as unknown as ShowTourParams);
+      case POINTY_ACTION_CLICK:
+        return this.handlePointyClick(params as unknown as ClickParams);
       case 'navigation.go_to': {
         const target = String(params['target'] || '').trim();
         const route = String(params['route'] || '').trim();
@@ -1560,8 +2529,14 @@ export class WiiiContextService implements OnDestroy {
         await this.router.navigate(['/teacher/courses', courseId, 'editor', tab]);
         return { success: true, data: { navigated: true, tab } };
       }
-      case 'authoring.generate_course_from_document':
-        return this.dispatchSidebarAction('generate_lesson', String(params['courseId'] || this.lastContext?.course_id || ''));
+      case 'authoring.generate_course_from_document': {
+        if (params['course_plan'] || params['coursePlan'] || params['outline'] || params['chapters']) {
+          return this.previewCoursePlan(params);
+        }
+        return this.dispatchSidebarAction('generate_course_from_document', this.resolveCurrentCourseId(params));
+      }
+      case 'authoring.apply_course_plan':
+        return this.applyCoursePlan(params);
       case 'authoring.generate_lesson':
         return this.dispatchSidebarAction('generate_lesson', String(params['courseId'] || this.lastContext?.course_id || ''));
       case 'authoring.improve_lesson_experience':
@@ -1779,7 +2754,10 @@ export class WiiiContextService implements OnDestroy {
   }
 
   private clickButtonByText(candidates: string[]): boolean {
-    const button = Array.from(document.querySelectorAll('button')).find((node) => {
+    const button = Array.from(document.querySelectorAll('button[data-wiii-click-safe="true"]')).find((node) => {
+      if (node.getAttribute('data-wiii-click-kind') !== 'navigation') {
+        return false;
+      }
       const text = this.normalizeNavigationTarget(node.textContent || '');
       return candidates.some((candidate) => text.includes(this.normalizeNavigationTarget(candidate)));
     });

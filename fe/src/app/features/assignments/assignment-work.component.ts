@@ -104,7 +104,7 @@ export class AssignmentWorkComponent implements OnInit {
   }
 
   private readonly MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
-  private readonly ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png']);
+  private readonly ALLOWED_EXTENSIONS = new Set(['.pdf', '.doc', '.docx', '.ppt', '.pptx', '.jpg', '.jpeg', '.png']);
 
   onFileSelected(event: Event): void {
     const input = event.target as HTMLInputElement;
@@ -128,7 +128,7 @@ export class AssignmentWorkComponent implements OnInit {
       // Type check
       const ext = '.' + file.name.split('.').pop()?.toLowerCase();
       if (!this.ALLOWED_EXTENSIONS.has(ext)) {
-        errors.push(`${file.name}: định dạng không hỗ trợ (chỉ PDF, DOC, DOCX, JPG, PNG)`);
+        errors.push(`${file.name}: định dạng không hỗ trợ (chỉ PDF, DOC, DOCX, PPT, PPTX, JPG, PNG)`);
         return false;
       }
       return true;

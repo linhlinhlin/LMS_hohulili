@@ -144,7 +144,7 @@ interface EnrolledStudentData {
                    <div>
                       <label class="block text-sm font-semibold text-gray-700">Tài liệu bổ trợ</label>
                       <p class="text-[11px] text-gray-500 mt-1 leading-relaxed">
-                        Tải lên tài liệu hướng dẫn. Chấp nhận các định dạng: .pdf, .doc, .docx, .txt, .jpg, .png, .zip, .dwg, .dxf (Tối đa 50MB/file, tối đa 10 file)
+                        Tải lên tài liệu hướng dẫn. Chấp nhận các định dạng: .pdf, .doc, .docx, .xls, .xlsx, .ppt, .pptx, .txt, .jpg, .png, .zip, .dwg, .dxf (Tối đa 50MB/file, tối đa 10 file)
                       </p>
                    </div>
                    <app-file-upload
@@ -364,6 +364,10 @@ export class AssignmentCreationComponent implements OnInit {
       '.pdf', 'application/pdf',
       '.doc', 'application/msword',
       '.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      '.xls', 'application/vnd.ms-excel',
+      '.xlsx', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      '.ppt', 'application/vnd.ms-powerpoint',
+      '.pptx', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
       '.txt', 'text/plain',
       '.jpg', '.jpeg', 'image/jpeg',
       '.png', 'image/png',

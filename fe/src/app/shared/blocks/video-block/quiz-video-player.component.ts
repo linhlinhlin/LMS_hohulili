@@ -14,12 +14,15 @@ import { InteractiveVideoLayerComponent } from './interactive-video-layer.compon
 import { InteractiveVideoOverlayComponent } from './interactive-video-overlay.component';
 import { InteractiveVideoMarkersComponent } from './interactive-video-markers.component';
 import {
+  addInteractiveVideoWatchedRange,
   getDueInteractiveVideoInteraction,
+  isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../core/utils/interactive-video-runtime';
+import type { InteractiveVideoWatchedRange } from '../../../core/utils/interactive-video-runtime';
 import {
   canUseNativeHlsForManifest,
   shouldPreferNativeHlsForManifest,
@@ -44,10 +47,12 @@ type ResolvedSource =
 @Component({
   selector: 'app-quiz-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  host: { class: 'block w-full' },
   imports: [InteractiveVideoLayerComponent, InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
-    <div class="relative aspect-video w-full overflow-hidden rounded-lg bg-black"
-         (click)="showQualityMenu() && showQualityMenu.set(false)">
+    <div class="overflow-hidden rounded-lg bg-black">
+      <div class="relative aspect-video w-full bg-black"
+           (click)="showQualityMenu() && showQualityMenu.set(false)">
       <video
         #videoElement
         controls
@@ -63,36 +68,9 @@ type ResolvedSource =
         (timeupdate)="onTimeUpdate()"
         (seeking)="onSeeking()"
         (seeked)="onSeeked()"
-        (play)="isPlaybackPaused.set(false)"
-        (pause)="isPlaybackPaused.set(true)"
-        (ended)="isPlaybackPaused.set(true)"
         (error)="onVideoError()">
         Trình duyệt không hỗ trợ phát video.
       </video>
-
-      @if (canShowPlaybackToggle()) {
-        <div class="pointer-events-none absolute bottom-14 left-4 z-20 flex items-center gap-2 rounded-full bg-slate-950/70 px-2 py-1 text-white shadow-lg ring-1 ring-white/10 backdrop-blur-sm">
-          <button
-            type="button"
-            class="pointer-events-auto flex h-6 w-6 items-center justify-center rounded-full bg-white/12 text-white transition hover:bg-white/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-sky-200"
-            data-testid="quiz-video-playback-toggle"
-            [attr.aria-label]="isPlaybackPaused() ? 'Phát video' : 'Tạm dừng video'"
-            (click)="togglePlayback($event)">
-            @if (isPlaybackPaused()) {
-              <svg class="ml-0.5 h-3 w-3" viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M3 2.2v7.6L9 6 3 2.2Z" fill="currentColor" />
-              </svg>
-            } @else {
-              <svg class="h-3 w-3" viewBox="0 0 12 12" aria-hidden="true">
-                <path d="M3 2h2v8H3V2Zm4 0h2v8H7V2Z" fill="currentColor" />
-              </svg>
-            }
-          </button>
-          <span class="font-mono text-xs font-semibold tabular-nums text-white/95">
-            {{ formatPlaybackTime(currentTimeSeconds()) }} / {{ formatPlaybackTime(videoDurationSeconds()) }}
-          </span>
-        </div>
-      }
 
       @if (isLoading()) {
         <div class="absolute inset-0 flex items-center justify-center bg-slate-950/70 text-white">
@@ -166,22 +144,24 @@ type ResolvedSource =
         [activeInteractionId]="activeInteraction()?.id ?? null"
         (interactionSelected)="openInteractiveInteraction($event)" />
 
+      @if (activeInteraction(); as interaction) {
+        <app-interactive-video-overlay
+          [interaction]="interaction"
+          [selectedChoiceId]="selectedChoiceId()"
+          [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+          [density]="overlayDensity()"
+          (choiceSelected)="onInteractiveChoice($event)"
+          (reviewRequested)="onInteractiveReviewRequested()"
+          (continueRequested)="onInteractiveContinue()" />
+      }
+      </div>
+
       <app-interactive-video-markers
         [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
         [durationSeconds]="videoDurationSeconds()"
         [currentTimeSeconds]="currentTimeSeconds()"
         [activeInteractionId]="activeInteraction()?.id ?? null"
         (markerSelected)="seekToInteractiveSecond($event)" />
-
-      @if (activeInteraction(); as interaction) {
-        <app-interactive-video-overlay
-          [interaction]="interaction"
-          [selectedChoiceId]="selectedChoiceId()"
-          [density]="overlayDensity()"
-          (choiceSelected)="onInteractiveChoice($event)"
-          (reviewRequested)="onInteractiveReviewRequested()"
-          (continueRequested)="onInteractiveContinue()" />
-      }
     </div>
   `
 })
@@ -207,14 +187,22 @@ export class QuizVideoPlayerComponent {
   readonly videoDurationSeconds = signal<number | null>(null);
   readonly currentTimeSeconds = signal(0);
   readonly completedInteractionIdsSnapshot = signal<ReadonlySet<string>>(new Set<string>());
-  readonly isPlaybackPaused = signal(true);
 
   private shakaPlayer: any = null;
   private loadToken = 0;
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
+  private watchedRanges: InteractiveVideoWatchedRange[] = [];
   private furthestWatchedSeconds = 0;
   private isSeeking = false;
+  /**
+   * Time captured at the moment the user starts a seek (`seeking` event). Used
+   * as `previousTimeSeconds` once the seek settles (`seeked`) so the runtime
+   * can detect interactions the seek crossed (forward edge: prev < at <= cur).
+   * Without this we passed `current` as previous, which always made the
+   * forward-edge check false and let the user scrub past optional interactions.
+   */
+  private seekStartTimeSeconds = 0;
 
   constructor() {
     effect(() => {
@@ -256,7 +244,6 @@ export class QuizVideoPlayerComponent {
 
     this.videoDurationSeconds.set(Number.isFinite(video.duration) && video.duration > 0 ? video.duration : null);
     this.currentTimeSeconds.set(Number.isFinite(video.currentTime) ? video.currentTime : 0);
-    this.isPlaybackPaused.set(video.paused);
     this.markInteractiveVideoWatched(video.currentTime);
   }
 
@@ -270,7 +257,12 @@ export class QuizVideoPlayerComponent {
     }
     const previousTimeSeconds = this.isSeeking ? video.currentTime : this.currentTimeSeconds();
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
+    // Only natural forward playback advances the watched mark; seek-driven
+    // timeupdates would otherwise let a single forward jump bypass the
+    // anti-skip gate. Backward playback is not possible without seeking.
+    if (!this.isSeeking) {
+      this.markInteractiveVideoWatched(video.currentTime, previousTimeSeconds);
+    }
     this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
@@ -278,6 +270,13 @@ export class QuizVideoPlayerComponent {
     const video = this.videoElement()?.nativeElement;
     if (!video) {
       return;
+    }
+    if (!this.isSeeking) {
+      // Capture the playback time before the seek starts so we can drive the
+      // forward-edge check against the actual user trajectory, not the post-seek
+      // position. Subsequent seeking events within the same drag preserve the
+      // original start anchor.
+      this.seekStartTimeSeconds = this.currentTimeSeconds();
     }
     this.isSeeking = true;
     this.snapBlockedInteractiveSeek(video);
@@ -289,8 +288,9 @@ export class QuizVideoPlayerComponent {
     if (!video) {
       return;
     }
+    const previousTimeSeconds = this.seekStartTimeSeconds;
     this.currentTimeSeconds.set(video.currentTime);
-    this.evaluateInteractiveTimeline(video, video.currentTime);
+    this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
   seekToInteractiveSecond(seconds: number): void {
@@ -313,7 +313,8 @@ export class QuizVideoPlayerComponent {
 
     video.currentTime = target;
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
+    // Marker click is a seek, not playback. Skip markInteractiveVideoWatched
+    // so the anti-skip gate isn't bypassed by jumping forward via the rail.
     this.evaluateInteractiveTimeline(video);
   }
 
@@ -342,11 +343,15 @@ export class QuizVideoPlayerComponent {
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
     );
+    if (target == null) {
+      return;
+    }
+
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
     video.currentTime = target;
     this.currentTimeSeconds.set(target);
-    this.markInteractiveVideoWatched(target);
+    // Review jump is a programmatic seek; don't advance the watched mark.
     void video.play().catch(() => {});
   }
 
@@ -387,7 +392,6 @@ export class QuizVideoPlayerComponent {
     this.error.set(null);
     this.isProcessing.set(false);
     this.isLoading.set(true);
-    this.isPlaybackPaused.set(true);
     this.qualityLabel.set(null);
     this.videoDurationSeconds.set(null);
     this.currentTimeSeconds.set(0);
@@ -583,47 +587,6 @@ export class QuizVideoPlayerComponent {
     }
   }
 
-  canShowPlaybackToggle(): boolean {
-    return !this.isLoading()
-      && !this.isProcessing()
-      && !this.error()
-      && !this.activeInteraction();
-  }
-
-  togglePlayback(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const video = this.videoElement()?.nativeElement;
-    if (!video) {
-      return;
-    }
-
-    if (video.paused) {
-      void video.play().catch(() => {
-        this.isPlaybackPaused.set(true);
-      });
-      return;
-    }
-
-    video.pause();
-  }
-
-  formatPlaybackTime(seconds: number | null | undefined): string {
-    const safeSeconds = Number.isFinite(seconds ?? Number.NaN)
-      ? Math.max(0, Math.floor(seconds as number))
-      : 0;
-    const hours = Math.floor(safeSeconds / 3600);
-    const minutes = Math.floor((safeSeconds % 3600) / 60);
-    const rest = safeSeconds % 60;
-
-    if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, '0')}:${rest.toString().padStart(2, '0')}`;
-    }
-
-    return `${minutes}:${rest.toString().padStart(2, '0')}`;
-  }
-
   private evaluateInteractiveTimeline(
     video: HTMLVideoElement,
     previousTimeSeconds = this.currentTimeSeconds(),
@@ -657,11 +620,24 @@ export class QuizVideoPlayerComponent {
   ): void {
     this.activeInteraction.set(interaction);
     this.selectedChoiceId.set(null);
-    if (interaction.pause !== false) {
+    if (this.shouldPauseForInteraction(interaction)) {
       video.pause();
     }
 
     this.shownInteractionIds.add(interaction.id);
+  }
+
+  /**
+   * Resolve auto-pause from per-interaction `pause` first, then fall back to
+   * the spec-level `behavior.pauseOnInteraction` switch. The previous logic
+   * inspected only the per-interaction flag so `behavior.pauseOnInteraction =
+   * false` was silently ignored.
+   */
+  private shouldPauseForInteraction(interaction: InteractiveVideoInteraction): boolean {
+    if (interaction.pause === false) {
+      return false;
+    }
+    return this.interactiveVideoSpec()?.behavior?.pauseOnInteraction !== false;
   }
 
   private jumpToInteractiveChoiceTarget(choice: InteractiveVideoChoice): void {
@@ -677,16 +653,24 @@ export class QuizVideoPlayerComponent {
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
 
+    // Branch choices commonly point backwards (e.g. "review the explanation").
+    // Allow backward seeks for branch jumps; non-branch choices keep the
+    // forward-only default to avoid accidental rewinds.
+    const isBranch = active?.type === 'branch';
     const targetTime = resolveInteractiveVideoChoiceTarget(
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
-      { sourceTimeSeconds: active?.type === 'branch' ? active.atSeconds : null },
+      {
+        sourceTimeSeconds: isBranch ? active.atSeconds : null,
+        allowBackwardSeek: isBranch,
+      },
     );
     if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
       const target = Math.max(0, targetTime);
       video.currentTime = target;
       this.currentTimeSeconds.set(target);
-      this.markInteractiveVideoWatched(target);
+      // Branch jump is a programmatic seek; let natural playback re-advance the
+      // watched mark instead of pre-marking the unwatched region as seen.
     }
     void video.play().catch(() => {});
   }
@@ -697,6 +681,7 @@ export class QuizVideoPlayerComponent {
     this.shownInteractionIds.clear();
     this.completedInteractionIds.clear();
     this.completedInteractionIdsSnapshot.set(new Set<string>());
+    this.watchedRanges = [];
     this.furthestWatchedSeconds = 0;
   }
 
@@ -723,9 +708,19 @@ export class QuizVideoPlayerComponent {
       targetTimeSeconds,
       furthestWatchedSeconds: this.furthestWatchedSeconds,
       hasIncompleteRequiredInteractions: this.hasIncompleteRequiredInteractions(),
+      watchedRanges: this.watchedRanges,
     })
-      ? this.furthestWatchedSeconds
+      ? this.resolveBlockedInteractiveSeekTarget(targetTimeSeconds)
       : targetTimeSeconds;
+  }
+
+  private resolveBlockedInteractiveSeekTarget(targetTimeSeconds: number): number {
+    const mode = this.interactiveVideoSpec()?.behavior?.preventSkippingMode ?? 'none';
+    if (mode === 'both' && targetTimeSeconds <= this.furthestWatchedSeconds) {
+      return this.currentTimeSeconds();
+    }
+
+    return this.furthestWatchedSeconds;
   }
 
   private hasIncompleteRequiredInteractions(): boolean {
@@ -735,13 +730,17 @@ export class QuizVideoPlayerComponent {
     }
 
     return spec.timeline.some(interaction =>
-      interaction.required === true && !this.completedInteractionIds.has(interaction.id),
+      isInteractiveVideoProgressGateInteraction(interaction)
+        && !this.completedInteractionIds.has(interaction.id),
     );
   }
 
-  private markInteractiveVideoWatched(seconds: number): void {
+  private markInteractiveVideoWatched(seconds: number, previousSeconds = seconds): void {
     if (Number.isFinite(seconds)) {
-      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, Math.max(0, seconds));
+      const current = Math.max(0, seconds);
+      const previous = Number.isFinite(previousSeconds) ? Math.max(0, previousSeconds) : current;
+      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, current);
+      this.watchedRanges = addInteractiveVideoWatchedRange(this.watchedRanges, previous, current);
     }
   }
 

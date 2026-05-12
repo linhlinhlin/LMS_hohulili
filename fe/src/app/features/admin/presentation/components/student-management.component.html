@@ -154,10 +154,9 @@
                        đồng bộ users/all PR #224). cursor-help + title chỉ khi
                        có lastLogin (tránh hand cursor + tooltip rỗng). -->
                   <td>
-                    <span class="date-text"
-                          [class.cursor-help]="student.lastLogin"
-                          [attr.title]="student.lastLogin || null">
-                      {{ student.lastLogin ? formatRelativeTime(student.lastLogin) : 'Chưa đăng nhập' }}
+                    <span class="badge" [class]="getStatusBadgeClass(student.accountStatus)">
+                      <span class="status-dot" [class]="getStatusDotClass(student.accountStatus)"></span>
+                      {{ getActivityLabel(student) }}
                     </span>
                   </td>
                   <!-- Actions — CC-10: shared kebab replaces inline status
@@ -175,6 +174,36 @@
             </tbody>
           </table>
         </div>
+        @if (totalPages() > 1) {
+          <div class="pagination-bar">
+            <div class="pagination-info">
+              Hiển thị <strong>{{ pageStart() }}</strong> - <strong>{{ pageEnd() }}</strong>
+              trong tổng số <strong>{{ totalItems() }}</strong> học viên
+            </div>
+            <div class="pagination-controls" aria-label="Phân trang học viên">
+              <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 1"
+                      class="pagination-btn pagination-arrow" aria-label="Trang trước">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+              </button>
+              @for (page of paginationPages(); track $index) {
+                @if (page === -1) {
+                  <span class="pagination-ellipsis">...</span>
+                } @else {
+                  <button (click)="goToPage(page)"
+                          class="pagination-btn"
+                          [class.active]="currentPage() === page"
+                          [attr.aria-current]="currentPage() === page ? 'page' : null">
+                    {{ page }}
+                  </button>
+                }
+              }
+              <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() === totalPages()"
+                      class="pagination-btn pagination-arrow" aria-label="Trang tiếp theo">
+                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+              </button>
+            </div>
+          </div>
+        }
       }
     </div>
   </div>

@@ -36,7 +36,7 @@ export class AssignmentInstructionAttachmentApi {
   /**
    * Đăng ký metadata file đã upload qua presigned URL.
    * Pattern Google Classroom: 2-step
-   *   1. presignedUpload.upload(file, 'assignments/instructions') → returns {url, key}
+   *   1. presignedUpload.upload(file, 'assignment-instructions') → returns {url, key}
    *   2. add(assignmentId, {fileName, fileUrl: url, storageKey: key, fileSize, fileType})
    */
   add(assignmentId: string, req: CreateInstructionAttachmentRequest): Observable<InstructionAttachment> {

@@ -88,6 +88,75 @@ describe('interactive-video-interoperability', () => {
     expect(spec?.timeline[0].choices?.[0].feedback).toBe('Correct.');
   });
 
+  it('round-trips H5P behaviour, real bookmarks, and end-screen summary', () => {
+    const spec: InteractiveVideoSpec = {
+      version: 2,
+      enabled: true,
+      behavior: {
+        preventSkippingMode: 'both',
+        showBookmarksOnLoad: true,
+        showRewind10: true,
+        pauseOnInteraction: false,
+      },
+      bookmarks: [
+        { id: 'muster-bookmark', timeSeconds: 18, label: 'Muster checklist' },
+        { id: 'abandon-bookmark', timeSeconds: 74, label: 'Abandon ship drill' },
+      ],
+      endScreen: {
+        enabled: true,
+        atSeconds: 180,
+        requireAnswerBeforeSubmit: true,
+        showScore: true,
+        title: 'Final safety review',
+        body: 'Confirm that the learner has reviewed all required emergency steps.',
+      },
+      timeline,
+    };
+
+    const bundle = exportInteractiveVideoBundle(spec, 'https://cdn.example/video.mp4');
+    const h5pRoot = bundle.h5pParameters.interactiveVideo;
+
+    expect(h5pRoot.behaviour).toEqual({
+      preventSkipping: true,
+      preventSkippingMode: 'both',
+      showBookmarksMenuOnLoad: true,
+      showRewind10: true,
+      pauseOnInteractions: false,
+    });
+    expect(h5pRoot.assets.bookmarks).toEqual([
+      { time: 18, label: 'Muster checklist' },
+      { time: 74, label: 'Abandon ship drill' },
+    ]);
+    expect(h5pRoot.summary?.task?.params).toEqual({
+      intro: 'Final safety review',
+      summary: 'Confirm that the learner has reviewed all required emergency steps.',
+      requireAnswerBeforeSubmit: true,
+      showScore: true,
+      atSeconds: 180,
+    });
+
+    const imported = importInteractiveVideoBundle(bundle.h5pParameters);
+
+    expect(imported?.behavior).toEqual({
+      preventSkippingMode: 'both',
+      showBookmarksOnLoad: true,
+      showRewind10: true,
+      pauseOnInteraction: false,
+    });
+    expect(imported?.bookmarks).toEqual([
+      { id: 'h5p-bookmark-1', timeSeconds: 18, label: 'Muster checklist' },
+      { id: 'h5p-bookmark-2', timeSeconds: 74, label: 'Abandon ship drill' },
+    ]);
+    expect(imported?.endScreen).toEqual({
+      enabled: true,
+      atSeconds: 180,
+      requireAnswerBeforeSubmit: true,
+      showScore: true,
+      title: 'Final safety review',
+      body: 'Confirm that the learner has reviewed all required emergency steps.',
+    });
+  });
+
   it('exports a Shaka-safe H5P package boundary and imports it losslessly', async () => {
     const spec: InteractiveVideoSpec = { version: 1, enabled: true, timeline };
 

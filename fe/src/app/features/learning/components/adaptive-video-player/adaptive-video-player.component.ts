@@ -21,6 +21,7 @@ import { SectionApi } from '../../../../api/client/section.api';
 import { LearningActivityApi } from '../../../../api/client/learning-activity.api';
 import { QoETrackerService } from '../../../../core/services/qoe-tracker.service';
 import { OfflineSyncService } from '../../../../core/services/offline-sync.service';
+import { NetworkStatusService } from '../../../../core/services/network-status.service';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
 import { InteractiveVideoLayerComponent } from '../../../../shared/blocks/video-block/interactive-video-layer.component';
@@ -28,12 +29,15 @@ import { InteractiveVideoOverlayComponent } from '../../../../shared/blocks/vide
 import { InteractiveVideoMarkersComponent } from '../../../../shared/blocks/video-block/interactive-video-markers.component';
 import { buildInteractiveVideoAnalyticsProjection } from '../../../../core/utils/interactive-video-analytics';
 import {
+  addInteractiveVideoWatchedRange,
   getDueInteractiveVideoInteraction,
+  isInteractiveVideoProgressGateInteraction,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
   shouldBlockInteractiveVideoSeek,
 } from '../../../../core/utils/interactive-video-runtime';
+import type { InteractiveVideoWatchedRange } from '../../../../core/utils/interactive-video-runtime';
 import {
   canUseNativeHlsForManifest,
   shouldPreferNativeHlsForManifest,
@@ -49,13 +53,55 @@ type ResolvedVideoSource =
   | { kind: 'native'; url: string }
   | { kind: 'adaptive'; url: string };
 
+export interface MediaNetworkHintState {
+  online: boolean;
+  saveDataEnabled: boolean;
+  effectiveNetworkType: string | null;
+  reportedDownlinkMbps: number | null;
+  appBandwidthMbps: number;
+  rebufferCount: number;
+  totalBufferTimeMs: number;
+}
+
+const NOTICEABLE_REBUFFER_COUNT = 2;
+const NOTICEABLE_BUFFER_MS = 1_500;
+const LOW_REPORTED_DOWNLINK_MBPS = 1.2;
+const LOW_APP_BANDWIDTH_MBPS = 1.5;
+
+export function shouldShowMediaNetworkHint(state: MediaNetworkHintState): boolean {
+  if (!state.online) {
+    return false;
+  }
+
+  if (state.saveDataEnabled) {
+    return true;
+  }
+
+  const effectiveType = state.effectiveNetworkType?.toLowerCase();
+  if (effectiveType === 'slow-2g' || effectiveType === '2g') {
+    return true;
+  }
+
+  const hasPlaybackPain =
+    state.rebufferCount >= NOTICEABLE_REBUFFER_COUNT
+    && state.totalBufferTimeMs >= NOTICEABLE_BUFFER_MS;
+
+  if (effectiveType === '3g') {
+    return hasPlaybackPain
+      || (state.reportedDownlinkMbps != null && state.reportedDownlinkMbps < LOW_REPORTED_DOWNLINK_MBPS);
+  }
+
+  return hasPlaybackPain && state.appBandwidthMbps < LOW_APP_BANDWIDTH_MBPS;
+}
+
 @Component({
   selector: 'app-adaptive-video-player',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [InteractiveVideoLayerComponent, InteractiveVideoOverlayComponent, InteractiveVideoMarkersComponent],
   template: `
-    <div class="relative h-full w-full bg-black" data-testid="adaptive-video-player"
+    <div class="flex h-full w-full flex-col bg-black" data-testid="adaptive-video-player"
          (click)="showQualityMenu() && showQualityMenu.set(false)">
+      <div class="relative min-h-0 flex-1 bg-black">
       <video
         #videoElement
         data-testid="adaptive-video-element"
@@ -72,6 +118,7 @@ type ResolvedVideoSource =
         (loadedmetadata)="onLoadedMetadata($event)"
         (timeupdate)="onTimeUpdate($event)"
         (seeking)="onSeeking($event)"
+        (seeked)="onSeeked($event)"
         (play)="onPlay()"
         (pause)="onPause()"
         (ended)="onEnded()"
@@ -143,26 +190,35 @@ type ResolvedVideoSource =
         [activeInteractionId]="activeInteraction()?.id ?? null"
         (interactionSelected)="openInteractiveInteraction($event)" />
 
-      <app-interactive-video-markers
-        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
-        [durationSeconds]="videoDurationSeconds()"
-        [currentTimeSeconds]="currentTimeSeconds()"
-        [activeInteractionId]="activeInteraction()?.id ?? null"
-        (markerSelected)="seekToInteractiveSecond($event)" />
-
       @if (showNetworkHint()) {
-        <div class="absolute bottom-3 left-3 rounded-full bg-amber-500/90 px-3 py-1 text-[11px] font-semibold text-slate-950">
-          Mạng yếu, hệ thống đang ưu tiên phát ổn định
+        <div
+          class="pointer-events-none absolute left-3 z-10 rounded-full bg-amber-400/95 px-3 py-1 text-[11px] font-semibold text-slate-950 shadow-lg shadow-black/20"
+          [class.top-14]="qualityLabel()"
+          [class.top-3]="!qualityLabel()"
+          role="status"
+          aria-live="polite"
+          data-testid="adaptive-video-network-hint">
+          Đang ưu tiên phát ổn định
         </div>
       }
       @if (activeInteraction(); as interaction) {
         <app-interactive-video-overlay
           [interaction]="interaction"
           [selectedChoiceId]="selectedChoiceId()"
+          [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
           (choiceSelected)="onInteractiveChoice($event)"
           (reviewRequested)="onInteractiveReviewRequested()"
           (continueRequested)="onInteractiveContinue()" />
       }
+      </div>
+
+      <app-interactive-video-markers
+        [timeline]="interactiveVideoSpec()?.enabled === false ? [] : (interactiveVideoSpec()?.timeline ?? [])"
+        [durationSeconds]="videoDurationSeconds()"
+        [currentTimeSeconds]="currentTimeSeconds()"
+        [activeInteractionId]="activeInteraction()?.id ?? null"
+        [showUpcomingHint]="false"
+        (markerSelected)="seekToInteractiveSecond($event)" />
     </div>
   `,
 })
@@ -175,6 +231,7 @@ export class AdaptiveVideoPlayerComponent {
   private readonly videoProgressApi = inject(VideoProgressApi);
   private readonly learningActivityApi = inject(LearningActivityApi);
   private readonly injector = inject(Injector);
+  private readonly network = inject(NetworkStatusService);
 
   readonly lessonId = input.required<string>();
   readonly sectionId = input<string | null>(null);
@@ -206,11 +263,15 @@ export class AdaptiveVideoPlayerComponent {
   readonly currentTimeSeconds = signal(0);
   readonly showNetworkHint = computed(() => {
     const metrics = this.qoe.metrics();
-    const rebufferCount = metrics?.rebufferCount ?? 0;
-    const effectiveType = typeof navigator !== 'undefined'
-      ? ((navigator as any)?.connection?.effectiveType as string | undefined)
-      : undefined;
-    return rebufferCount > 1 || effectiveType === 'slow-2g' || effectiveType === '2g' || effectiveType === '3g';
+    return shouldShowMediaNetworkHint({
+      online: this.network.online(),
+      saveDataEnabled: this.network.saveDataEnabled(),
+      effectiveNetworkType: this.network.effectiveNetworkType(),
+      reportedDownlinkMbps: this.network.reportedDownlinkMbps(),
+      appBandwidthMbps: this.network.effectiveBandwidthMbps(),
+      rebufferCount: metrics?.rebufferCount ?? 0,
+      totalBufferTimeMs: metrics?.totalBufferTimeMs ?? 0,
+    });
   });
 
   private shakaPlayer: any = null;
@@ -222,7 +283,11 @@ export class AdaptiveVideoPlayerComponent {
   private readonly offlineBlobFallbackLimitBytes = 220 * 1024 * 1024;
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
+  private watchedRanges: InteractiveVideoWatchedRange[] = [];
   private furthestWatchedSeconds = 0;
+  private isSeeking = false;
+  private seekStartTimeSeconds = 0;
+  private skipNextWatchedMark = false;
 
   constructor() {
     effect(() => {
@@ -278,10 +343,21 @@ export class AdaptiveVideoPlayerComponent {
     if (!video) {
       return;
     }
+    if (this.isSeeking && this.snapBlockedInteractiveSeek(video)) {
+      return;
+    }
+    const previousTimeSeconds = this.isSeeking ? video.currentTime : this.currentTimeSeconds();
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
-    this.tracker.recordSecond(video.currentTime);
-    this.evaluateInteractiveTimeline(video);
+    const shouldTrackPlaybackProgress = !this.isSeeking && !this.skipNextWatchedMark;
+    if (shouldTrackPlaybackProgress) {
+      this.markInteractiveVideoWatched(video.currentTime, previousTimeSeconds);
+    }
+    if (shouldTrackPlaybackProgress) {
+      this.tracker.recordSecond(video.currentTime);
+    } else if (!this.isSeeking && this.skipNextWatchedMark) {
+      this.skipNextWatchedMark = false;
+    }
+    this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
   onSeeking(event: Event): void {
@@ -289,7 +365,22 @@ export class AdaptiveVideoPlayerComponent {
     if (!video) {
       return;
     }
+    if (!this.isSeeking) {
+      this.seekStartTimeSeconds = this.currentTimeSeconds();
+    }
+    this.isSeeking = true;
     this.snapBlockedInteractiveSeek(video);
+  }
+
+  onSeeked(event: Event): void {
+    const video = event.target as HTMLVideoElement | null;
+    this.isSeeking = false;
+    if (!video) {
+      return;
+    }
+    const previousTimeSeconds = this.seekStartTimeSeconds;
+    this.currentTimeSeconds.set(video.currentTime);
+    this.evaluateInteractiveTimeline(video, previousTimeSeconds);
   }
 
   seekToInteractiveSecond(seconds: number): void {
@@ -300,9 +391,9 @@ export class AdaptiveVideoPlayerComponent {
 
     const duration = Number.isFinite(video.duration) && video.duration > 0 ? video.duration : seconds;
     const target = this.resolveAllowedInteractiveSeekTarget(Math.max(0, Math.min(seconds, duration)));
-    video.currentTime = target;
+    this.reopenInteractiveMarkerAtTarget(target);
+    this.seekVideoProgrammatically(video, target);
     this.currentTimeSeconds.set(video.currentTime);
-    this.markInteractiveVideoWatched(video.currentTime);
     this.evaluateInteractiveTimeline(video);
   }
 
@@ -806,11 +897,14 @@ export class AdaptiveVideoPlayerComponent {
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
     );
+    if (target == null) {
+      return;
+    }
+
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
-    video.currentTime = target;
+    this.seekVideoProgrammatically(video, target);
     this.currentTimeSeconds.set(target);
-    this.markInteractiveVideoWatched(target);
     void video.play().catch(() => {});
   }
 
@@ -844,7 +938,10 @@ export class AdaptiveVideoPlayerComponent {
     this.activateInteractiveInteraction(interaction, video);
   }
 
-  private evaluateInteractiveTimeline(video: HTMLVideoElement): void {
+  private evaluateInteractiveTimeline(
+    video: HTMLVideoElement,
+    previousTimeSeconds = this.currentTimeSeconds(),
+  ): void {
     if (this.activeInteraction()) {
       return;
     }
@@ -857,6 +954,7 @@ export class AdaptiveVideoPlayerComponent {
     const dueInteraction = getDueInteractiveVideoInteraction({
       timeline: spec.timeline,
       currentTimeSeconds: video.currentTime,
+      previousTimeSeconds,
       completedInteractionIds: this.completedInteractionIds,
     });
 
@@ -896,16 +994,19 @@ export class AdaptiveVideoPlayerComponent {
     this.activeInteraction.set(null);
     this.selectedChoiceId.set(null);
 
+    const isBranch = active?.type === 'branch';
     const targetTime = resolveInteractiveVideoChoiceTarget(
       choice,
       this.interactiveVideoSpec()?.timeline ?? [],
-      { sourceTimeSeconds: active?.type === 'branch' ? active.atSeconds : null },
+      {
+        sourceTimeSeconds: isBranch ? active.atSeconds : null,
+        allowBackwardSeek: isBranch,
+      },
     );
     if (typeof targetTime === 'number' && Number.isFinite(targetTime)) {
       const target = Math.max(0, targetTime);
-      video.currentTime = target;
+      this.seekVideoProgrammatically(video, target);
       this.currentTimeSeconds.set(target);
-      this.markInteractiveVideoWatched(target);
     }
     void video.play().catch(() => {});
   }
@@ -916,7 +1017,34 @@ export class AdaptiveVideoPlayerComponent {
     this.shownInteractionIds.clear();
     this.completedInteractionIds.clear();
     this.completedInteractionIdsSnapshot.set(new Set<string>());
+    this.watchedRanges = [];
     this.furthestWatchedSeconds = 0;
+    this.isSeeking = false;
+    this.seekStartTimeSeconds = 0;
+    this.skipNextWatchedMark = false;
+  }
+
+  private reopenInteractiveMarkerAtTarget(targetTimeSeconds: number): void {
+    const targetInteraction = this.interactiveVideoSpec()?.timeline
+      ?.find(interaction => Math.abs(interaction.atSeconds - targetTimeSeconds) <= 1);
+    if (!targetInteraction) {
+      return;
+    }
+
+    this.completedInteractionIds.delete(targetInteraction.id);
+    this.shownInteractionIds.delete(targetInteraction.id);
+    this.completedInteractionIdsSnapshot.set(new Set(this.completedInteractionIds));
+    this.activeInteraction.set(null);
+    this.selectedChoiceId.set(null);
+  }
+
+  private seekVideoProgrammatically(video: HTMLVideoElement, targetTimeSeconds: number): void {
+    if (!this.isSeeking) {
+      this.seekStartTimeSeconds = this.currentTimeSeconds();
+    }
+    this.isSeeking = true;
+    this.skipNextWatchedMark = true;
+    video.currentTime = targetTimeSeconds;
   }
 
   private markInteractiveInteractionCompleted(interactionId: string): void {
@@ -942,9 +1070,19 @@ export class AdaptiveVideoPlayerComponent {
       targetTimeSeconds,
       furthestWatchedSeconds: this.furthestWatchedSeconds,
       hasIncompleteRequiredInteractions: this.hasIncompleteRequiredInteractions(),
+      watchedRanges: this.watchedRanges,
     })
-      ? this.furthestWatchedSeconds
+      ? this.resolveBlockedInteractiveSeekTarget(targetTimeSeconds)
       : targetTimeSeconds;
+  }
+
+  private resolveBlockedInteractiveSeekTarget(targetTimeSeconds: number): number {
+    const mode = this.interactiveVideoSpec()?.behavior?.preventSkippingMode ?? 'none';
+    if (mode === 'both' && targetTimeSeconds <= this.furthestWatchedSeconds) {
+      return this.currentTimeSeconds();
+    }
+
+    return this.furthestWatchedSeconds;
   }
 
   private hasIncompleteRequiredInteractions(): boolean {
@@ -954,13 +1092,17 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     return spec.timeline.some(interaction =>
-      interaction.required === true && !this.completedInteractionIds.has(interaction.id),
+      isInteractiveVideoProgressGateInteraction(interaction)
+        && !this.completedInteractionIds.has(interaction.id),
     );
   }
 
-  private markInteractiveVideoWatched(seconds: number): void {
+  private markInteractiveVideoWatched(seconds: number, previousSeconds = seconds): void {
     if (Number.isFinite(seconds)) {
-      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, Math.max(0, seconds));
+      const current = Math.max(0, seconds);
+      const previous = Number.isFinite(previousSeconds) ? Math.max(0, previousSeconds) : current;
+      this.furthestWatchedSeconds = Math.max(this.furthestWatchedSeconds, current);
+      this.watchedRanges = addInteractiveVideoWatchedRange(this.watchedRanges, previous, current);
     }
   }
 

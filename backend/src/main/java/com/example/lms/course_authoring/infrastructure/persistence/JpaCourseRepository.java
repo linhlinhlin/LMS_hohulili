@@ -112,6 +112,29 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
 
     Page<CourseJpaEntity> findByStatus(CourseJpaEntity.CourseStatus status, Pageable pageable);
 
+    @Query(value = """
+        SELECT * FROM courses c
+        WHERE c.status = :status
+          AND (:categoryFilter = false OR c.category_id IN (:categoryIds))
+          AND (:deliveryMode IS NULL OR c.delivery_mode = :deliveryMode)
+          AND (:search IS NULL OR unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%'))))
+    """,
+    countQuery = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.status = :status
+          AND (:categoryFilter = false OR c.category_id IN (:categoryIds))
+          AND (:deliveryMode IS NULL OR c.delivery_mode = :deliveryMode)
+          AND (:search IS NULL OR unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%'))))
+    """,
+    nativeQuery = true)
+    Page<CourseJpaEntity> findByStatusAndFilters(
+            @Param("status") String status,
+            @Param("categoryIds") Collection<UUID> categoryIds,
+            @Param("categoryFilter") boolean categoryFilter,
+            @Param("deliveryMode") String deliveryMode,
+            @Param("search") String search,
+            Pageable pageable);
+
     Page<CourseJpaEntity> findByStatusAndCategoryId(CourseJpaEntity.CourseStatus status, UUID categoryId, Pageable pageable);
 
     @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND c.category_id = :categoryId AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)

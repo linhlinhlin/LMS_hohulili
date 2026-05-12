@@ -107,7 +107,9 @@ function normalizeBehavior(value: unknown): InteractiveVideoBehavior {
     preventSkippingMode: normalizePreventSkippingMode(value['preventSkippingMode']),
     showBookmarksOnLoad: value['showBookmarksOnLoad'] === true,
     showRewind10: value['showRewind10'] === true,
-    pauseOnInteraction: value['pauseOnInteraction'] === true,
+    // Default true so that interactions auto-pause unless the teacher explicitly
+    // disables it; matches H5P's behaviour and the design doc default.
+    pauseOnInteraction: value['pauseOnInteraction'] !== false,
   };
 }
 

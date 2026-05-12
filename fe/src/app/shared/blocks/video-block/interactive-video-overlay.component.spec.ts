@@ -131,6 +131,40 @@ describe('InteractiveVideoOverlayComponent', () => {
     expect(reviewButton.textContent).toContain('Xem lại video');
   });
 
+  it('lets learners retry a wrong branch answer when no review target exists', () => {
+    fixture.componentRef.setInput('interaction', {
+      id: 'branch-no-review-target',
+      type: 'branch',
+      atSeconds: 47,
+      title: 'Pick the safer action.',
+      adaptivity: {
+        requireCorrectBeforeContinue: true,
+        onWrong: { type: 'continue', message: 'Try the safer option.' },
+      },
+      choices: [
+        { id: 'wrong', label: 'Skip the checklist', isCorrect: false },
+        { id: 'right', label: 'Complete the checklist', isCorrect: true },
+      ],
+    });
+    fixture.componentRef.setInput('selectedChoiceId', 'wrong');
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    const wrongChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Skip the checklist')) as HTMLButtonElement;
+    const rightChoice = Array.from(element.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Complete the checklist')) as HTMLButtonElement;
+    const continueButton = Array.from(element.querySelectorAll<HTMLButtonElement>('button'))
+      .find(button => !button.hasAttribute('data-answer-state')) as HTMLButtonElement;
+
+    expect(element.querySelector('[data-testid="interactive-video-review-button"]')).toBeNull();
+    expect(wrongChoice.disabled).toBeFalse();
+    expect(rightChoice.disabled).toBeFalse();
+    expect(rightChoice.getAttribute('data-answer-state')).toBe('correct-answer');
+    expect(continueButton.disabled).toBeTrue();
+    expect(element.textContent).toContain('Try the safer option.');
+  });
+
   it('keeps tab focus inside the dialog', fakeAsync(() => {
     fixture.componentRef.setInput('interaction', {
       id: 'focus1',

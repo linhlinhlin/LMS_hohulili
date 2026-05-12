@@ -25,6 +25,10 @@ describe('NetworkStatusService', () => {
     it('should have effectiveBandwidthMbps as a number', () => {
       expect(typeof service.effectiveBandwidthMbps()).toBe('number');
     });
+
+    it('should expose reportedDownlinkMbps as nullable browser telemetry', () => {
+      expect(service.reportedDownlinkMbps() === null || typeof service.reportedDownlinkMbps() === 'number').toBeTrue();
+    });
   });
 
   describe('connectionTier computed', () => {
@@ -128,7 +132,7 @@ describe('NetworkStatusService', () => {
       expect(service.hasRecentOfflineSignal()).toBeFalse();
     }));
 
-    it('should confirm offline when the follow-up probe fails', fakeAsync(() => {
+    it('should treat one failed probe as degraded instead of immediately offline', fakeAsync(() => {
       service.online.set(true);
       fetchSpy.and.callFake(async () => new Response('', { status: 503 }));
 
@@ -136,10 +140,36 @@ describe('NetworkStatusService', () => {
       tick(250);
       flushMicrotasks();
 
+      expect(service.online()).toBeTrue();
+      expect(service.connectionTier()).toBe('slow');
+      expect(service.hasRecentOfflineSignal()).toBeTrue();
+      expect(service.isEffectivelyOffline()).toBeFalse();
+    }));
+
+    it('should confirm offline after repeated failed probes', async () => {
+      service.online.set(true);
+      fetchSpy.and.callFake(async () => new Response('', { status: 503 }));
+
+      await service.probeNow();
+      await service.probeNow();
+
       expect(service.online()).toBeFalse();
       expect(service.hasRecentOfflineSignal()).toBeTrue();
       expect(service.isEffectivelyOffline()).toBeTrue();
-    }));
+    });
+
+    it('should let manual retry recover on a successful health probe', async () => {
+      service.online.set(true);
+      fetchSpy.calls.reset();
+      fetchSpy.and.callFake(async () => new Response('', { status: 200 }));
+
+      const recovered = await service.probeNow();
+
+      expect(recovered).toBeTrue();
+      expect(service.online()).toBeTrue();
+      expect(service.hasRecentOfflineSignal()).toBeFalse();
+      expect(fetchSpy.calls.count()).toBe(1);
+    });
 
     it('should clear a suspected offline signal after a successful HTTP response', fakeAsync(() => {
       service.online.set(true);
@@ -154,5 +184,36 @@ describe('NetworkStatusService', () => {
       expect(service.isEffectivelyOffline()).toBeFalse();
       expect(fetchSpy).not.toHaveBeenCalled();
     }));
+  });
+
+  describe('non-critical sync deferral', () => {
+    it('should defer background sync while effectively offline', () => {
+      service.online.set(false);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+    });
+
+    it('should defer background sync on slow connections', () => {
+      service.online.set(true);
+      service.effectiveBandwidthMbps.set(0.5);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+    });
+
+    it('should defer background sync when Save-Data is enabled', () => {
+      service.online.set(true);
+      service.effectiveBandwidthMbps.set(10);
+      service.saveDataEnabled.set(true);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeTrue();
+    });
+
+    it('should allow background sync on a stable fast connection', () => {
+      service.online.set(true);
+      service.effectiveBandwidthMbps.set(10);
+      service.saveDataEnabled.set(false);
+
+      expect(service.shouldDeferNonCriticalSync()).toBeFalse();
+    });
   });
 });

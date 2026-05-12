@@ -9,6 +9,7 @@ import type {
 
 const OPTIONAL_INTERACTION_WINDOW_SECONDS = 5;
 const SEEK_GRACE_SECONDS = 3;
+const WATCHED_RANGE_MERGE_GAP_SECONDS = 0.75;
 
 export interface InteractiveVideoTimelineLookup {
   timeline: InteractiveVideoInteraction[];
@@ -22,7 +23,13 @@ export interface InteractiveVideoSeekPolicyInput {
   targetTimeSeconds: number;
   furthestWatchedSeconds: number;
   hasIncompleteRequiredInteractions: boolean;
+  watchedRanges?: readonly InteractiveVideoWatchedRange[];
   graceSeconds?: number;
+}
+
+export interface InteractiveVideoWatchedRange {
+  startSeconds: number;
+  endSeconds: number;
 }
 
 export interface InteractiveVideoChoiceTargetOptions {
@@ -172,11 +179,28 @@ export function isInteractiveVideoReviewInteraction(
     || (interaction.choices ?? []).some(choice => typeof choice.isCorrect === 'boolean');
 }
 
+export function isInteractiveVideoProgressGateInteraction(
+  interaction: InteractiveVideoInteraction,
+): boolean {
+  return interaction.required === true
+    || interaction.adaptivity?.requireCorrectBeforeContinue === true
+    || interaction.fillBlank?.requireAllCorrectBeforeContinue === true
+    || interaction.dragDrop?.requireAllCorrectBeforeContinue === true;
+}
+
+export function hasInteractiveVideoReviewTarget(
+  interaction: InteractiveVideoInteraction,
+  choice: InteractiveVideoChoice,
+  timeline: InteractiveVideoInteraction[],
+): boolean {
+  return resolveInteractiveVideoReviewTarget(interaction, choice, timeline) != null;
+}
+
 export function resolveInteractiveVideoReviewTarget(
   interaction: InteractiveVideoInteraction,
   choice: InteractiveVideoChoice,
   timeline: InteractiveVideoInteraction[],
-): number {
+): number | null {
   const adaptivityAction = choice.isCorrect === true
     ? interaction.adaptivity?.onCorrect
     : interaction.adaptivity?.onWrong;
@@ -197,8 +221,9 @@ export function resolveInteractiveVideoReviewTarget(
     timeline,
     { sourceTimeSeconds: interaction.atSeconds, allowBackwardSeek: true },
   );
+  const target = adaptivityTarget ?? choiceTarget;
 
-  return Math.max(0, adaptivityTarget ?? choiceTarget ?? 0);
+  return target == null ? null : Math.max(0, target);
 }
 
 function resolveRawInteractiveVideoChoiceTarget(
@@ -296,7 +321,65 @@ export function shouldBlockInteractiveVideoSeek(input: InteractiveVideoSeekPolic
   const furthestWatched = toNonNegativeSeconds(input.furthestWatchedSeconds);
   const grace = Math.max(0, input.graceSeconds ?? SEEK_GRACE_SECONDS);
 
-  return target > furthestWatched + grace;
+  if (target > furthestWatched + grace) {
+    return true;
+  }
+
+  if (mode !== 'both' || !input.watchedRanges?.length) {
+    return false;
+  }
+
+  return !isInteractiveVideoTimeWithinWatchedRanges(target, input.watchedRanges, grace);
+}
+
+export function addInteractiveVideoWatchedRange(
+  ranges: readonly InteractiveVideoWatchedRange[],
+  startSeconds: number,
+  endSeconds: number,
+): InteractiveVideoWatchedRange[] {
+  if (!Number.isFinite(startSeconds) || !Number.isFinite(endSeconds)) {
+    return [...ranges];
+  }
+
+  const nextRange = {
+    startSeconds: Math.max(0, Math.min(startSeconds, endSeconds)),
+    endSeconds: Math.max(0, Math.max(startSeconds, endSeconds)),
+  };
+  const sorted = [...ranges, nextRange]
+    .map(range => ({
+      startSeconds: toNonNegativeSeconds(range.startSeconds),
+      endSeconds: toNonNegativeSeconds(range.endSeconds),
+    }))
+    .filter(range => range.endSeconds >= range.startSeconds)
+    .sort((a, b) => a.startSeconds - b.startSeconds);
+
+  return sorted.reduce<InteractiveVideoWatchedRange[]>((merged, range) => {
+    const previous = merged[merged.length - 1];
+    if (!previous || range.startSeconds > previous.endSeconds + WATCHED_RANGE_MERGE_GAP_SECONDS) {
+      merged.push({ ...range });
+      return merged;
+    }
+
+    previous.endSeconds = Math.max(previous.endSeconds, range.endSeconds);
+    return merged;
+  }, []);
+}
+
+export function isInteractiveVideoTimeWithinWatchedRanges(
+  timeSeconds: number,
+  ranges: readonly InteractiveVideoWatchedRange[],
+  graceSeconds = 0,
+): boolean {
+  if (!Number.isFinite(timeSeconds)) {
+    return false;
+  }
+
+  const time = Math.max(0, timeSeconds);
+  const grace = Math.max(0, graceSeconds);
+  return ranges.some(range =>
+    time >= toNonNegativeSeconds(range.startSeconds) - grace
+    && time <= toNonNegativeSeconds(range.endSeconds) + grace,
+  );
 }
 
 function getInteractionEndSeconds(interaction: InteractiveVideoInteraction): number {

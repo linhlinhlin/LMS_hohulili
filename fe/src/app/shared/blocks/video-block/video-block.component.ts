@@ -20,11 +20,12 @@ import { QuizVideoPlayerComponent } from './quiz-video-player.component';
           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           allowfullscreen>
         </iframe>
-      } @else if (assetId()) {
+      } @else if (assetId() || (videoUrl() && interactiveVideoSpec())) {
         <!-- Adaptive streaming via Shaka Player -->
         <app-quiz-video-player
           [videoAssetId]="assetId()"
           [rawVideoUrl]="videoUrl()"
+          [interactiveVideoSpec]="interactiveVideoSpec()"
         />
       } @else if (videoUrl()) {
         <!-- Native fallback for legacy/dev mode -->
@@ -65,6 +66,8 @@ export class VideoBlockComponent {
     const d = this.data();
     return d.rawUrl || d.url || d.file?.url || null;
   });
+
+  interactiveVideoSpec = computed(() => this.data().interactiveVideoSpec ?? null);
 
   youtubeEmbedUrl = computed<SafeResourceUrl | null>(() => {
     const d = this.data();

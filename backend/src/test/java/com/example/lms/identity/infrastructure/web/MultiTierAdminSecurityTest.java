@@ -645,13 +645,20 @@ class MultiTierAdminSecurityTest {
             // KHÔNG phải otherOrgId. Nếu logic sai, test sẽ fail vì stub không match.
             org.springframework.data.domain.Page<UserJpaEntity> emptyPage =
                     new org.springframework.data.domain.PageImpl<>(java.util.List.of());
-            when(userRepository.findByOrganizationId(eq(organizationId), any())).thenReturn(emptyPage);
+            when(userRepository.findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class),
+                    any(org.springframework.data.domain.Pageable.class)
+            )).thenReturn(emptyPage);
 
             // Act: ORG_ADMIN cố gắng filter sang org khác
-            controller.getUsers(1, 10, null, null, null, otherOrgId, orgAdmin);
+            controller.getUsers(1, 10, null, null, null, null, otherOrgId, false, orgAdmin);
 
-            // Assert: query was made with own organizationId, NOT otherOrgId
-            verify(userRepository).findByOrganizationId(eq(organizationId), any());
+            // Assert: the unified Specification query is used; legacy direct
+            // organization lookup must not be called with the foreign org.
+            verify(userRepository).findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class),
+                    any(org.springframework.data.domain.Pageable.class)
+            );
             verify(userRepository, never()).findByOrganizationId(eq(otherOrgId), any());
         }
 
@@ -661,13 +668,19 @@ class MultiTierAdminSecurityTest {
             UUID targetOrgId = UUID.randomUUID();
             org.springframework.data.domain.Page<UserJpaEntity> emptyPage =
                     new org.springframework.data.domain.PageImpl<>(java.util.List.of());
-            when(userRepository.findByOrganizationId(eq(targetOrgId), any())).thenReturn(emptyPage);
+            when(userRepository.findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class),
+                    any(org.springframework.data.domain.Pageable.class)
+            )).thenReturn(emptyPage);
 
             // Act: ADMIN filter to specific org
-            controller.getUsers(1, 10, null, null, null, targetOrgId, systemAdmin);
+            controller.getUsers(1, 10, null, null, null, null, targetOrgId, false, systemAdmin);
 
-            // Assert: query was made with targetOrgId
-            verify(userRepository).findByOrganizationId(eq(targetOrgId), any());
+            // Assert: query was made through the unified Specification path.
+            verify(userRepository).findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class),
+                    any(org.springframework.data.domain.Pageable.class)
+            );
         }
 
         @Test
@@ -675,13 +688,19 @@ class MultiTierAdminSecurityTest {
         void systemAdminWithoutOrgFilterSeesAll() {
             org.springframework.data.domain.Page<UserJpaEntity> emptyPage =
                     new org.springframework.data.domain.PageImpl<>(java.util.List.of());
-            when(userRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(emptyPage);
+            when(userRepository.findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class),
+                    any(org.springframework.data.domain.Pageable.class)
+            )).thenReturn(emptyPage);
 
             // Act
-            controller.getUsers(1, 10, null, null, null, null, systemAdmin);
+            controller.getUsers(1, 10, null, null, null, null, null, false, systemAdmin);
 
-            // Assert: cross-org findAll, không scope by orgId
-            verify(userRepository).findAll(any(org.springframework.data.domain.Pageable.class));
+            // Assert: cross-org Specification query, không scope by orgId
+            verify(userRepository).findAll(
+                    any(org.springframework.data.jpa.domain.Specification.class),
+                    any(org.springframework.data.domain.Pageable.class)
+            );
             verify(userRepository, never()).findByOrganizationId(any(), any());
         }
     }

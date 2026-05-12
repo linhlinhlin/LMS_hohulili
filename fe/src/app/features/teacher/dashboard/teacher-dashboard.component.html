@@ -1,4 +1,4 @@
-<div class="dashboard-container">
+<div class="dashboard-container" data-wiii-id="teacher-dashboard">
   <div class="main-content">
     <!-- Header — text-only greeting (Coursera pattern: avatar only in navigation) -->
     <div class="dashboard-header">
@@ -7,7 +7,10 @@
           <h1 class="greeting">{{ getGreeting() }}, {{ getUserFirstName() }}</h1>
           <p class="subtitle">Tổng quan hoạt động giảng dạy</p>
         </div>
-        <a routerLink="/teacher/course-creation" class="cta-button">
+        <a routerLink="/teacher/course-creation" class="cta-button"
+           data-wiii-id="create-course"
+           data-wiii-click-safe="true"
+           data-wiii-click-kind="navigation">
           <svg class="cta-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
           </svg>
@@ -24,6 +27,7 @@
         </div>
         <p class="flex-1 text-sm font-medium text-amber-900">bài tập cần chấm điểm</p>
         <a routerLink="/teacher/assessments/classes/assignments"
+           data-wiii-id="open-grading-queue"
            class="rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 transition-colors">
           Xem ngay
         </a>
@@ -37,6 +41,7 @@
           <div class="flex flex-wrap items-center gap-2" role="tablist">
             @for (tab of tabItems; track tab.key) {
               <button type="button" role="tab"
+                [attr.data-wiii-id]="'teacher-dashboard-tab-' + tab.key"
                 [attr.aria-selected]="activeTab() === tab.key"
                 class="inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm font-medium transition-colors"
                 [class.bg-[#0056D2]]="activeTab() === tab.key"
@@ -52,7 +57,10 @@
             }
           </div>
           @if (hasMoreCourses()) {
-            <a routerLink="/teacher/courses/library" class="view-all-link">
+            <a routerLink="/teacher/courses/library" class="view-all-link"
+               data-wiii-id="browse-teacher-courses"
+               data-wiii-click-safe="true"
+               data-wiii-click-kind="navigation">
               Xem tất cả
             </a>
           }
@@ -99,7 +107,10 @@
             </div>
             <h3 class="empty-state-title">Chưa có khóa học</h3>
             <p class="empty-state-text">Tạo khóa học đầu tiên để bắt đầu giảng dạy</p>
-            <a routerLink="/teacher/course-creation" class="retry-link">Tạo khóa học mới &rarr;</a>
+            <a routerLink="/teacher/course-creation" class="retry-link"
+               data-wiii-id="create-first-course"
+               data-wiii-click-safe="true"
+               data-wiii-click-kind="navigation">Tạo khóa học mới &rarr;</a>
           </div>
         }
 
@@ -107,7 +118,9 @@
         @if (!teacher.isLoading() && !teacher.error() && filteredCourses().length > 0) {
           <div class="courses-list">
             @for (course of filteredCourses(); track course.id) {
-              <div class="course-card" (click)="goToCourse(course.id)">
+              <div class="course-card"
+                   [attr.data-wiii-id]="'teacher-course-card-' + course.id"
+                   (click)="goToCourse(course.id)">
                 <div class="course-card-body">
                   <!-- Thumbnail -->
                   <div class="course-thumbnail">
@@ -167,7 +180,11 @@
                     </span>
                     }
                     <span class="course-date">{{ formatDate(course.updatedAt || course.createdAt) }}</span>
-                    <button class="edit-button" (click)="goToCourse(course.id); $event.stopPropagation()">
+                    <button class="edit-button"
+                            [attr.data-wiii-id]="'open-course-editor-' + course.id"
+                            data-wiii-click-safe="true"
+                            data-wiii-click-kind="navigation"
+                            (click)="goToCourse(course.id); $event.stopPropagation()">
                       Chỉnh sửa
                     </button>
                   </div>
@@ -180,7 +197,10 @@
           @if (hasMoreCourses()) {
             <div class="courses-footer">
               <span class="footer-summary">{{ footerText() }}</span>
-              <a routerLink="/teacher/courses/library" class="footer-link">
+              <a routerLink="/teacher/courses/library" class="footer-link"
+                 data-wiii-id="browse-all-teacher-courses"
+                 data-wiii-click-safe="true"
+                 data-wiii-click-kind="navigation">
                 Xem tất cả khóa học
                 <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3"/>

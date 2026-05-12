@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { firstValueFrom } from 'rxjs';
 import { ApiClient } from '../../../api/client/api-client';
 import { CertificateApi, CertificateDTO } from '../../../api/endpoints/certificate.api';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 
 type DeliveryMode = 'SELF_PACED' | 'INSTRUCTOR_LED';
 type EnrollmentStatus = 'ACTIVE' | 'COMPLETED';
@@ -54,7 +55,7 @@ interface StatusTab {
 
 @Component({
   selector: 'app-student-grades',
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, PaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './student-grades.component.html',
   styleUrl: './student-grades.component.scss',
@@ -120,12 +121,19 @@ export class StudentGradesComponent implements OnInit {
 
   certBadgeCount = computed(() => this.grades().filter(g => g.hasCertificate).length);
 
-  // === Load More ===
-  private readonly LOAD_MORE_COUNT = 5;
-  visibleCount = signal(5);
-  visibleGrades = computed(() => this.filteredGrades().slice(0, this.visibleCount()));
-  hasMoreGrades = computed(() => this.visibleCount() < this.filteredGrades().length);
-  remainingGrades = computed(() => Math.max(0, this.filteredGrades().length - this.visibleCount()));
+  // === Pagination ===
+  readonly PAGE_SIZE = 12;
+  currentPage = signal(0);
+  totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.filteredGrades().length / this.PAGE_SIZE))
+  );
+  safeCurrentPage = computed(() =>
+    Math.min(Math.max(0, this.currentPage()), this.totalPages() - 1)
+  );
+  visibleGrades = computed(() => {
+    const start = this.safeCurrentPage() * this.PAGE_SIZE;
+    return this.filteredGrades().slice(start, start + this.PAGE_SIZE);
+  });
 
   // === Expand/Collapse per enrollment ===
   expandedEnrollments = signal<Set<string>>(new Set());
@@ -169,16 +177,20 @@ export class StudentGradesComponent implements OnInit {
 
   setStatusFilter(key: StatusFilterKey): void {
     this.activeStatusFilter.set(key);
-    this.visibleCount.set(5);
+    this.resetPagination();
   }
 
   setSemesterFilter(semester: string | null): void {
     this.selectedSemester.set(semester);
-    this.visibleCount.set(5);
+    this.resetPagination();
   }
 
-  loadMoreGrades(): void {
-    this.visibleCount.update(c => c + this.LOAD_MORE_COUNT);
+  goToPage(page: number): void {
+    if (page < 0 || page >= this.totalPages()) return;
+    this.currentPage.set(page);
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
 
   async loadCertificates(): Promise<void> {
@@ -221,5 +233,9 @@ export class StudentGradesComponent implements OnInit {
       case 'OVERDUE': return 'Quá hạn';
       default: return 'Chưa nộp';
     }
+  }
+
+  private resetPagination(): void {
+    this.currentPage.set(0);
   }
 }

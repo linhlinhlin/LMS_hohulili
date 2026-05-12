@@ -7,8 +7,8 @@ import { CourseApi } from '../../../api/client/course.api';
 import { CourseSummary } from '../../../api/types/course.types';
 import { ToastService } from '../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../core/services/confirm-dialog.service';
-import { IconComponent } from '../../../shared/components/icon/icon.component';
 import { DialogComponent } from '../../../shared/components/dialog/dialog.component';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
 import { COURSE_REJECTION_CATEGORIES } from '../../admin/infrastructure/services/admin.service';
 
 interface ReviewFeedback {
@@ -21,7 +21,7 @@ interface ReviewFeedback {
 
 @Component({
   selector: 'app-course-management',
-  imports: [RouterModule, FormsModule, IconComponent, DialogComponent],
+  imports: [RouterModule, FormsModule, DialogComponent, PaginationComponent],
   template: `
     <div class="courses-page">
       <div class="page-inner">
@@ -289,17 +289,15 @@ interface ReviewFeedback {
           </div>
         }
 
-        <!-- Load More (matching dashboard + student + UX Guidelines) -->
-        @if (hasMore()) {
-          <div class="pt-6 text-center space-y-2">
-            <button type="button" (click)="loadMore()"
-              class="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-medium text-gray-700 transition-colors hover:border-[#0056D2] hover:text-[#0056D2] hover:bg-[#f0f7ff]">
-              Xem thêm {{ remainingCount() }} khóa học
-            </button>
-            <p class="text-xs text-gray-400">Đang hiện {{ visibleCount() }} / {{ filtered().length }}</p>
-          </div>
-        } @else if (filtered().length > 0) {
-          <p class="pt-4 text-center text-xs text-gray-400">Đã hiện tất cả {{ filtered().length }} khóa học</p>
+        <!-- Pagination (shared pattern from student browse / teacher students) -->
+        @if (!loading() && totalItems() > 0) {
+          <app-pagination
+            class="teacher-library-pagination mt-6 block overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+            [currentPage]="currentPage() + 1"
+            [totalPages]="totalPages()"
+            [totalItems]="totalItems()"
+            [itemsPerPage]="PAGE_SIZE"
+            (pageChange)="goToPage($event - 1)" />
         }
 
         </div><!-- /main-content -->
@@ -797,7 +795,9 @@ interface ReviewFeedback {
       &:hover { background: #0056D2; color: white; }
     }
 
-    /* Load More: inline Tailwind (see template) */
+    .teacher-library-pagination {
+      margin-top: 24px;
+    }
 
     /* ===== EMPTY STATE ===== */
     .empty-state {
@@ -1044,15 +1044,15 @@ export class CourseManagementComponent {
   cancellingId = signal<string | null>(null);
   openMenuId = signal<string | null>(null);
 
-  // Load More pattern (matching dashboard + student)
-  private readonly INITIAL_COUNT = 10;
-  private readonly LOAD_MORE_COUNT = 10;
-  visibleLimit = signal(this.INITIAL_COUNT);
+  readonly PAGE_SIZE = 12;
+  currentPage = signal(0);
+  totalItems = computed(() => this.filtered().length);
+  totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.PAGE_SIZE)));
 
-  visible = computed(() => this.filtered().slice(0, this.visibleLimit()));
-  visibleCount = computed(() => Math.min(this.visibleLimit(), this.filtered().length));
-  hasMore = computed(() => this.visibleLimit() < this.filtered().length);
-  remainingCount = computed(() => Math.max(0, this.filtered().length - this.visibleLimit()));
+  visible = computed(() => {
+    const start = this.currentPage() * this.PAGE_SIZE;
+    return this.filtered().slice(start, start + this.PAGE_SIZE);
+  });
 
   private readonly GRADIENTS = [
     'linear-gradient(135deg, #0056D2 0%, #4A90D9 100%)',
@@ -1068,8 +1068,7 @@ export class CourseManagementComponent {
       next: (res: any) => {
         const list = res?.data || [];
         this.courses.set(list);
-        this.filtered.set(list);
-        this.visibleLimit.set(this.INITIAL_COUNT);
+        this.applyFilters();
         this.loading.set(false);
       },
       error: (err: any) => {
@@ -1108,16 +1107,12 @@ export class CourseManagementComponent {
     }
   }
 
-  loadMore() {
-    this.visibleLimit.update(v => v + this.LOAD_MORE_COUNT);
-  }
-
   onSortChange(event: Event) {
     this.sortBy.set((event.target as HTMLSelectElement).value as any);
     this.applyFilters();
   }
 
-  applyFilters() {
+  applyFilters(resetPage = true) {
     const kw = this.keyword.trim().toLowerCase();
     const f = this.activeFilter();
     const sort = this.sortBy();
@@ -1144,7 +1139,24 @@ export class CourseManagementComponent {
     });
 
     this.filtered.set(result);
-    this.visibleLimit.set(this.INITIAL_COUNT);
+    if (resetPage) {
+      this.currentPage.set(0);
+    } else {
+      this.clampCurrentPage();
+    }
+  }
+
+  goToPage(page: number) {
+    if (page < 0 || page >= this.totalPages() || page === this.currentPage()) return;
+    this.currentPage.set(page);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  private clampCurrentPage() {
+    const maxPage = Math.max(0, this.totalPages() - 1);
+    if (this.currentPage() > maxPage) {
+      this.currentPage.set(maxPage);
+    }
   }
 
   getStatusLabel(status: string, reviewState?: string): string {
@@ -1205,7 +1217,7 @@ export class CourseManagementComponent {
       next: () => {
         const apply = (list: CourseSummary[]) => list.map(item => item.id === id ? { ...item, status: 'APPROVED' } : item);
         this.courses.set(apply(this.courses()));
-        this.filtered.set(apply(this.filtered()));
+        this.applyFilters(false);
       },
       error: (err: any) => {
         this.toast.error('Xuất bản thất bại: ' + (err?.message || 'Lỗi không xác định'));
@@ -1232,7 +1244,7 @@ export class CourseManagementComponent {
             return { ...item, status: 'PENDING', reviewState: 'pending' };
           });
         this.courses.set(updateStatus(this.courses()));
-        this.filtered.set(updateStatus(this.filtered()));
+        this.applyFilters(false);
         this.toast.success('Khóa học đã được gửi để phê duyệt');
       },
       error: (err: any) => {
@@ -1258,7 +1270,7 @@ export class CourseManagementComponent {
         const updateStatus = (list: CourseSummary[]) =>
           list.map(item => item.id === id ? { ...item, status: 'DRAFT' } : item);
         this.courses.set(updateStatus(this.courses()));
-        this.filtered.set(updateStatus(this.filtered()));
+        this.applyFilters(false);
         this.toast.success('Đã hủy yêu cầu phê duyệt');
       },
       error: (err: any) => {
@@ -1321,7 +1333,7 @@ export class CourseManagementComponent {
       next: () => {
         const removeFromList = (list: CourseSummary[]) => list.filter(item => item.id !== id);
         this.courses.set(removeFromList(this.courses()));
-        this.filtered.set(removeFromList(this.filtered()));
+        this.applyFilters(false);
         this.toast.success('Đã xóa khóa học thành công');
       },
       error: (err: any) => {

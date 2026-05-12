@@ -137,9 +137,11 @@ services:
     image: gotenberg/gotenberg:8
     command:
       - "gotenberg"
-      - "--api-timeout=120s"
+      - "--api-timeout=900s"
       - "--libreoffice-restart-after=50"
       - "--libreoffice-auto-start=true"
+      - "--libreoffice-start-timeout=90s"
+      - "--libreoffice-max-queue-size=4"
       - "--log-level=warn"
     networks:
       - lms-backend
@@ -147,12 +149,13 @@ services:
       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
       interval: 15s
       timeout: 5s
-      retries: 5
-      start_period: 30s
+      retries: 8
+      start_period: 90s
+    mem_limit: "${GOTENBERG_MEMORY_LIMIT:-4096M}"
     deploy:
       resources:
         limits:
-          memory: 512M
+          memory: "${GOTENBERG_MEMORY_LIMIT:-4096M}"
 
   # ===== Angular Frontend (nginx) =====
   frontend:

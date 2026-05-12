@@ -54,8 +54,10 @@ export class PresignedUploadService {
    * Cancellable: unsubscribing aborts the XHR upload.
    */
   upload(file: File, folder: string): Observable<UploadEvent> {
+    const contentType = this.resolveContentType(file);
+
     return this.http.post<InitResponse>(`${this.baseUrl}/upload/init`, {
-      contentType: file.type,
+      contentType,
       fileSize: file.size,
       folder
     }).pipe(
@@ -64,6 +66,7 @@ export class PresignedUploadService {
           if (initRes.uploadStrategy === 'MULTIPART' && initRes.storageKey && initRes.multipartUploadId) {
             return this.multipartUpload(
               file,
+              contentType,
               initRes.storageKey,
               initRes.multipartUploadId,
               initRes.multipartPartSizeBytes ?? this.defaultMultipartPartSizeBytes
@@ -73,12 +76,12 @@ export class PresignedUploadService {
           return this.serverRelayUpload(file, folder);
         }
         // Presigned flow: PUT to R2 via XHR, then confirm
-        return this.presignedUpload(file, initRes.uploadUrl, initRes.storageKey!);
+        return this.presignedUpload(file, contentType, initRes.uploadUrl, initRes.storageKey!);
       })
     );
   }
 
-  private presignedUpload(file: File, uploadUrl: string, storageKey: string): Observable<UploadEvent> {
+  private presignedUpload(file: File, contentType: string, uploadUrl: string, storageKey: string): Observable<UploadEvent> {
     return new Observable<UploadEvent>(subscriber => {
       let attempt = 0;
       const maxRetries = 2;
@@ -134,7 +137,7 @@ export class PresignedUploadService {
         };
 
         xhr.open('PUT', uploadUrl);
-        xhr.setRequestHeader('Content-Type', file.type);
+        xhr.setRequestHeader('Content-Type', contentType);
         xhr.send(file);
       };
 
@@ -150,6 +153,7 @@ export class PresignedUploadService {
 
   private multipartUpload(
     file: File,
+    contentType: string,
     storageKey: string,
     uploadId: string,
     partSizeBytes: number
@@ -176,7 +180,7 @@ export class PresignedUploadService {
           const partUrlResponse = await this.requestMultipartPartUrl(storageKey, uploadId, partNumber);
           const eTag = await this.uploadMultipartPart(
             blob,
-            file.type,
+            contentType,
             partUrlResponse.uploadUrl,
             (loadedBytes) => {
               const progress = Math.round(100 * Math.min(file.size, uploadedBytes + loadedBytes) / file.size);
@@ -332,5 +336,38 @@ export class PresignedUploadService {
         };
       })
     );
+  }
+
+  private resolveContentType(file: File): string {
+    if (file.type) {
+      return file.type;
+    }
+
+    const extension = file.name.split('.').pop()?.toLowerCase();
+    switch (extension) {
+      case 'doc':
+        return 'application/msword';
+      case 'docx':
+        return 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      case 'xls':
+        return 'application/vnd.ms-excel';
+      case 'xlsx':
+        return 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+      case 'ppt':
+        return 'application/vnd.ms-powerpoint';
+      case 'pptx':
+        return 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+      case 'pdf':
+        return 'application/pdf';
+      case 'jpg':
+      case 'jpeg':
+        return 'image/jpeg';
+      case 'png':
+        return 'image/png';
+      case 'webp':
+        return 'image/webp';
+      default:
+        return 'application/octet-stream';
+    }
   }
 }

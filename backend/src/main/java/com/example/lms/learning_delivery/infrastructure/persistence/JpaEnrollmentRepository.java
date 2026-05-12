@@ -193,6 +193,16 @@ public interface JpaEnrollmentRepository extends JpaRepository<EnrollmentJpaEnti
     @Query("SELECT lc.courseId, COUNT(e) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds GROUP BY lc.courseId")
     List<Object[]> countEnrollmentsByCourseIds(@Param("courseIds") List<UUID> courseIds);
 
+    @Query("""
+        SELECT e.studentId, COUNT(DISTINCT lc.courseId)
+        FROM EnrollmentJpaEntity e
+        JOIN e.learningClass lc
+        WHERE e.studentId IN :studentIds
+        AND e.status = 'ACTIVE'
+        GROUP BY e.studentId
+    """)
+    List<Object[]> countDistinctActiveCoursesByStudentIds(@Param("studentIds") java.util.Collection<UUID> studentIds);
+
     @Query("SELECT COUNT(e) FROM EnrollmentJpaEntity e JOIN e.learningClass lc WHERE lc.courseId IN :courseIds")
     long countTotalByCourseIds(@Param("courseIds") List<UUID> courseIds);
 

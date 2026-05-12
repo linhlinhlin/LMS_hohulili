@@ -2,12 +2,19 @@
   <label class="editor-label">Nội dung ({{ sections().length }} mục)</label>
 
   <div style="display: flex; gap: 0.5rem; align-items: center">
-    <button type="button" class="add-content-btn add-content-btn--secondary" (click)="batchVideoUpload.emit()" title="Tải lên nhiều video, hệ thống tự phân bổ vào các bài">
+    <button type="button" class="add-content-btn add-content-btn--secondary" (click)="batchVideoUpload.emit()"
+            data-wiii-id="upload-video-materials-from-lesson"
+            data-wiii-click-safe="true"
+            data-wiii-click-kind="open_panel"
+            title="Tải lên nhiều video, hệ thống tự phân bổ vào các bài">
       <lucide-icon name="upload-cloud" [size]="14"></lucide-icon>
       Tải lên nhiều video
     </button>
   <div class="add-content-wrapper">
-    <button type="button" class="add-content-btn" (click)="toggleDropdown()">
+    <button type="button" class="add-content-btn" (click)="toggleDropdown()"
+            data-wiii-id="open-add-section-menu"
+            data-wiii-click-safe="true"
+            data-wiii-click-kind="open_panel">
       <lucide-icon name="plus" [size]="14"></lucide-icon>
       Thêm mục
       <lucide-icon name="chevron-down" [size]="12"></lucide-icon>
@@ -15,7 +22,8 @@
 
     @if (isDropdownOpen()) {
       <div class="add-content-dropdown">
-        <button type="button" class="add-content-option" (click)="onCreateSection('TEXT')">
+        <button type="button" class="add-content-option" (click)="onCreateSection('TEXT')"
+                data-wiii-id="add-text-section">
           <div class="add-content-option__icon" style="background: rgb(241 245 249)">
             <lucide-icon name="pilcrow" [size]="14" style="color: rgb(71 85 105)"></lucide-icon>
           </div>
@@ -25,7 +33,8 @@
           </div>
         </button>
 
-        <button type="button" class="add-content-option" (click)="onCreateSection('VIDEO')">
+        <button type="button" class="add-content-option" (click)="onCreateSection('VIDEO')"
+                data-wiii-id="add-video-section">
           <div class="add-content-option__icon" style="background: rgba(0, 86, 210, 0.08)">
             <lucide-icon name="play-circle" [size]="14" style="color: rgb(0 86 210)"></lucide-icon>
           </div>
@@ -35,7 +44,8 @@
           </div>
         </button>
 
-        <button type="button" class="add-content-option" (click)="onCreateSection('FILE')">
+        <button type="button" class="add-content-option" (click)="onCreateSection('FILE')"
+                data-wiii-id="upload-material">
           <div class="add-content-option__icon" style="background: rgba(245, 158, 11, 0.08)">
             <lucide-icon name="file-text" [size]="14" style="color: rgb(180 83 9)"></lucide-icon>
           </div>
@@ -45,7 +55,8 @@
           </div>
         </button>
 
-        <button type="button" class="add-content-option" (click)="onCreateSection('QUIZ')">
+        <button type="button" class="add-content-option" (click)="onCreateSection('QUIZ')"
+                data-wiii-id="add-quiz-section">
           <div class="add-content-option__icon" style="background: rgba(139, 92, 246, 0.08)">
             <lucide-icon name="help-circle" [size]="14" style="color: rgb(109 40 217)"></lucide-icon>
           </div>
@@ -74,7 +85,10 @@
     (cdkDropListDropped)="onDropSection($event)"
   >
     @for (section of sections(); track section.id; let idx = $index) {
-      <div class="section-row" [class.section-row--active]="activeSectionId() === section.id" (click)="onEditSection(section)" cdkDrag>
+      <div class="section-row"
+           [attr.data-wiii-id]="'edit-section-' + section.id"
+           [class.section-row--active]="activeSectionId() === section.id"
+           (click)="onEditSection(section)" cdkDrag>
         <div class="section-row__handle" cdkDragHandle>
           <lucide-icon name="grip-vertical" [size]="14"></lucide-icon>
         </div>
@@ -102,6 +116,7 @@
         <button
           type="button"
           (click)="onDeleteSection(section.id, $event)"
+          [attr.data-wiii-id]="'delete-section-' + section.id"
           class="section-row__delete"
           aria-label="Xóa"
         >

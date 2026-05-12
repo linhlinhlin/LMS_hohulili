@@ -1,0 +1,262 @@
+@if (activePreview(); as preview) {
+  <div class="wiii-preview-backdrop" role="presentation">
+    <section
+      class="wiii-preview-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="wiii-preview-title"
+      data-wiii-id="wiii-preview-diff-panel"
+    >
+      <header class="wiii-preview-header">
+        <div>
+          <p class="wiii-preview-kicker">{{ kindLabel(preview.kind) }}</p>
+          <h2 id="wiii-preview-title">{{ preview.targetLabel }}</h2>
+          <p class="wiii-preview-summary">{{ preview.summary }}</p>
+        </div>
+        <button
+          type="button"
+          class="wiii-preview-icon-button"
+          data-wiii-id="close-wiii-preview"
+          [disabled]="status() === 'applying'"
+          (click)="close()"
+          aria-label="Đóng bản xem trước"
+        >
+          &times;
+        </button>
+      </header>
+
+      <div class="wiii-preview-body">
+        <div
+          class="wiii-preview-status"
+          [class.wiii-preview-status--done]="status() === 'applied'"
+          [class.wiii-preview-status--error]="status() === 'error'"
+        >
+          <span class="wiii-preview-dot"></span>
+          <span>{{ statusLabel() }}</span>
+        </div>
+
+        @if (changedFields(preview).length > 0) {
+          <div class="wiii-preview-section">
+            <h3>Trường sẽ thay đổi</h3>
+            <div class="wiii-preview-pills">
+              @for (field of changedFields(preview); track field) {
+                <span>{{ fieldLabel(field) }}</span>
+              }
+            </div>
+          </div>
+        }
+
+        @if (preview.kind === 'lesson_patch') {
+          <div class="wiii-preview-section">
+            <h3>So sánh bài học</h3>
+            <div class="wiii-preview-diff-grid">
+              <article>
+                <span>Hiện tại</span>
+                <dl class="wiii-preview-diff-fields">
+                  <div>
+                    <dt>Tiêu đề</dt>
+                    <dd>{{ lessonBefore(preview, 'title') || 'Chưa có tiêu đề' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Mô tả</dt>
+                    <dd>{{ compactText(lessonBefore(preview, 'description'), 240) || 'Không có mô tả' }}</dd>
+                  </div>
+                </dl>
+                <details class="wiii-preview-diff-details">
+                  <summary>Xem tóm tắt nội dung hiện tại</summary>
+                  <p>{{ compactText(lessonBefore(preview, 'content_excerpt'), 420) || 'Không có nội dung' }}</p>
+                </details>
+              </article>
+              <article>
+                <span>Wiii đề xuất</span>
+                <dl class="wiii-preview-diff-fields">
+                  <div>
+                    <dt>Tiêu đề</dt>
+                    <dd>{{ lessonAfter(preview, 'title') || 'Chưa có tiêu đề' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Mô tả</dt>
+                    <dd>{{ compactText(lessonAfter(preview, 'description'), 240) || 'Không có mô tả' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Nội dung</dt>
+                    <dd>{{ compactText(lessonAfter(preview, 'content_excerpt'), 420) || 'Không có nội dung' }}</dd>
+                  </div>
+                </dl>
+              </article>
+            </div>
+          </div>
+
+          @if (lessonLearningObjectives(preview, 'after').length > 0 || lessonContentPreview(preview, 'after')) {
+            <div class="wiii-preview-section wiii-preview-section--review">
+              <div class="wiii-preview-review-header">
+                <div>
+                  <h3>Nội dung Wiii sẽ áp dụng</h3>
+                  <p>Giáo viên nên đọc phần này cùng nguồn trích dẫn trước khi bấm Áp dụng.</p>
+                </div>
+              </div>
+
+              @if (lessonLearningObjectives(preview, 'after').length > 0) {
+                <ul class="wiii-preview-objective-cards" aria-label="Mục tiêu học tập Wiii đề xuất">
+                  @for (objective of lessonLearningObjectives(preview, 'after'); track objective) {
+                    <li>{{ objective }}</li>
+                  }
+                </ul>
+              }
+
+              @if (lessonContentPreview(preview, 'after')) {
+                <details class="wiii-preview-content-preview" open>
+                  <summary>Đọc bản nháp nội dung</summary>
+                  <pre>{{ lessonContentPreview(preview, 'after') }}</pre>
+                </details>
+              }
+            </div>
+          }
+
+          @if (blockDiffItems(preview).length > 0) {
+            <div class="wiii-preview-section">
+              <h3>Thay đổi khối nội dung</h3>
+              <div class="wiii-preview-block-list">
+                @for (item of blockDiffItems(preview); track blockTrack(item)) {
+                  <article class="wiii-preview-block">
+                    <span [class]="blockStatusClass(item['status'])">{{ blockStatusLabel(item['status']) }}</span>
+                    <div class="wiii-preview-block__content">
+                      @if (blockText(item['before'])) {
+                        <details class="wiii-preview-block__before">
+                          <summary>Hiện tại</summary>
+                          <p>{{ compactText(blockText(item['before']), 280) }}</p>
+                        </details>
+                      }
+                      @if (blockText(item['after'])) {
+                        <div class="wiii-preview-block__after">
+                          <strong>Wiii đề xuất</strong>
+                          <p>{{ compactText(blockText(item['after']), 420) }}</p>
+                        </div>
+                      }
+                    </div>
+                  </article>
+                }
+              </div>
+            </div>
+          }
+        }
+
+        @if (preview.kind === 'course_plan') {
+          <div class="wiii-preview-section">
+            <h3>Cấu trúc khóa học đề xuất</h3>
+            <dl class="wiii-preview-kv wiii-preview-kv--course">
+              <div><dt>Tên khóa</dt><dd>{{ coursePlanValue(preview, 'title') || preview.targetLabel }}</dd></div>
+              <div><dt>Đối tượng</dt><dd>{{ coursePlanValue(preview, 'audience') || 'Giáo viên xác nhận trong LMS' }}</dd></div>
+              <div><dt>Thời lượng</dt><dd>{{ coursePlanValue(preview, 'duration') || 'Theo tiến độ lớp học' }}</dd></div>
+              <div><dt>Số chương</dt><dd>{{ courseChapters(preview).length }}</dd></div>
+            </dl>
+
+            @if (coursePlanValue(preview, 'description')) {
+              <p class="wiii-preview-course-description">{{ coursePlanValue(preview, 'description') }}</p>
+            }
+
+            <div class="wiii-preview-course-tree">
+              @for (chapter of courseChapters(preview); track chapterTrack(chapter, $index)) {
+                <article class="wiii-preview-course-chapter">
+                  <div class="wiii-preview-course-chapter__header">
+                    <span>Chương {{ $index + 1 }}</span>
+                    <strong>{{ itemValue(chapter, 'title') || 'Chương chưa đặt tên' }}</strong>
+                    @if (itemValue(chapter, 'summary')) {
+                      <p>{{ itemValue(chapter, 'summary') }}</p>
+                    }
+                  </div>
+
+                  @if (chapterObjectives(chapter).length > 0) {
+                    <ul class="wiii-preview-objectives">
+                      @for (objective of chapterObjectives(chapter); track objective) {
+                        <li>{{ objective }}</li>
+                      }
+                    </ul>
+                  }
+
+                  <ol class="wiii-preview-lesson-list">
+                    @for (lesson of chapterLessons(chapter); track lessonTrack(lesson, $index)) {
+                      <li>
+                        <strong>{{ itemValue(lesson, 'title') || 'Bài học chưa đặt tên' }}</strong>
+                        @if (itemValue(lesson, 'summary')) {
+                          <p>{{ itemValue(lesson, 'summary') }}</p>
+                        }
+                        @if (itemValue(lesson, 'activity')) {
+                          <span>Hoạt động: {{ itemValue(lesson, 'activity') }}</span>
+                        }
+                      </li>
+                    }
+                  </ol>
+                </article>
+              }
+            </div>
+          </div>
+        }
+
+        @if (preview.kind === 'quiz_commit') {
+          <div class="wiii-preview-section">
+            <h3>Kế hoạch bài kiểm tra</h3>
+            <dl class="wiii-preview-kv">
+              <div><dt>Chế độ</dt><dd>{{ planValue(preview, 'quiz_plan', 'mode') || 'create' }}</dd></div>
+              <div><dt>Số câu hỏi</dt><dd>{{ planValue(preview, 'quiz_plan', 'question_count') || '0' }}</dd></div>
+              <div><dt>Thời gian</dt><dd>{{ planValue(preview, 'quiz_plan', 'time_limit_minutes') || '30' }} phút</dd></div>
+              <div><dt>Điểm đạt</dt><dd>{{ planValue(preview, 'quiz_plan', 'passing_score') || '60' }}%</dd></div>
+            </dl>
+          </div>
+        }
+
+        @if (preview.kind === 'quiz_publish') {
+          <div class="wiii-preview-section">
+            <h3>Kế hoạch phát hành</h3>
+            <p class="wiii-preview-warning">Bài kiểm tra chỉ được phát hành sau khi giáo viên bấm Áp dụng trong LMS.</p>
+            <dl class="wiii-preview-kv">
+              <div><dt>Bài kiểm tra</dt><dd>{{ planValue(preview, 'publish_plan', 'title') || preview.targetLabel }}</dd></div>
+              <div><dt>Trạng thái</dt><dd>{{ planValue(preview, 'publish_plan', 'status') || 'DRAFT' }}</dd></div>
+            </dl>
+          </div>
+        }
+
+        @if (sourceReferences(preview).length > 0) {
+          <div class="wiii-preview-section">
+            <h3>Nguồn từ tài liệu</h3>
+            <div class="wiii-preview-source-list">
+              @for (ref of sourceReferences(preview); track sourceTrack(ref, $index)) {
+                <article>
+                  <strong>{{ sourceLabel(ref, $index) }}</strong>
+                  @if (ref.excerpt) {
+                    <p>{{ ref.excerpt }}</p>
+                  }
+                </article>
+              }
+            </div>
+          </div>
+        }
+
+        @if (message()) {
+          <p class="wiii-preview-message">{{ message() }}</p>
+        }
+      </div>
+
+      <footer class="wiii-preview-footer">
+        <button
+          type="button"
+          class="wiii-preview-secondary"
+          data-wiii-id="cancel-wiii-preview"
+          [disabled]="status() === 'applying'"
+          (click)="close()"
+        >
+          Hủy
+        </button>
+        <button
+          type="button"
+          class="wiii-preview-primary"
+          data-wiii-id="apply-wiii-preview"
+          [disabled]="status() === 'applying' || status() === 'applied'"
+          (click)="approve()"
+        >
+          {{ primaryActionLabel() }}
+        </button>
+      </footer>
+    </section>
+  </div>
+}

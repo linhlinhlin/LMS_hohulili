@@ -16,7 +16,7 @@ describe('InteractiveVideoDragDropComponent', () => {
       atSeconds: 32,
       required: true,
       dragDrop: {
-        instruction: 'Keo dap an dung vao vung anh.',
+        instruction: 'Kéo những đáp án đúng vào vùng ảnh. Để nguyên đáp án sai ở ngoài.',
         backgroundImage: { idOrUrl: 'data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==' },
         dropZones: [
           {
@@ -80,6 +80,15 @@ describe('InteractiveVideoDragDropComponent', () => {
       .querySelector('[data-testid="interactive-video-drag-drop-continue"]') as HTMLButtonElement;
 
     expect(continueButton.disabled).toBeTrue();
+  });
+
+  it('hides answer-role wording in student preview instructions', () => {
+    fixture.detectChanges();
+
+    const element = fixture.nativeElement as HTMLElement;
+    expect(element.textContent).toContain('Chọn các vật dụng phù hợp rồi kéo vào vùng trên hình.');
+    expect(element.textContent).not.toContain('Kéo những đáp án đúng');
+    expect(element.textContent).not.toContain('Để nguyên đáp án sai');
   });
 
   function click(selector: string): void {

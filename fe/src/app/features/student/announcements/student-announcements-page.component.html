@@ -122,16 +122,15 @@
         }
       </div>
 
-      <!-- Load More -->
-      @if (hasMoreToShow()) {
-        <div class="load-more-section">
-          <button class="load-more-btn" (click)="loadMore()">
-            Xem thêm {{ remainingCount() }} thông báo
-          </button>
-          <p class="showing-count">Đang hiện {{ visibleAnnouncements().length }} / {{ filteredAnnouncements().length }}</p>
-        </div>
-      } @else if (filteredAnnouncements().length > 0) {
-        <p class="showing-count">Đã hiện tất cả {{ filteredAnnouncements().length }} thông báo</p>
+      <!-- Pagination -->
+      @if (totalPages() > 1) {
+        <app-pagination
+          class="announcement-pagination"
+          [currentPage]="effectiveCurrentPage() + 1"
+          [totalPages]="totalPages()"
+          [totalItems]="totalItems()"
+          [itemsPerPage]="PAGE_SIZE"
+          (pageChange)="goToPage($event - 1)" />
       }
     }
   </div>

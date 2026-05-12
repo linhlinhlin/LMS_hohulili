@@ -3,10 +3,14 @@ import type {
   InteractiveVideoSpec,
 } from '../../api/types/interactive-video.types';
 import {
+  addInteractiveVideoWatchedRange,
   evaluateInteractiveVideoDragDrop,
   evaluateInteractiveVideoFillBlank,
   getDueInteractiveVideoInteraction,
   getVisibleInteractiveVideoInteractions,
+  hasInteractiveVideoReviewTarget,
+  isInteractiveVideoProgressGateInteraction,
+  isInteractiveVideoTimeWithinWatchedRanges,
   isInteractiveVideoReviewInteraction,
   resolveInteractiveVideoChoiceTarget,
   resolveInteractiveVideoReviewTarget,
@@ -135,6 +139,79 @@ describe('interactive-video-runtime', () => {
     )).toBe(5);
   });
 
+  it('does not invent a review target when no seek destination is configured', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'review-without-target',
+      type: 'branch',
+      atSeconds: 47,
+      adaptivity: {
+        requireCorrectBeforeContinue: true,
+        onWrong: { type: 'continue', message: 'Try again.' },
+      },
+      choices: [
+        { id: 'wrong', label: 'Wrong', isCorrect: false },
+        { id: 'right', label: 'Right', isCorrect: true },
+      ],
+    };
+    const wrongChoice = interaction.choices![0];
+
+    expect(resolveInteractiveVideoReviewTarget(
+      interaction,
+      wrongChoice,
+      timeline,
+    )).toBeNull();
+    expect(hasInteractiveVideoReviewTarget(interaction, wrongChoice, timeline)).toBeFalse();
+  });
+
+  it('identifies every interaction type that blocks learner progress', () => {
+    const gateInteractions: InteractiveVideoInteraction[] = [
+      {
+        id: 'required-checkpoint',
+        type: 'checkpoint',
+        atSeconds: 5,
+        required: true,
+      },
+      {
+        id: 'review-branch',
+        type: 'branch',
+        atSeconds: 10,
+        adaptivity: { requireCorrectBeforeContinue: true },
+        choices: [{ id: 'right', label: 'Right', isCorrect: true }],
+      },
+      {
+        id: 'fill-blank-gate',
+        type: 'fill_blank',
+        atSeconds: 15,
+        fillBlank: {
+          template: '{{1}}',
+          blanks: [{ id: '1', acceptedAnswers: ['correct'] }],
+          requireAllCorrectBeforeContinue: true,
+        },
+      },
+      {
+        id: 'drag-drop-gate',
+        type: 'drag_drop',
+        atSeconds: 20,
+        dragDrop: {
+          instruction: 'Place the item.',
+          backgroundImage: null,
+          dropZones: [],
+          draggables: [],
+          requireAllCorrectBeforeContinue: true,
+        },
+      },
+    ];
+
+    expect(gateInteractions.every(isInteractiveVideoProgressGateInteraction)).toBeTrue();
+    expect(isInteractiveVideoProgressGateInteraction(
+      {
+        id: 'optional-note',
+        type: 'checkpoint',
+        atSeconds: 25,
+      },
+    )).toBeFalse();
+  });
+
   it('blocks forward seeks past watched time when required work remains', () => {
     const spec: InteractiveVideoSpec = {
       version: 2,
@@ -156,6 +233,90 @@ describe('interactive-video-runtime', () => {
       furthestWatchedSeconds: 45,
       hasIncompleteRequiredInteractions: true,
     })).toBeFalse();
+  });
+
+  it('keeps the seek gate open unless a forward skip exceeds watched progress with required work pending', () => {
+    const guardedSpec: InteractiveVideoSpec = {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'forward' },
+      timeline,
+    };
+    const disabledSpec: InteractiveVideoSpec = {
+      ...guardedSpec,
+      behavior: { preventSkippingMode: 'none' },
+    };
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: guardedSpec,
+      targetTimeSeconds: 49,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: true,
+      graceSeconds: 3,
+    })).toBeTrue();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: guardedSpec,
+      targetTimeSeconds: 48,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: true,
+      graceSeconds: 3,
+    })).toBeFalse();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: guardedSpec,
+      targetTimeSeconds: 120,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: false,
+    })).toBeFalse();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec: disabledSpec,
+      targetTimeSeconds: 120,
+      furthestWatchedSeconds: 45,
+      hasIncompleteRequiredInteractions: true,
+    })).toBeFalse();
+  });
+
+  it('requires both-mode seek targets to land inside watched ranges', () => {
+    const spec: InteractiveVideoSpec = {
+      version: 2,
+      enabled: true,
+      behavior: { preventSkippingMode: 'both' },
+      timeline,
+    };
+    const watchedRanges = [
+      { startSeconds: 0, endSeconds: 30 },
+      { startSeconds: 80, endSeconds: 90 },
+    ];
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec,
+      targetTimeSeconds: 60,
+      furthestWatchedSeconds: 90,
+      hasIncompleteRequiredInteractions: true,
+      watchedRanges,
+    })).toBeTrue();
+
+    expect(shouldBlockInteractiveVideoSeek({
+      spec,
+      targetTimeSeconds: 85,
+      furthestWatchedSeconds: 90,
+      hasIncompleteRequiredInteractions: true,
+      watchedRanges,
+    })).toBeFalse();
+  });
+
+  it('merges watched playback ranges and applies seek grace at range edges', () => {
+    const watchedRanges = addInteractiveVideoWatchedRange(
+      addInteractiveVideoWatchedRange([], 0, 12),
+      12.25,
+      24,
+    );
+
+    expect(watchedRanges).toEqual([{ startSeconds: 0, endSeconds: 24 }]);
+    expect(isInteractiveVideoTimeWithinWatchedRanges(25, watchedRanges, 1)).toBeTrue();
+    expect(isInteractiveVideoTimeWithinWatchedRanges(30, watchedRanges, 1)).toBeFalse();
   });
 
   it('evaluates fill-blank answers with alternatives and case-insensitive matching by default', () => {

@@ -34,7 +34,7 @@ interface UploadingFile {
  * (đề bài chi tiết, rubric, file mẫu...) bên cạnh rich-text instructions.
  *
  * Upload flow (SOTA — direct R2 không qua server):
- *   1. presignedUpload.upload(file, 'assignments/instructions') trả Observable
+ *   1. presignedUpload.upload(file, 'assignment-instructions') trả Observable
  *      với progress events + final URL
  *   2. Sau complete: POST metadata → /api/v3/teacher/assignments/{id}/instruction-attachments
  *   3. Reload list từ BE
@@ -51,7 +51,7 @@ interface UploadingFile {
       <header class="iap-header">
         <div>
           <h3 class="iap-title">Tệp đính kèm hướng dẫn</h3>
-          <p class="iap-subtitle">PDF, Word, Excel, hình ảnh — học viên có thể tải xuống.</p>
+          <p class="iap-subtitle">PDF, Word, Excel, PowerPoint, hình ảnh — học viên có thể tải xuống.</p>
         </div>
         <button type="button" class="iap-add-btn" (click)="filePickerRef()?.nativeElement?.click()">
           <lucide-icon name="paperclip" [size]="16"></lucide-icon>
@@ -68,13 +68,14 @@ interface UploadingFile {
         (click)="filePickerRef()?.nativeElement?.click()">
         <lucide-icon name="upload-cloud" [size]="24"></lucide-icon>
         <p>Kéo thả tệp vào đây, hoặc <span class="iap-link">chọn từ máy</span></p>
-        <p class="iap-hint">Tối đa 100MB/tệp · PDF · DOCX · XLSX · JPG · PNG</p>
+        <p class="iap-hint">Tối đa 100MB/tệp · PDF · DOCX · XLSX · PPTX · JPG · PNG</p>
       </div>
 
       <input
         #filePickerEl
         type="file"
         multiple
+        accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png"
         class="iap-input-hidden"
         (change)="onFilesSelected($event)" />
 
@@ -213,6 +214,7 @@ export class InstructionAttachmentsPanelComponent {
 
   // 100 MB max — matches BE policy. Larger files use multipart upload automatically.
   private static readonly MAX_FILE_SIZE = 100 * 1024 * 1024;
+  private static readonly ALLOWED_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png']);
 
   constructor() {
     effect(() => {
@@ -263,6 +265,10 @@ export class InstructionAttachmentsPanelComponent {
       this.toast.error(`"${file.name}": vượt quá 100MB`);
       return;
     }
+    if (!this.isAllowedFile(file)) {
+      this.toast.error(`"${file.name}": chỉ hỗ trợ PDF, Word, Excel, PowerPoint, JPG, PNG`);
+      return;
+    }
 
     const item: UploadingFile = {
       id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -272,7 +278,7 @@ export class InstructionAttachmentsPanelComponent {
     };
     this.uploading.update((arr) => [...arr, item]);
 
-    this.presigned.upload(file, 'assignments/instructions').subscribe({
+    this.presigned.upload(file, 'assignment-instructions').subscribe({
       next: (ev) => {
         if (ev.type === 'progress') {
           this.uploading.update((arr) =>
@@ -336,9 +342,15 @@ export class InstructionAttachmentsPanelComponent {
     if (fileType.includes('pdf')) return 'file-text';
     if (fileType.includes('word') || fileType.includes('document')) return 'file-text';
     if (fileType.includes('sheet') || fileType.includes('excel')) return 'file-spreadsheet';
+    if (fileType.includes('presentation') || fileType.includes('powerpoint')) return 'presentation';
     if (fileType.startsWith('image/')) return 'image';
     if (fileType.startsWith('video/')) return 'video';
     return 'file';
+  }
+
+  private isAllowedFile(file: File): boolean {
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+    return InstructionAttachmentsPanelComponent.ALLOWED_EXTENSIONS.has(extension);
   }
 
   formatSize(bytes: number | null): string {

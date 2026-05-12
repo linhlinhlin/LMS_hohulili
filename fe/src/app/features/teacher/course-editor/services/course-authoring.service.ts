@@ -224,6 +224,8 @@ interface ChapterResponse { // Was SectionWithLessons
             streamVideoUid?: string;
             interactiveVideoSpec?: InteractiveVideoSpec | null;
             fileUrl?: string; // [NEW] For FILE type sections - SOTA 2025
+            previewPdfUrl?: string;
+            previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | null;
             duration?: number;
             orderIndex: number;
             isRequired?: boolean;
@@ -254,6 +256,8 @@ interface ChapterResponse { // Was SectionWithLessons
             streamVideoUid?: string;
             interactiveVideoSpec?: InteractiveVideoSpec | null;
             fileUrl?: string;
+            previewPdfUrl?: string;
+            previewStatus?: 'PROCESSING' | 'READY' | 'FAILED' | null;
             duration?: number;
             orderIndex: number;
             isRequired?: boolean;

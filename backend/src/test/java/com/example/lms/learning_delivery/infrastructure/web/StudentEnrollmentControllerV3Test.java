@@ -9,6 +9,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.entity.Course
 import com.example.lms.course_authoring.infrastructure.persistence.entity.LessonJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.ChapterJpaRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.repository.LessonJpaRepository;
+import com.example.lms.course_authoring.infrastructure.service.CoursePublicationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.application.usecase.CertificateUseCase;
@@ -36,6 +37,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -58,6 +61,7 @@ class StudentEnrollmentControllerV3Test {
     @Mock private QuizJpaRepositoryV3 quizJpaRepository;
     @Mock private QuizAttemptJpaRepository quizAttemptJpaRepository;
     @Mock private PaymentTransactionJpaRepository paymentTransactionJpaRepository;
+    @Mock private CoursePublicationService coursePublicationService;
 
     @InjectMocks
     private StudentEnrollmentControllerV3 controller;
@@ -107,6 +111,142 @@ class StudentEnrollmentControllerV3Test {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
         assertThat(response.getBody().getData()).isEqualTo(List.of());
+    }
+
+    @Test
+    @DisplayName("enrolled course search should match Vietnamese titles without diacritics")
+    void getEnrolledCoursesSearchMatchesVietnameseTitleWithoutDiacritics() {
+        UUID studentId = UUID.randomUUID();
+        UUID maritimeCourseId = UUID.randomUUID();
+        UUID logisticsCourseId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+
+        Enrollment maritimeEnrollment = enrollmentForCourse(studentId, maritimeCourseId);
+        Enrollment logisticsEnrollment = enrollmentForCourse(studentId, logisticsCourseId);
+        CourseJpaEntity maritimeCourse = CourseJpaEntity.builder()
+                .id(maritimeCourseId)
+                .title("Hàng hải căn bản")
+                .build();
+        CourseJpaEntity logisticsCourse = CourseJpaEntity.builder()
+                .id(logisticsCourseId)
+                .title("Port logistics")
+                .build();
+
+        when(enrollmentRepository.findActiveAndCompletedWithClass(studentId))
+                .thenReturn(List.of(maritimeEnrollment, logisticsEnrollment));
+        when(courseJpaRepository.findAllById(any()))
+                .thenReturn(List.of(maritimeCourse, logisticsCourse));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(chapterJpaRepository.findByCourseIdInOrderByOrderIndex(any())).thenReturn(List.of());
+        when(paymentTransactionJpaRepository.findPaidCourseIds(eq(studentId), any(), any()))
+                .thenReturn(List.of());
+
+        var response = controller.getEnrolledCourses(
+                student,
+                0,
+                20,
+                "hang hai",
+                null,
+                null,
+                "recent",
+                "desc"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getTotalElements()).isEqualTo(1);
+        assertThat(response.getBody().getData().getContent())
+                .extracting(StudentEnrollmentControllerV3.EnrolledCourseResponse::getTitle)
+                .containsExactly("Hàng hải căn bản");
+    }
+
+    @Test
+    @DisplayName("enrolled course thumbnail should use the student's published snapshot")
+    void getEnrolledCoursesUsesPublishedThumbnailSnapshot() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        Enrollment enrollment = enrollmentForCourse(studentId, courseId);
+        CourseJpaEntity course = CourseJpaEntity.builder()
+                .id(courseId)
+                .title("Weather routing")
+                .description("Route monitoring course")
+                .build();
+        course.setThumbnailUrl("https://cdn.example.com/draft-cover.jpg");
+
+        when(enrollmentRepository.findActiveAndCompletedWithClass(studentId))
+                .thenReturn(List.of(enrollment));
+        when(courseJpaRepository.findAllById(any())).thenReturn(List.of(course));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(chapterJpaRepository.findByCourseIdInOrderByOrderIndex(any())).thenReturn(List.of());
+        when(paymentTransactionJpaRepository.findPaidCourseIds(eq(studentId), any(), any()))
+                .thenReturn(List.of());
+        when(coursePublicationService.getPublishedDetails(any(), eq(studentId)))
+                .thenReturn(Map.of(
+                        courseId,
+                        Map.of("thumbnailUrl", "https://cdn.example.com/published-cover.jpg")
+                ));
+
+        var response = controller.getEnrolledCourses(
+                student,
+                0,
+                20,
+                null,
+                null,
+                null,
+                "recent",
+                "desc"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getContent())
+                .extracting(StudentEnrollmentControllerV3.EnrolledCourseResponse::getThumbnailUrl)
+                .containsExactly("https://cdn.example.com/published-cover.jpg");
+    }
+
+    @Test
+    @DisplayName("enrolled course thumbnail should match the course cover image")
+    void getEnrolledCoursesUsesCourseThumbnailOnly() {
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UserJpaEntity student = student(studentId);
+        Enrollment enrollment = enrollmentForCourse(studentId, courseId);
+        CourseJpaEntity course = CourseJpaEntity.builder()
+                .id(courseId)
+                .title("Weather routing")
+                .description("Route monitoring course")
+                .introVideoUrl("https://youtube.com/watch?v=intro")
+                .build();
+        course.setThumbnailUrl(null);
+
+        when(enrollmentRepository.findActiveAndCompletedWithClass(studentId))
+                .thenReturn(List.of(enrollment));
+        when(courseJpaRepository.findAllById(any())).thenReturn(List.of(course));
+        when(userJpaRepository.findAllById(any())).thenReturn(List.of());
+        when(chapterJpaRepository.findByCourseIdInOrderByOrderIndex(any())).thenReturn(List.of());
+        when(paymentTransactionJpaRepository.findPaidCourseIds(eq(studentId), any(), any()))
+                .thenReturn(List.of());
+
+        var response = controller.getEnrolledCourses(
+                student,
+                0,
+                20,
+                null,
+                null,
+                null,
+                "recent",
+                "desc"
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().isSuccess()).isTrue();
+        assertThat(response.getBody().getData().getContent())
+                .extracting(StudentEnrollmentControllerV3.EnrolledCourseResponse::getThumbnailUrl)
+                .containsExactly((String) null);
     }
 
     @Test
@@ -369,5 +509,20 @@ class StudentEnrollmentControllerV3Test {
         user.setEmail("student@maritime.edu");
         user.setFullName("Student");
         return user;
+    }
+
+    private Enrollment enrollmentForCourse(UUID studentId, UUID courseId) {
+        return Enrollment.builder()
+                .id(UUID.randomUUID())
+                .studentId(studentId)
+                .status(Enrollment.EnrollmentStatus.ACTIVE)
+                .completionPercent(0)
+                .learningClass(LearningClass.builder()
+                        .id(UUID.randomUUID())
+                        .courseId(courseId)
+                        .name("Class")
+                        .build())
+                .enrolledAt(Instant.now())
+                .build();
     }
 }

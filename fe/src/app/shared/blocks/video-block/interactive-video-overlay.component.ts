@@ -8,13 +8,16 @@ import {
   input,
   OnDestroy,
   output,
+  PLATFORM_ID,
   viewChild,
 } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
 } from '../../../api/types/interactive-video.types';
+import { hasInteractiveVideoReviewTarget } from '../../../core/utils/interactive-video-runtime';
 import { ContentIdentityService } from '../../../core/services/content-identity.service';
 import katex from 'katex';
 import { InteractiveVideoDragDropComponent } from './interactive-video-drag-drop.component';
@@ -67,6 +70,7 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
         @if (isDragDropInteraction()) {
           <app-interactive-video-drag-drop
             [interaction]="interaction()"
+            [density]="density()"
             (continueRequested)="continueRequested.emit()" />
         } @else if (isFillBlankInteraction()) {
           <app-interactive-video-fill-blank
@@ -153,10 +157,12 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
 
   private readonly sanitizer = inject(DomSanitizer);
   private readonly identityService = inject(ContentIdentityService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   private previouslyFocusedElement: HTMLElement | null = null;
 
   readonly interaction = input.required<InteractiveVideoInteraction>();
   readonly selectedChoiceId = input<string | null>(null);
+  readonly timeline = input<InteractiveVideoInteraction[]>([]);
   readonly density = input<'comfortable' | 'compact'>('comfortable');
   private readonly panel = viewChild<ElementRef<HTMLElement>>('panel');
 
@@ -181,6 +187,9 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   constructor() {
     effect(() => {
       this.interaction().id;
+      if (!this.isBrowser) {
+        return;
+      }
       queueMicrotask(() => {
         const panel = this.panel()?.nativeElement;
         if (!panel) {
@@ -200,7 +209,13 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.previouslyFocusedElement?.focus();
+    if (!this.isBrowser) {
+      return;
+    }
+    const previous = this.previouslyFocusedElement;
+    if (previous && document.contains(previous)) {
+      previous.focus();
+    }
   }
 
   readonly selectedChoice = computed(() => {
@@ -249,8 +264,16 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   });
   readonly requiresCorrectAnswer = computed(() => {
     const interaction = this.interaction();
-    return interaction.adaptivity?.requireCorrectBeforeContinue === true
-      || interaction.type === 'branch';
+    if (interaction.adaptivity?.requireCorrectBeforeContinue === true) {
+      return true;
+    }
+    if (interaction.type === 'branch') {
+      // Only enforce correctness on graded branches that explicitly mark at least
+      // one choice as correct. Pure navigation branches (no isCorrect flags) must
+      // let learners pick any path and continue, otherwise Continue is unreachable.
+      return interaction.choices?.some(choice => choice.isCorrect === true) === true;
+    }
+    return false;
   });
 
   readonly isContinueBlocked = computed(() => {
@@ -291,7 +314,7 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
     const base = 'w-full rounded-lg border border-white/10 bg-white text-slate-900 shadow-2xl';
     if (this.density() === 'compact') {
       return this.isDragDropInteraction()
-        ? `${base} max-h-full max-w-3xl overflow-y-auto p-3 sm:p-4`
+        ? `${base} max-h-full max-w-[72rem] overflow-y-auto p-3 sm:p-4`
         : this.isFillBlankInteraction()
         ? `${base} max-h-full max-w-xl overflow-y-auto p-3 sm:p-4`
         : `${base} max-h-full max-w-lg overflow-y-auto p-3 sm:p-4`;
@@ -380,13 +403,9 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   readonly shouldOfferReview = computed(() => {
     const interaction = this.interaction();
     const selected = this.selectedChoice();
-    const hasReviewTarget = interaction.type === 'branch'
-      || interaction.adaptivity?.onWrong?.type === 'seek'
-      || selected?.targetTimeSeconds != null
-      || !!selected?.targetInteractionId;
     return this.requiresCorrectAnswer()
       && selected?.isCorrect === false
-      && hasReviewTarget;
+      && hasInteractiveVideoReviewTarget(interaction, selected, this.timeline());
   });
 
   readonly areChoicesLocked = computed(() => this.shouldOfferReview());
@@ -397,7 +416,21 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
     }
     if (!this.isContinueBlocked()) {
       this.continueRequested.emit();
+      return;
     }
+    // Blocked: redirect focus into the choice list so the keyboard user sees
+    // where action is required instead of silently swallowing the keystroke.
+    if (!this.isBrowser) {
+      return;
+    }
+    const panel = this.panel()?.nativeElement;
+    if (!panel) {
+      return;
+    }
+    const firstChoice = panel.querySelector<HTMLButtonElement>(
+      'button[data-answer-state]:not([disabled])',
+    );
+    firstChoice?.focus();
   }
 
   trapFocus(event: Event): void {

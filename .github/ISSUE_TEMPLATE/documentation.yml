@@ -1,0 +1,44 @@
+name: Documentation change
+description: Thêm, sửa, promote, archive, hoặc dọn dẹp tài liệu.
+title: "docs: "
+labels:
+  - type/docs
+  - area/docs
+  - needs-triage
+body:
+  - type: dropdown
+    id: doc_type
+    attributes:
+      label: Loại thay đổi
+      options:
+        - Thêm tài liệu mới
+        - Cập nhật tài liệu canonical
+        - Promote working doc sang reference/runbook
+        - Archive tài liệu cũ
+        - Sửa link hoặc index
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Vì sao tài liệu này cần thay đổi.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: File hoặc folder liên quan
+      value: |
+        -
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Documentation checklist
+      options:
+        - label: Tuân thủ docs/reference/DOCUMENTATION_POLICY.md.
+          required: true
+        - label: Không làm gãy internal link.
+          required: true
+        - label: README/index liên quan đã được cập nhật nếu cần.
+          required: false

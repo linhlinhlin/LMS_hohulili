@@ -28,6 +28,7 @@ import lombok.*;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -38,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.text.Normalizer;
 import java.time.Instant;
+import jakarta.persistence.criteria.Predicate;
 import java.util.*;
 import java.util.Locale;
 import java.util.stream.Collectors;
@@ -70,52 +72,40 @@ public class UserControllerV3 {
             @RequestParam(defaultValue = "10") int limit,
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String role,
+            @RequestParam(required = false) String roles,
             @RequestParam(required = false) String status,
             // Issue #229: ADMIN có thể filter user theo tổ chức cụ thể.
             // ORG_ADMIN auto-scoped tới organization của họ — param này
             // bị ignore cho ORG_ADMIN role (security: không cho cross-org).
             @RequestParam(required = false) UUID organizationId,
+            @RequestParam(defaultValue = "false") boolean systemOnly,
             @org.springframework.security.core.annotation.AuthenticationPrincipal UserJpaEntity currentUser
     ) {
         PageRequest pageable = PageRequest.of(Math.max(0, page - 1), limit);
 
-        boolean hasRole = role != null && !role.isBlank();
-        boolean hasSearch = search != null && !search.isBlank();
-        UserJpaEntity.UserRole roleEnum = null;
+        Set<UserJpaEntity.UserRole> roleFilter = parseRoleFilter(role, roles);
+        if (roleFilter == null) {
+            return badRequest("Vai trò không hợp lệ");
+        }
 
-        if (hasRole) {
-            roleEnum = parseRole(role);
-            if (roleEnum == null) {
-                return badRequest("Vai trò không hợp lệ");
-            }
+        String normalizedStatus = normalizeStatus(status);
+        if (status != null && !status.isBlank() && normalizedStatus == null) {
+            return badRequest("Trạng thái không hợp lệ");
         }
 
         if (isOrgAdminWithoutOrganization(currentUser)) {
             return forbidden("Chuyên viên quản lý phải thuộc một tổ chức để xem danh sách người dùng");
         }
 
-        Page<UserJpaEntity> users;
-
-        // ORG_ADMIN: filter to users within their organization (organizationId
-        // param từ FE bị ignore — auto-scope to own org, security boundary).
-        if (isOrgAdmin(currentUser)) {
-            UUID orgId = currentUser.getOrganizationId();
-            users = queryUsersInOrg(orgId, roleEnum, search, hasRole, hasSearch, pageable);
-        } else if (organizationId != null) {
-            // ADMIN with org filter (#229): scope to selected organization
-            users = queryUsersInOrg(organizationId, roleEnum, search, hasRole, hasSearch, pageable);
-        } else {
-            // ADMIN: sees all users across orgs (unchanged behavior)
-            if (hasRole && hasSearch) {
-                users = userRepository.searchUsersByRole(roleEnum, search, pageable);
-            } else if (hasRole) {
-                users = userRepository.findByRole(roleEnum, pageable);
-            } else if (hasSearch) {
-                users = userRepository.searchUsersByKeyword(search, pageable);
-            } else {
-                users = userRepository.findAll(pageable);
-            }
-        }
+        Page<UserJpaEntity> users = queryUsers(
+                currentUser,
+                roleFilter,
+                search,
+                normalizedStatus,
+                organizationId,
+                systemOnly,
+                pageable
+        );
 
         // Issue #229: batch lookup org names cho mọi user trong page có
         // organizationId (avoid N+1 query). System ADMIN không thuộc org
@@ -127,24 +117,65 @@ public class UserControllerV3 {
         // teacher-management KPI strip ("Đang dạy", "Khóa học") shows real
         // numbers instead of zeros. Batched to a single SQL aggregate.
         enrichTeacherCourseCounts(response.getContent());
+        enrichStudentCourseCounts(response.getContent());
         return ResponseEntity.ok(ApiResponse.success(response, "Danh sách người dùng"));
     }
 
     /**
-     * Issue #229: 4-branch query helper cho org-scoped user list. Tránh
-     * duplicate logic giữa ORG_ADMIN auto-scope và ADMIN explicit filter.
+     * Query users with role, status, search, and organization filters in one
+     * specification so every list surface gets consistent pagination totals.
      */
-    private Page<UserJpaEntity> queryUsersInOrg(UUID orgId, UserJpaEntity.UserRole roleEnum,
-                                                  String search, boolean hasRole, boolean hasSearch,
-                                                  Pageable pageable) {
-        if (hasRole && hasSearch) {
-            return userRepository.searchByOrganizationIdAndRoleAndKeyword(orgId, roleEnum, search, pageable);
-        } else if (hasRole) {
-            return userRepository.findByOrganizationIdAndRole(orgId, roleEnum, pageable);
-        } else if (hasSearch) {
-            return userRepository.searchByOrganizationIdAndKeyword(orgId, search, pageable);
-        }
-        return userRepository.findByOrganizationId(orgId, pageable);
+    private Page<UserJpaEntity> queryUsers(UserJpaEntity currentUser,
+                                           Set<UserJpaEntity.UserRole> roles,
+                                           String search,
+                                           String status,
+                                           UUID organizationId,
+                                           boolean systemOnly,
+                                           Pageable pageable) {
+        Specification<UserJpaEntity> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+
+            if (isOrgAdmin(currentUser)) {
+                predicates.add(cb.equal(root.get("organizationId"), currentUser.getOrganizationId()));
+            } else if (systemOnly) {
+                predicates.add(cb.isNull(root.get("organizationId")));
+            } else if (organizationId != null) {
+                predicates.add(cb.equal(root.get("organizationId"), organizationId));
+            }
+
+            if (roles != null && !roles.isEmpty()) {
+                predicates.add(root.get("role").in(roles));
+            }
+
+            if (search != null && !search.isBlank()) {
+                String like = "%" + search.trim().toLowerCase(Locale.ROOT) + "%";
+                predicates.add(cb.or(
+                        cb.like(cb.lower(root.get("email")), like),
+                        cb.like(cb.lower(root.get("fullName")), like),
+                        cb.like(cb.lower(root.get("username")), like)
+                ));
+            }
+
+            if (status != null && !status.isBlank()) {
+                if ("ACTIVE".equals(status)) {
+                    predicates.add(cb.or(
+                            cb.equal(root.get("accountStatus"), status),
+                            cb.and(cb.isNull(root.get("accountStatus")), cb.isTrue(root.get("enabled")))
+                    ));
+                } else if ("BLOCKED".equals(status)) {
+                    predicates.add(cb.or(
+                            cb.equal(root.get("accountStatus"), status),
+                            cb.and(cb.isNull(root.get("accountStatus")), cb.isFalse(root.get("enabled")))
+                    ));
+                } else {
+                    predicates.add(cb.equal(root.get("accountStatus"), status));
+                }
+            }
+
+            return cb.and(predicates.toArray(Predicate[]::new));
+        };
+
+        return userRepository.findAll(spec, pageable);
     }
 
     /**
@@ -160,6 +191,14 @@ public class UserControllerV3 {
         if (orgIds.isEmpty()) return Map.of();
         return organizationRepository.findAllById(orgIds).stream()
                 .collect(Collectors.toMap(OrganizationJpaEntity::getId, OrganizationJpaEntity::getName));
+    }
+
+    private String resolveAccountStatus(UserJpaEntity user) {
+        String status = user.getAccountStatus();
+        if (status != null && !status.isBlank()) {
+            return status.trim().toUpperCase(Locale.ROOT);
+        }
+        return user.isEnabled() ? "ACTIVE" : "BLOCKED";
     }
 
     @Operation(summary = "Get all users (capped at 1000)")
@@ -733,7 +772,7 @@ public class UserControllerV3 {
                 .role(user.getRole() != null ? user.getRole().name().toLowerCase(Locale.ROOT) : "student")
                 .isActive(user.isEnabled())
                 .enabled(user.isEnabled())
-                .accountStatus(user.getAccountStatus())
+                .accountStatus(resolveAccountStatus(user))
                 .statusReason(user.getStatusReason())
                 .statusUpdatedAt(user.getStatusUpdatedAt() != null ? user.getStatusUpdatedAt().toString() : null)
                 .mustChangePassword(user.isMustChangePassword())
@@ -816,6 +855,39 @@ public class UserControllerV3 {
         }
     }
 
+    private void enrichStudentCourseCounts(java.util.Collection<UserResponse> rows) {
+        if (rows == null || rows.isEmpty()) return;
+
+        java.util.Set<UUID> studentIds = rows.stream()
+                .filter(r -> "student".equalsIgnoreCase(r.getRole()))
+                .map(r -> {
+                    try {
+                        return UUID.fromString(r.getId());
+                    } catch (IllegalArgumentException ex) {
+                        return null;
+                    }
+                })
+                .filter(java.util.Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(java.util.HashSet::new));
+        if (studentIds.isEmpty()) return;
+
+        java.util.Map<UUID, Long> counts = new java.util.HashMap<>(studentIds.size());
+        for (Object[] row : enrollmentRepository.countDistinctActiveCoursesByStudentIds(studentIds)) {
+            if (row == null || row.length < 2 || row[0] == null || row[1] == null) continue;
+            counts.put((UUID) row[0], ((Number) row[1]).longValue());
+        }
+
+        for (UserResponse r : rows) {
+            if (!"student".equalsIgnoreCase(r.getRole())) continue;
+            try {
+                UUID id = UUID.fromString(r.getId());
+                r.setCoursesEnrolled(counts.getOrDefault(id, 0L).intValue());
+            } catch (IllegalArgumentException ex) {
+                // Leave default 0 if id is malformed.
+            }
+        }
+    }
+
     // === Business Guard Helpers ===
 
     private boolean isOrgAdmin(UserJpaEntity user) {
@@ -849,6 +921,39 @@ public class UserControllerV3 {
         }
         return userRepository.findById(userId)
                 .filter(target -> canAccessUser(currentUser, target));
+    }
+
+    private Set<UserJpaEntity.UserRole> parseRoleFilter(String role, String roles) {
+        Set<UserJpaEntity.UserRole> result = new LinkedHashSet<>();
+
+        if (role != null && !role.isBlank()) {
+            UserJpaEntity.UserRole parsed = parseRole(role);
+            if (parsed == null) return null;
+            result.add(parsed);
+        }
+
+        if (roles != null && !roles.isBlank()) {
+            for (String item : roles.split(",")) {
+                if (item == null || item.isBlank()) continue;
+                UserJpaEntity.UserRole parsed = parseRole(item);
+                if (parsed == null) return null;
+                result.add(parsed);
+            }
+        }
+
+        return result;
+    }
+
+    private String normalizeStatus(String rawStatus) {
+        if (rawStatus == null || rawStatus.isBlank()) {
+            return null;
+        }
+
+        String normalized = rawStatus.trim().toUpperCase(Locale.ROOT);
+        return switch (normalized) {
+            case "ACTIVE", "BLOCKED", "RESTRICTED" -> normalized;
+            default -> null;
+        };
     }
 
     private UserJpaEntity.UserRole parseRole(String rawRole) {

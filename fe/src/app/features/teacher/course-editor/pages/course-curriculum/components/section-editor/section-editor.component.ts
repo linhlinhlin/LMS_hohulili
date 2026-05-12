@@ -233,6 +233,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               <!-- IDLE: drag-drop upload zone -->
               @if (cfUploadStatus() === 'idle') {
                 <div class="video-dropzone"
+                     data-wiii-id="upload-material-dropzone"
                      [class.video-dropzone--dragover]="isDragOver()"
                      (dragover)="onDragOver($event)"
                      (dragleave)="onDragLeave($event)"
@@ -462,8 +463,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                   <!-- Video preview -->
                   @if (svc.sectionVideoAssetId()) {
                     <div
-                      [class]="videoPreviewFrameClass()"
-                      style="aspect-ratio: 16/9;">
+                      [class]="videoPreviewFrameClass()">
                       <app-quiz-video-player
                         [videoAssetId]="svc.sectionVideoAssetId()"
                         [rawVideoUrl]="svc.sectionVideoUrl()"
@@ -473,8 +473,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                     </div>
                   } @else if (svc.sectionVideoUrl()) {
                     <div
-                      [class]="videoPreviewFrameClass()"
-                      style="aspect-ratio: 16/9;">
+                      [class]="videoPreviewFrameClass()">
                       <app-quiz-video-player
                         [rawVideoUrl]="svc.sectionVideoUrl()"
                         [interactiveVideoSpec]="interactiveVideoPreviewSpec()"
@@ -648,6 +647,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                      (dragleave)="onDragLeave($event)"
                      (drop)="onFileDrop($event)">
                   <input type="file"
+                         data-wiii-id="upload-material-input"
                          accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf"
                          (change)="onFileSelected($event)"
                          class="absolute inset-0 h-full w-full cursor-pointer opacity-0" />
@@ -984,10 +984,12 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
       <!-- Footer — sticky bottom -->
       <div class="section-editor-footer">
-        <button type="button" (click)="onClose()" class="editor-secondary-button">
+        <button type="button" (click)="onClose()" class="editor-secondary-button"
+                data-wiii-id="close-section-editor">
           Hủy
         </button>
         <button type="button" (click)="onSave()"
+          data-wiii-id="save-section"
           [disabled]="svc.isSaving() || svc.sectionVideoIsUploading() || !svc.sectionTitle().trim()"
           class="editor-primary-button">
           @if (svc.isSaving()) {

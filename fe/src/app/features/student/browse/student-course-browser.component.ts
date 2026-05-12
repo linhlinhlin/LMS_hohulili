@@ -5,14 +5,25 @@ import { CommonModule } from '@angular/common';
 import { HttpClient } from '@angular/common/http';
 import { Router, ActivatedRoute } from '@angular/router';
 import { CourseApi } from '../../../api/client/course.api';
-import { CourseSummary, CourseCategoryDTO } from '../../../api/types/course.types';
+import { CourseSummary, CourseCategoryDTO, DeliveryMode } from '../../../api/types/course.types';
 import { StudentEnrollmentService } from '../services/enrollment.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { environment } from '../../../../environments/environment';
+import { PaginationComponent } from '../../../shared/components/pagination/pagination.component';
+
+type CourseBrowserQueryParams = {
+  page: number;
+  size: number;
+  search?: string;
+  category?: string;
+  sort?: string;
+  order?: string;
+  deliveryMode?: DeliveryMode;
+};
 
 @Component({
   selector: 'app-student-course-browser',
-  imports: [CommonModule],
+  imports: [CommonModule, PaginationComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <div class="min-h-screen bg-slate-50 px-4 sm:px-6 py-6 max-w-[1400px] mx-auto">
@@ -60,7 +71,7 @@ import { environment } from '../../../../environments/environment';
       <!-- Subcategory Chips -->
       @if (selectedRootCategory()?.children?.length) {
         <div class="flex items-center gap-1.5 mb-4 overflow-x-auto pb-1">
-          <button (click)="selectedSubId.set(null)"
+          <button (click)="selectSubCategory(null)"
             class="px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
             [class]="!selectedSubId()
               ? 'bg-[#0056D2]/10 text-[#0056D2]'
@@ -68,7 +79,7 @@ import { environment } from '../../../../environments/environment';
             Tất cả
           </button>
           @for (sub of selectedRootCategory()!.children; track sub.id) {
-            <button (click)="selectedSubId.set(sub.id)"
+            <button (click)="selectSubCategory(sub.id)"
               class="px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors"
               [class]="selectedSubId() === sub.id
                 ? 'bg-[#0056D2]/10 text-[#0056D2]'
@@ -86,21 +97,21 @@ import { environment } from '../../../../environments/environment';
         <!-- Mode Filter -->
         <div class="flex items-center gap-1.5">
           <span class="text-xs text-slate-500">Hình thức:</span>
-          <button (click)="modeFilter.set('')"
+          <button (click)="setModeFilter('')"
             class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
             [class]="!modeFilter()
               ? 'bg-[#0056D2] text-white border-[#0056D2]'
               : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'">
             Tất cả
           </button>
-          <button (click)="modeFilter.set('SELF_PACED')"
+          <button (click)="setModeFilter('SELF_PACED')"
             class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
             [class]="modeFilter() === 'SELF_PACED'
               ? 'bg-[#0056D2] text-white border-[#0056D2]'
               : 'bg-white text-slate-600 border-slate-300 hover:border-slate-400'">
             Tự học
           </button>
-          <button (click)="modeFilter.set('INSTRUCTOR_LED')"
+          <button (click)="setModeFilter('INSTRUCTOR_LED')"
             class="px-2.5 py-1 rounded-full text-xs font-medium border transition-colors"
             [class]="modeFilter() === 'INSTRUCTOR_LED'
               ? 'bg-emerald-600 text-white border-emerald-600'
@@ -130,7 +141,7 @@ import { environment } from '../../../../environments/environment';
       <div class="flex items-center justify-between mb-4">
         <span class="text-sm text-gray-600">
           @if (!isLoading()) {
-            Tìm thấy <strong class="text-gray-900">{{ filteredCourses().length }}</strong> khóa học
+            Tìm thấy <strong class="text-gray-900">{{ resultCount() }}</strong> khóa học
           }
         </span>
         <!-- "Đang học" quick toggle -->
@@ -189,7 +200,7 @@ import { environment } from '../../../../environments/environment';
             </svg>
             <h3 class="text-lg font-medium text-gray-700 mb-1">Không tìm thấy khóa học</h3>
             <p class="text-sm text-gray-500 mb-4">Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc</p>
-            @if (searchQuery() || selectedRootCategory() || modeFilter()) {
+            @if (searchQuery() || selectedRootCategory() || modeFilter() || showEnrolledOnly()) {
               <button (click)="clearAllFilters()" class="px-4 py-2 text-sm font-medium text-[#0056D2] border border-[#0056D2] rounded-lg hover:bg-[#0056D2]/5 transition-colors">
                 Xóa bộ lọc
               </button>
@@ -312,29 +323,13 @@ import { environment } from '../../../../environments/environment';
 
           <!-- Pagination -->
           @if (totalPages() > 1) {
-            <div class="flex items-center justify-center gap-1.5 mt-8">
-              <button (click)="goToPage(currentPage() - 1)" [disabled]="currentPage() === 0"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-              </button>
-              @for (p of paginationPages(); track p) {
-                @if (p === -1) {
-                  <span class="px-2 py-2 text-sm text-gray-400">...</span>
-                } @else {
-                  <button (click)="goToPage(p)"
-                    class="w-11 h-11 sm:w-9 sm:h-9 text-sm rounded-lg border transition-colors"
-                    [class]="currentPage() === p
-                      ? 'bg-[#0056D2] text-white border-[#0056D2]'
-                      : 'border-gray-300 hover:bg-gray-50 text-gray-700'">
-                    {{ p + 1 }}
-                  </button>
-                }
-              }
-              <button (click)="goToPage(currentPage() + 1)" [disabled]="currentPage() >= totalPages() - 1"
-                class="px-3 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-              </button>
-            </div>
+            <app-pagination
+              class="mx-auto mt-8 mb-8 block w-full max-w-5xl overflow-hidden rounded-lg border border-gray-200 bg-white shadow-sm"
+              [currentPage]="currentPage() + 1"
+              [totalPages]="totalPages()"
+              [totalItems]="totalItems()"
+              [itemsPerPage]="PAGE_SIZE"
+              (pageChange)="goToPage($event - 1)" />
           }
         }
       }
@@ -357,6 +352,7 @@ export class StudentCourseBrowserComponent implements OnInit {
   searchQuery = signal('');
   currentPage = signal(0);
   totalPages = signal(1);
+  totalItems = signal(0);
 
   // Category tree from API
   categoryTree = signal<CourseCategoryDTO[]>([]);
@@ -369,66 +365,22 @@ export class StudentCourseBrowserComponent implements OnInit {
   modeFilter = signal<'' | 'SELF_PACED' | 'INSTRUCTOR_LED'>('');
 
   private searchTimer: ReturnType<typeof setTimeout> | null = null;
-  private readonly PAGE_SIZE = 12;
+  readonly PAGE_SIZE = 12;
 
   private enrolledIds = computed(() => this.enrollmentService.enrolledCourseIds());
 
-  // Client-side filtered + sorted courses
+  // API-filtered courses for the current page.
   filteredCourses = computed(() => {
     let result = this.rawCourses();
 
-    // Category filter — match by categoryName (root or sub)
-    const root = this.selectedRootCategory();
-    if (root) {
-      const subId = this.selectedSubId();
-      if (subId) {
-        const sub = root.children?.find(c => c.id === subId);
-        if (sub) result = result.filter(c => c.categoryName === sub.name);
-      } else {
-        const names = new Set([root.name, ...(root.children?.map(c => c.name) || [])]);
-        result = result.filter(c => c.categoryName && names.has(c.categoryName));
-      }
-    }
-
-    // Mode filter
-    const mode = this.modeFilter();
-    if (mode) {
-      result = result.filter(c => c.deliveryMode === mode);
-    }
-
-    // Enrolled-only filter
-    if (this.showEnrolledOnly()) {
-      const ids = this.enrolledIds();
-      result = result.filter(c => ids.has(c.id));
-    }
-
-    // Sort
-    const sort = this.sortMode();
-    if (sort === 'az') {
-      result = [...result].sort((a, b) => a.title.localeCompare(b.title, 'vi'));
-    } else if (sort === 'popular') {
+    if (this.sortMode() === 'popular') {
       result = [...result].sort((a, b) => (b.enrolledCount || 0) - (a.enrolledCount || 0));
     }
-    // 'newest' = API default order
 
     return result;
   });
 
-  // Pagination pages for numbered pagination
-  paginationPages = computed(() => {
-    const total = this.totalPages();
-    const current = this.currentPage();
-    if (total <= 7) return Array.from({ length: total }, (_, i) => i);
-
-    const pages: number[] = [0];
-    const start = Math.max(1, current - 1);
-    const end = Math.min(total - 2, current + 1);
-    if (start > 1) pages.push(-1); // ellipsis
-    for (let i = start; i <= end; i++) pages.push(i);
-    if (end < total - 2) pages.push(-1); // ellipsis
-    pages.push(total - 1);
-    return pages;
-  });
+  resultCount = computed(() => this.totalItems());
 
   private readonly GRADIENTS = [
     'linear-gradient(135deg, #0056D2 0%, #4A90D9 100%)',
@@ -463,27 +415,62 @@ export class StudentCourseBrowserComponent implements OnInit {
     }, 300);
   }
 
+  private buildCourseQueryParams(): CourseBrowserQueryParams {
+    const params: CourseBrowserQueryParams = { page: this.currentPage(), size: this.PAGE_SIZE };
+    const q = this.searchQuery().trim();
+    if (q) params.search = q;
+
+    const category = this.selectedCategoryParam();
+    if (category) params.category = category;
+
+    const mode = this.modeFilter();
+    if (mode) params.deliveryMode = mode;
+
+    if (this.sortMode() === 'az') {
+      params.sort = 'title';
+      params.order = 'asc';
+    } else {
+      params.sort = this.showEnrolledOnly() ? 'recent' : 'createdAt';
+      params.order = 'desc';
+    }
+
+    return params;
+  }
+
+  private selectedCategoryParam(): string | undefined {
+    const root = this.selectedRootCategory();
+    if (!root) return undefined;
+    const subId = this.selectedSubId();
+    if (!subId) return root.slug || root.code;
+    const sub = root.children?.find(child => child.id === subId);
+    return sub ? sub.slug || sub.code : root.slug || root.code;
+  }
+
   loadCourses(): void {
     this.isLoading.set(true);
     this.errorMsg.set(null);
 
-    const params: any = { page: this.currentPage(), size: this.PAGE_SIZE };
-    const q = this.searchQuery().trim();
-    if (q) params.search = q;
+    const params = this.buildCourseQueryParams();
+    const request = this.showEnrolledOnly()
+      ? this.courseApi.enrolledCourses(params)
+      : this.courseApi.publicCourses(params);
 
-    this.courseApi.publicCourses(params).subscribe({
+    request.subscribe({
       next: (res) => {
         this.rawCourses.set(res.data ?? []);
         const pagination = res.pagination as any;
-        if (pagination?.totalPages) {
+        if (typeof pagination?.totalPages === 'number') {
           this.totalPages.set(pagination.totalPages);
+          this.totalItems.set(pagination.totalItems ?? pagination.totalElements ?? this.rawCourses().length);
         } else {
           this.totalPages.set((res.data?.length ?? 0) >= this.PAGE_SIZE ? this.currentPage() + 2 : this.currentPage() + 1);
+          this.totalItems.set((res.data?.length ?? 0) + (this.currentPage() * this.PAGE_SIZE));
         }
         this.isLoading.set(false);
       },
       error: () => {
         this.errorMsg.set('Không thể tải danh sách khóa học');
+        this.totalItems.set(0);
         this.isLoading.set(false);
         this.toast.error('Không thể tải danh sách khóa học');
       }
@@ -493,14 +480,27 @@ export class StudentCourseBrowserComponent implements OnInit {
   selectRootCategory(root: CourseCategoryDTO | null): void {
     this.selectedRootCategory.set(root);
     this.selectedSubId.set(null);
+    this.resetToFirstPage();
+  }
+
+  selectSubCategory(categoryId: string | null): void {
+    this.selectedSubId.set(categoryId);
+    this.resetToFirstPage();
+  }
+
+  setModeFilter(mode: '' | 'SELF_PACED' | 'INSTRUCTOR_LED'): void {
+    this.modeFilter.set(mode);
+    this.resetToFirstPage();
   }
 
   onSortChange(event: Event): void {
     this.sortMode.set((event.target as HTMLSelectElement).value);
+    this.resetToFirstPage();
   }
 
   toggleEnrolledFilter(): void {
     this.showEnrolledOnly.update(v => !v);
+    this.resetToFirstPage();
   }
 
   clearAllFilters(): void {
@@ -514,8 +514,13 @@ export class StudentCourseBrowserComponent implements OnInit {
     this.loadCourses();
   }
 
+  private resetToFirstPage(): void {
+    this.currentPage.set(0);
+    this.loadCourses();
+  }
+
   isEnrolled(courseId: string): boolean {
-    return this.enrolledIds().has(courseId);
+    return this.showEnrolledOnly() || this.enrolledIds().has(courseId);
   }
 
   isClassFull(course: CourseSummary): boolean {
