@@ -279,6 +279,68 @@ describe('WiiiContextService - operator preview/apply flows', () => {
     expect(applied.data?.['verified']).toBeTrue();
   });
 
+  it('renames the target text section when lesson title and content change together', async () => {
+    const nextTitle = 'Bai hoc moi tu tai lieu';
+    const nextSectionTitle = 'N\u1ed9i dung: Bai hoc moi tu tai lieu';
+    const nextContent = 'Noi dung moi co marker Wiii';
+    let lessonReadCount = 0;
+    lessonApi.getLessonById.and.callFake(() => {
+      lessonReadCount += 1;
+      return of({
+        data: {
+          id: 'lesson-1',
+          title: lessonReadCount === 1 ? 'Bai hoc cu' : nextTitle,
+          description: 'Mo ta cu',
+          content: lessonReadCount === 1 ? 'Noi dung cu' : nextContent,
+          courseId: 'course-1',
+          sectionId: 'chapter-1',
+          lessonType: 'LECTURE',
+          durationMinutes: 15,
+          orderIndex: 2,
+          isRequired: true,
+          sections: [
+            {
+              id: 'section-1',
+              type: 'TEXT',
+              title: lessonReadCount === 1 ? 'Tieu de section cu' : nextSectionTitle,
+              content: lessonReadCount === 1 ? 'Noi dung cu' : nextContent,
+              isRequired: true,
+            },
+          ],
+        },
+      } as any);
+    });
+    sectionApi.updateSection.and.returnValue(of({ success: true, data: { id: 'section-1' } } as any));
+    lessonApi.updateLesson.and.returnValue(of({ success: true } as any));
+
+    const preview = await (service as any).handleActionRequest('authoring.preview_lesson_patch', {
+      lesson_id: 'lesson-1',
+      title: nextTitle,
+      content: nextContent,
+    });
+
+    expect(preview.success).toBeTrue();
+    expect(preview.data?.content_target).toEqual(jasmine.objectContaining({
+      section_id: 'section-1',
+      title: 'Tieu de section cu',
+      proposed_title: nextSectionTitle,
+    }));
+
+    const applied = await service.approveOperatorPreview(String(preview.data?.preview_token));
+
+    expect(applied.success).toBeTrue();
+    const formData = sectionApi.updateSection.calls.mostRecent().args[2] as FormData;
+    const payload = JSON.parse(await (formData.get('data') as Blob).text());
+    expect(payload).toEqual(jasmine.objectContaining({
+      title: nextSectionTitle,
+      content: nextContent,
+    }));
+    expect(lessonApi.updateLesson).toHaveBeenCalledWith('lesson-1', jasmine.objectContaining({
+      title: nextTitle,
+    }), jasmine.objectContaining({ headers: jasmine.anything() }));
+    expect(applied.data?.['verified']).toBeTrue();
+  });
+
   it('keeps a lesson patch preview retryable when post-apply verification fails', async () => {
     let lessonReadCount = 0;
     lessonApi.getLessonById.and.callFake(() => {
