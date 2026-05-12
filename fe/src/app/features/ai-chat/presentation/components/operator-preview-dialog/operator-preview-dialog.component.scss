@@ -251,6 +251,11 @@ h3 {
   gap: 12px;
 }
 
+.wiii-preview-block__content {
+  display: grid;
+  gap: 10px;
+}
+
 .wiii-preview-block span {
   align-self: start;
   justify-self: start;
@@ -258,6 +263,27 @@ h3 {
   border-radius: 999px;
   font-size: 11px;
   font-weight: 800;
+}
+
+.wiii-preview-block__before {
+  border-bottom: 1px dashed #cbd5e1;
+  padding-bottom: 8px;
+}
+
+.wiii-preview-block__before summary,
+.wiii-preview-block__after strong {
+  color: #17406f;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.wiii-preview-block__before summary {
+  cursor: pointer;
+}
+
+.wiii-preview-block__before p,
+.wiii-preview-block__after p {
+  margin-top: 6px;
 }
 
 .wiii-preview-block__added {

@@ -150,7 +150,12 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     }
     const items = (diff as Record<string, unknown>)['items'];
     return Array.isArray(items)
-      ? items.filter((item): item is Record<string, unknown> => !!item && typeof item === 'object' && !Array.isArray(item))
+      ? items.filter((item): item is Record<string, unknown> => {
+        if (!item || typeof item !== 'object' || Array.isArray(item)) {
+          return false;
+        }
+        return String(item['status'] || 'unchanged') !== 'unchanged';
+      })
       : [];
   }
 
