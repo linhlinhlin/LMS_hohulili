@@ -135,6 +135,14 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     return this.objectValue(source, 'content_preview') || this.objectValue(source, 'content_excerpt');
   }
 
+  protected compactText(value: string, maxLength = 360): string {
+    const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+    if (!normalized || normalized.length <= maxLength) {
+      return normalized;
+    }
+    return `${normalized.slice(0, maxLength).trimEnd()}…`;
+  }
+
   protected blockDiffItems(preview: WiiiOperatorPreviewPanel): Array<Record<string, unknown>> {
     const diff = preview.data['block_diff'];
     if (!diff || typeof diff !== 'object' || Array.isArray(diff)) {

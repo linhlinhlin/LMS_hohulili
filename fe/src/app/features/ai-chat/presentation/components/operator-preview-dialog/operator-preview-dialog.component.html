@@ -52,15 +52,37 @@
             <div class="wiii-preview-diff-grid">
               <article>
                 <span>Hiện tại</span>
-                <strong>{{ lessonBefore(preview, 'title') || 'Chưa có tiêu đề' }}</strong>
-                <p>{{ lessonBefore(preview, 'description') || 'Không có mô tả' }}</p>
-                <p>{{ lessonBefore(preview, 'content_excerpt') || 'Không có nội dung' }}</p>
+                <dl class="wiii-preview-diff-fields">
+                  <div>
+                    <dt>Tiêu đề</dt>
+                    <dd>{{ lessonBefore(preview, 'title') || 'Chưa có tiêu đề' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Mô tả</dt>
+                    <dd>{{ compactText(lessonBefore(preview, 'description'), 240) || 'Không có mô tả' }}</dd>
+                  </div>
+                </dl>
+                <details class="wiii-preview-diff-details">
+                  <summary>Xem tóm tắt nội dung hiện tại</summary>
+                  <p>{{ compactText(lessonBefore(preview, 'content_excerpt'), 420) || 'Không có nội dung' }}</p>
+                </details>
               </article>
               <article>
                 <span>Wiii đề xuất</span>
-                <strong>{{ lessonAfter(preview, 'title') || 'Chưa có tiêu đề' }}</strong>
-                <p>{{ lessonAfter(preview, 'description') || 'Không có mô tả' }}</p>
-                <p>{{ lessonAfter(preview, 'content_excerpt') || 'Không có nội dung' }}</p>
+                <dl class="wiii-preview-diff-fields">
+                  <div>
+                    <dt>Tiêu đề</dt>
+                    <dd>{{ lessonAfter(preview, 'title') || 'Chưa có tiêu đề' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Mô tả</dt>
+                    <dd>{{ compactText(lessonAfter(preview, 'description'), 240) || 'Không có mô tả' }}</dd>
+                  </div>
+                  <div>
+                    <dt>Nội dung</dt>
+                    <dd>{{ compactText(lessonAfter(preview, 'content_excerpt'), 420) || 'Không có nội dung' }}</dd>
+                  </div>
+                </dl>
               </article>
             </div>
           </div>
