@@ -116,6 +116,25 @@ export class WiiiOperatorPreviewDialogComponent implements OnInit, OnDestroy {
     return this.objectValue(preview.data['lesson_after'], field);
   }
 
+  protected lessonLearningObjectives(preview: WiiiOperatorPreviewPanel, side: 'before' | 'after'): string[] {
+    const source = preview.data[side === 'after' ? 'lesson_after' : 'lesson_before'];
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      return [];
+    }
+    const objectives = (source as Record<string, unknown>)['learning_objectives'];
+    return Array.isArray(objectives)
+      ? objectives.map((item) => String(item || '').trim()).filter(Boolean)
+      : [];
+  }
+
+  protected lessonContentPreview(preview: WiiiOperatorPreviewPanel, side: 'before' | 'after'): string {
+    const source = preview.data[side === 'after' ? 'lesson_after' : 'lesson_before'];
+    if (!source || typeof source !== 'object' || Array.isArray(source)) {
+      return '';
+    }
+    return this.objectValue(source, 'content_preview') || this.objectValue(source, 'content_excerpt');
+  }
+
   protected blockDiffItems(preview: WiiiOperatorPreviewPanel): Array<Record<string, unknown>> {
     const diff = preview.data['block_diff'];
     if (!diff || typeof diff !== 'object' || Array.isArray(diff)) {

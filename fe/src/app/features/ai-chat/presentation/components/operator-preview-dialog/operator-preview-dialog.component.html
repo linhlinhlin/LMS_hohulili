@@ -65,6 +65,32 @@
             </div>
           </div>
 
+          @if (lessonLearningObjectives(preview, 'after').length > 0 || lessonContentPreview(preview, 'after')) {
+            <div class="wiii-preview-section wiii-preview-section--review">
+              <div class="wiii-preview-review-header">
+                <div>
+                  <h3>Nội dung Wiii sẽ áp dụng</h3>
+                  <p>Giáo viên nên đọc phần này cùng nguồn trích dẫn trước khi bấm Áp dụng.</p>
+                </div>
+              </div>
+
+              @if (lessonLearningObjectives(preview, 'after').length > 0) {
+                <ul class="wiii-preview-objective-cards" aria-label="Mục tiêu học tập Wiii đề xuất">
+                  @for (objective of lessonLearningObjectives(preview, 'after'); track objective) {
+                    <li>{{ objective }}</li>
+                  }
+                </ul>
+              }
+
+              @if (lessonContentPreview(preview, 'after')) {
+                <details class="wiii-preview-content-preview" open>
+                  <summary>Đọc bản nháp nội dung</summary>
+                  <pre>{{ lessonContentPreview(preview, 'after') }}</pre>
+                </details>
+              }
+            </div>
+          }
+
           @if (blockDiffItems(preview).length > 0) {
             <div class="wiii-preview-section">
               <h3>Thay đổi khối nội dung</h3>
