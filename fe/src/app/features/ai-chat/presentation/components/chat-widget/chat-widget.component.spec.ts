@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { of } from 'rxjs';
 
 import { AuthService } from '../../../../../core/services/auth.service';
 import { SessionManagementService } from '../../../application/services/session-management.service';
@@ -9,7 +10,26 @@ import { ChatWidgetComponent } from './chat-widget.component';
 describe('ChatWidgetComponent', () => {
   let fixture: ComponentFixture<ChatWidgetComponent>;
 
+  const installMatchMedia = (matches: boolean): void => {
+    Object.defineProperty(window, 'matchMedia', {
+      configurable: true,
+      writable: true,
+      value: jasmine.createSpy('matchMedia').and.returnValue({
+        matches,
+        media: '(max-width: 767px)',
+        onchange: null,
+        addEventListener: jasmine.createSpy('addEventListener'),
+        removeEventListener: jasmine.createSpy('removeEventListener'),
+        addListener: jasmine.createSpy('addListener'),
+        removeListener: jasmine.createSpy('removeListener'),
+        dispatchEvent: jasmine.createSpy('dispatchEvent').and.returnValue(true),
+      } as unknown as MediaQueryList),
+    });
+  };
+
   beforeEach(async () => {
+    installMatchMedia(false);
+
     await TestBed.configureTestingModule({
       imports: [ChatWidgetComponent],
       providers: [
@@ -32,6 +52,8 @@ describe('ChatWidgetComponent', () => {
             applySidebarIntent: jasmine.createSpy('applySidebarIntent'),
             connectIframe: jasmine.createSpy('connectIframe'),
             disconnectIframe: jasmine.createSpy('disconnectIframe'),
+            operatorPreview$: of(null),
+            approveOperatorPreview: jasmine.createSpy('approveOperatorPreview'),
           },
         },
         {
@@ -78,5 +100,17 @@ describe('ChatWidgetComponent', () => {
       courseId: 'course-1',
     });
     expect(fixture.nativeElement.querySelector('.wiii-sidebar-host--open')).not.toBeNull();
+  });
+
+  it('mounts only one Wiii panel in desktop responsive-sidebar mode', () => {
+    fixture.componentRef.setInput('variant', 'responsive-sidebar');
+    fixture.detectChanges();
+
+    window.dispatchEvent(new CustomEvent('wiii:open-sidebar'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelectorAll('app-chat-panel').length).toBe(1);
+    expect(fixture.nativeElement.querySelector('.wiii-sidebar-host app-chat-panel')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('.wiii-mobile-widget app-chat-panel')).toBeNull();
   });
 });

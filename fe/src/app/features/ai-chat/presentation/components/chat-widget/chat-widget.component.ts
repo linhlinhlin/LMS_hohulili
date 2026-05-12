@@ -32,7 +32,7 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../../infrast
           aria-label="Trợ lý Wiii"
           data-wiii-id="wiii-right-sidebar"
         >
-          @if (isPanelOpen()) {
+          @if (isPanelOpen() && !isMobileViewport()) {
             <app-chat-panel
               mode="sidebar"
               (closePanel)="closePanel()"
@@ -54,7 +54,7 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../../infrast
         </aside>
 
         <div class="wiii-mobile-widget">
-          @if (isPanelOpen()) {
+          @if (isPanelOpen() && isMobileViewport()) {
             <app-chat-panel
               mode="widget"
               (closePanel)="closePanel()"
@@ -183,9 +183,12 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
   // State
   isPanelOpen = signal(false);
   isEnabled = signal(true);
+  isMobileViewport = signal(this.getInitialMobileViewport());
 
   // Listener for sidebar open requests (from Course Editor AI button)
   private sidebarOpenListener: ((event: Event) => void) | null = null;
+  private viewportQuery: MediaQueryList | null = null;
+  private viewportQueryListener: ((event: MediaQueryListEvent) => void) | null = null;
 
   ngOnInit(): void {
     // Set user info from auth service
@@ -207,6 +210,8 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       this.isPanelOpen.set(true);
     };
     window.addEventListener('wiii:open-sidebar', this.sidebarOpenListener);
+
+    this.bindViewportMode();
   }
 
   ngOnDestroy(): void {
@@ -214,6 +219,12 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
       window.removeEventListener('wiii:open-sidebar', this.sidebarOpenListener);
       this.sidebarOpenListener = null;
     }
+    if (this.viewportQuery && this.viewportQueryListener) {
+      this.viewportQuery.removeEventListener?.('change', this.viewportQueryListener);
+      this.viewportQuery.removeListener?.(this.viewportQueryListener);
+    }
+    this.viewportQuery = null;
+    this.viewportQueryListener = null;
   }
 
   togglePanel(): void {
@@ -226,5 +237,25 @@ export class ChatWidgetComponent implements OnInit, OnDestroy {
 
   closePanel(): void {
     this.isPanelOpen.set(false);
+  }
+
+  private getInitialMobileViewport(): boolean {
+    return typeof window !== 'undefined'
+      && typeof window.matchMedia === 'function'
+      && window.matchMedia('(max-width: 767px)').matches;
+  }
+
+  private bindViewportMode(): void {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      this.isMobileViewport.set(false);
+      return;
+    }
+    this.viewportQuery = window.matchMedia('(max-width: 767px)');
+    this.isMobileViewport.set(this.viewportQuery.matches);
+    this.viewportQueryListener = (event: MediaQueryListEvent) => {
+      this.isMobileViewport.set(event.matches);
+    };
+    this.viewportQuery.addEventListener?.('change', this.viewportQueryListener);
+    this.viewportQuery.addListener?.(this.viewportQueryListener);
   }
 }
