@@ -76,12 +76,21 @@ import { environment } from '../../../../../../environments/environment';
 
       <!-- Wiii iframe (fills remaining space) -->
       @if (embedUrl()) {
+        <!--
+          Security note:
+          Wiii runs on a trusted, separate origin. allow-same-origin is intentional
+          so the embed keeps its own storage/auth/fetch behavior; the host bridge
+          still fail-closes on exact origin checks in WiiiContextService.
+          initEmbed() also refuses same-origin embedding to avoid an accidental
+          sandbox escape risk from allow-scripts + allow-same-origin.
+        -->
         <iframe
           #wiiiIframe
           [src]="embedUrl()"
           class="wiii-embed-frame"
           data-wiii-id="wiii-iframe"
-          allow="clipboard-write"
+          allow="clipboard-write; autoplay"
+          referrerpolicy="strict-origin-when-cross-origin"
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
           title="Wiii AI Chat"
         ></iframe>
@@ -441,6 +450,11 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
       const token = await this.tokenService.getToken();
       if (token) {
         const wiiiEmbedUrl = environment.wiiiEmbedUrl;
+        if (!this.isTrustedCrossOriginEmbedUrl(wiiiEmbedUrl)) {
+          this.loadError.set(true);
+          return;
+        }
+
         const role = this.sessionService.currentRole() || 'student';
         // Org resolved by Wiii from connector config (SSOT) — no hardcoding needed
         const org = this.tokenService.organizationId() || '';
@@ -515,9 +529,28 @@ export class ChatPanelComponent implements OnInit, OnDestroy {
 
   private getEmbedOrigin(): string | null {
     try {
-      return new URL(environment.wiiiEmbedUrl).origin;
+      const origin = new URL(environment.wiiiEmbedUrl).origin;
+      return this.isTrustedCrossOrigin(origin) ? origin : null;
     } catch {
       return null;
     }
+  }
+
+  private isTrustedCrossOriginEmbedUrl(rawUrl: string): boolean {
+    try {
+      return this.isTrustedCrossOrigin(new URL(rawUrl).origin);
+    } catch {
+      return false;
+    }
+  }
+
+  private isTrustedCrossOrigin(origin: string): boolean {
+    if (typeof window !== 'undefined' && origin === window.location.origin) {
+      console.error(
+        '[Wiii] Refusing same-origin iframe embed while sandbox allows scripts and same-origin.'
+      );
+      return false;
+    }
+    return true;
   }
 }
