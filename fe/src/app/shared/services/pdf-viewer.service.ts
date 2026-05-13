@@ -58,8 +58,13 @@ export class PdfViewerService {
         }
 
         const fullUrl = this.resolveFileUrl(fileUrl);
-        if (/^blob:/i.test(fullUrl)) {
-            return from(fetch(fullUrl).then(response => response.arrayBuffer()));
+        if (/^(blob:|data:)/i.test(fullUrl)) {
+            return from(fetch(fullUrl).then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch PDF source: ${response.status}`);
+                }
+                return response.arrayBuffer();
+            }));
         }
 
         return this.http.get(fullUrl, { responseType: 'arraybuffer' });

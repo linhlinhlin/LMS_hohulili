@@ -16,7 +16,7 @@ import {
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import { PLATFORM_ID } from '@angular/core';
 import { firstValueFrom } from 'rxjs';
-import type { PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
+import type { PDFDocumentLoadingTask, PDFDocumentProxy, RenderTask } from 'pdfjs-dist';
 import { PdfViewerService } from '../../services/pdf-viewer.service';
 import { IconComponent } from '../icon/icon.component';
 
@@ -46,12 +46,14 @@ export class PdfSlideViewerComponent implements AfterViewInit, OnInit, OnDestroy
   readonly error = signal<string | null>(null);
   readonly pageNumber = signal(1);
   readonly totalPages = signal(0);
-  readonly canGoPrevious = computed(() => this.pageNumber() > 1 && !this.isLoading());
-  readonly canGoNext = computed(() => this.pageNumber() < this.totalPages() && !this.isLoading());
+  readonly canGoPrevious = computed(() => this.pageNumber() > 1 && !this.isLoading() && !this.isRendering());
+  readonly canGoNext = computed(() => this.pageNumber() < this.totalPages() && !this.isLoading() && !this.isRendering());
 
   private pdfDocument: PDFDocumentProxy | null = null;
+  private loadingTask: PDFDocumentLoadingTask | null = null;
   private renderTask: RenderTask | null = null;
   private resizeObserver: ResizeObserver | null = null;
+  private resizeFrame: number | null = null;
   private loadToken = 0;
   private renderToken = 0;
   private touchStartX: number | null = null;
@@ -71,7 +73,7 @@ export class PdfSlideViewerComponent implements AfterViewInit, OnInit, OnDestroy
 
     this.resizeObserver = new ResizeObserver(() => {
       if (this.pdfDocument) {
-        void this.renderCurrentPage();
+        this.scheduleRenderCurrentPage();
       }
     });
     this.resizeObserver.observe(this.host.nativeElement);
@@ -80,10 +82,9 @@ export class PdfSlideViewerComponent implements AfterViewInit, OnInit, OnDestroy
 
   ngOnDestroy(): void {
     this.loadToken++;
-    this.cancelRender();
+    this.cancelScheduledRender();
+    this.releaseDocument();
     this.resizeObserver?.disconnect();
-    this.pdfDocument?.destroy();
-    this.pdfDocument = null;
   }
 
   async previousPage(): Promise<void> {
@@ -135,9 +136,7 @@ export class PdfSlideViewerComponent implements AfterViewInit, OnInit, OnDestroy
 
   private async loadDocument(url: string): Promise<void> {
     const token = ++this.loadToken;
-    this.cancelRender();
-    this.pdfDocument?.destroy();
-    this.pdfDocument = null;
+    this.releaseDocument();
     this.isLoading.set(true);
     this.error.set(null);
     this.pageNumber.set(1);
@@ -158,7 +157,11 @@ export class PdfSlideViewerComponent implements AfterViewInit, OnInit, OnDestroy
       }
 
       const loadingTask = pdfjs.getDocument({ data: buffer.slice(0) });
+      this.loadingTask = loadingTask;
       const pdf = await loadingTask.promise;
+      if (this.loadingTask === loadingTask) {
+        this.loadingTask = null;
+      }
       if (token !== this.loadToken) {
         await pdf.destroy();
         return;
@@ -232,6 +235,37 @@ export class PdfSlideViewerComponent implements AfterViewInit, OnInit, OnDestroy
     if (this.renderTask) {
       this.renderTask.cancel();
       this.renderTask = null;
+    }
+  }
+
+  private cancelLoad(): void {
+    if (this.loadingTask) {
+      void this.loadingTask.destroy().catch(() => undefined);
+      this.loadingTask = null;
+    }
+  }
+
+  private cancelScheduledRender(): void {
+    if (this.resizeFrame !== null) {
+      cancelAnimationFrame(this.resizeFrame);
+      this.resizeFrame = null;
+    }
+  }
+
+  private scheduleRenderCurrentPage(): void {
+    this.cancelScheduledRender();
+    this.resizeFrame = requestAnimationFrame(() => {
+      this.resizeFrame = null;
+      void this.renderCurrentPage();
+    });
+  }
+
+  private releaseDocument(): void {
+    this.cancelLoad();
+    this.cancelRender();
+    if (this.pdfDocument) {
+      void this.pdfDocument.destroy();
+      this.pdfDocument = null;
     }
   }
 
