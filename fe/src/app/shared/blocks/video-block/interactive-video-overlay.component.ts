@@ -29,6 +29,47 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
   selector: 'app-interactive-video-overlay',
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [InteractiveVideoDragDropComponent, InteractiveVideoFillBlankComponent],
+  styles: [`
+    :host {
+      display: contents;
+    }
+
+    .interactive-video-overlay {
+      overscroll-behavior: contain;
+    }
+
+    .interactive-video-overlay__panel {
+      overflow-wrap: anywhere;
+      overscroll-behavior: contain;
+    }
+
+    @media (max-width: 640px) {
+      .interactive-video-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 60;
+        align-items: flex-end;
+        justify-content: center;
+        padding: 0.75rem 0.75rem calc(5.25rem + env(safe-area-inset-bottom));
+        overflow-y: auto;
+      }
+
+      .interactive-video-overlay__panel {
+        width: 100%;
+        max-width: calc(100vw - 1.5rem);
+        max-height: calc(100vh - 7rem);
+        border-radius: 1rem;
+      }
+    }
+
+    @supports (height: 100dvh) {
+      @media (max-width: 640px) {
+        .interactive-video-overlay__panel {
+          max-height: calc(100dvh - 7rem);
+        }
+      }
+    }
+  `],
   template: `
     <div [class]="overlayClass()">
       <section
@@ -303,24 +344,24 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
   });
 
   readonly overlayClass = computed(() => {
-    const base = 'absolute inset-0 z-20 flex bg-slate-950/70';
+    const base = 'interactive-video-overlay absolute inset-0 z-20 flex bg-slate-950/70';
     if (this.density() === 'compact') {
       return `${base} items-end justify-center overflow-y-auto p-2 sm:items-center sm:p-3`;
     }
-    return `${base} items-center justify-center px-4`;
+    return `${base} items-center justify-center overflow-y-auto px-4 py-3`;
   });
 
   readonly panelClass = computed(() => {
-    const base = 'w-full rounded-lg border border-white/10 bg-white text-slate-900 shadow-2xl';
+    const base = 'interactive-video-overlay__panel w-full min-w-0 max-h-full overflow-x-hidden overflow-y-auto rounded-lg border border-white/10 bg-white text-slate-900 shadow-2xl';
     if (this.density() === 'compact') {
       return this.isDragDropInteraction()
-        ? `${base} max-h-full max-w-[72rem] overflow-y-auto p-3 sm:p-4`
+        ? `${base} max-w-[72rem] p-3 sm:p-4`
         : this.isFillBlankInteraction()
-        ? `${base} max-h-full max-w-xl overflow-y-auto p-3 sm:p-4`
-        : `${base} max-h-full max-w-lg overflow-y-auto p-3 sm:p-4`;
+        ? `${base} max-w-xl p-3 sm:p-4`
+        : `${base} max-w-lg p-3 sm:p-4`;
     }
     return this.isDragDropInteraction()
-      ? `${base} max-w-5xl p-4 sm:p-5`
+      ? `${base} max-w-6xl p-3 sm:p-5`
       : this.isFillBlankInteraction()
       ? `${base} max-w-2xl p-4 sm:p-5`
       : `${base} max-w-xl p-4 sm:p-5`;

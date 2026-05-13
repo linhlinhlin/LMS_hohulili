@@ -39,7 +39,7 @@ describe('InteractiveVideoDragDropComponent', () => {
     });
   });
 
-  it('places draggables by click fallback and treats unplaced distractors as correct', () => {
+  it('places draggables by click fallback and shows distractors as red after checking', () => {
     fixture.detectChanges();
 
     click('[data-testid="interactive-video-drag-drop-draggable-vest"]');
@@ -52,8 +52,9 @@ describe('InteractiveVideoDragDropComponent', () => {
       .toContain('2/2');
     expect(element.querySelector('[data-testid="interactive-video-drag-drop-draggable-vest"]')?.getAttribute('data-state'))
       .toBe('correct');
-    expect(element.querySelector('[data-testid="interactive-video-drag-drop-draggable-anchor"]')?.getAttribute('data-state'))
-      .toBe('correct');
+    const distractor = element.querySelector('[data-testid="interactive-video-drag-drop-draggable-anchor"]') as HTMLElement;
+    expect(distractor.getAttribute('data-state')).toBe('wrong');
+    expect(distractor.className).toContain('bg-red-50');
   });
 
   it('marks a distractor wrong when it is placed in the answer zone', () => {
@@ -71,6 +72,25 @@ describe('InteractiveVideoDragDropComponent', () => {
       .toContain('1/2');
     expect(element.querySelector('[data-testid="interactive-video-drag-drop-draggable-anchor"]')?.getAttribute('data-state'))
       .toBe('wrong');
+  });
+
+  it('keeps the drag canvas and answer tray side by side on tablet and desktop widths', () => {
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.layoutClass()).toContain('md:grid-cols-');
+    expect(fixture.componentInstance.layoutClass()).not.toContain('xl:grid-cols-');
+    expect(fixture.componentInstance.draggableGridClass()).toContain('sm:grid-cols-2');
+  });
+
+  it('keeps compact answer cards readable in the teacher preview overlay', () => {
+    fixture.componentRef.setInput('density', 'compact');
+    fixture.detectChanges();
+
+    const cardClass = fixture.componentInstance.draggableCardClass(fixture.componentInstance.draggables()[0]);
+
+    expect(fixture.componentInstance.draggableMediaClass()).toContain('h-14');
+    expect(cardClass).toContain('min-h-[4.5rem]');
+    expect(cardClass).not.toContain('min-h-[6.5rem]');
   });
 
   it('keeps continue disabled before checking when the interaction is required', () => {

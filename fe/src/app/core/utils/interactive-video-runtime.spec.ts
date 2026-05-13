@@ -139,6 +139,28 @@ describe('interactive-video-runtime', () => {
     )).toBe(5);
   });
 
+  it('prefers the per-answer review target over a default branch review action', () => {
+    const interaction: InteractiveVideoInteraction = {
+      id: 'review-branch',
+      type: 'branch',
+      atSeconds: 47,
+      adaptivity: {
+        requireCorrectBeforeContinue: true,
+        onWrong: { type: 'seek', targetTimeSeconds: 0 },
+      },
+      choices: [
+        { id: 'wrong', label: 'Wrong', isCorrect: false, targetTimeSeconds: 17 },
+        { id: 'right', label: 'Right', isCorrect: true },
+      ],
+    };
+
+    expect(resolveInteractiveVideoReviewTarget(
+      interaction,
+      interaction.choices![0],
+      timeline,
+    )).toBe(17);
+  });
+
   it('does not invent a review target when no seek destination is configured', () => {
     const interaction: InteractiveVideoInteraction = {
       id: 'review-without-target',

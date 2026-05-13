@@ -299,26 +299,42 @@ export class InteractiveVideoAuthoringPanelComponent {
     });
   }
 
-  onInteractiveChoiceTargetChange(
+  private updateInteractiveChoiceTarget(
     interactionId: string,
     choiceId: string,
     value: unknown,
   ): void {
+    const targetTimeSeconds = this.normalizeOptionalInteractiveTime(value);
     this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
-      targetTimeSeconds: this.normalizeOptionalInteractiveTime(value),
+      targetTimeSeconds,
       targetInteractionId: null,
     });
   }
 
-  onInteractiveChoiceTargetInteractionChange(
+  onInteractiveChoiceTargetInputChange(
     interactionId: string,
     choiceId: string,
-    value: string,
+    event: Event,
   ): void {
+    const input = event.target as HTMLInputElement | null;
+    const targetTimeSeconds = this.normalizeOptionalInteractiveTime(input?.value ?? '');
     this.svc.updateInteractiveVideoChoice(interactionId, choiceId, {
-      targetInteractionId: value || null,
-      targetTimeSeconds: value ? null : undefined,
+      targetTimeSeconds,
+      targetInteractionId: null,
     });
+    if (input) {
+      input.value = targetTimeSeconds == null ? '' : this.formatInteractiveDurationInput(targetTimeSeconds);
+    }
+  }
+
+  stepInteractiveChoiceTarget(
+    interactionId: string,
+    choiceId: string,
+    deltaSeconds: number,
+  ): void {
+    const choice = this.findInteractiveChoice(interactionId, choiceId);
+    const currentSeconds = choice ? this.resolveInteractiveChoiceTargetSeconds(choice) ?? 0 : 0;
+    this.updateInteractiveChoiceTarget(interactionId, choiceId, currentSeconds + deltaSeconds);
   }
 
   async onInteractiveImportSelected(event: Event): Promise<void> {
@@ -790,11 +806,6 @@ export class InteractiveVideoAuthoringPanelComponent {
     });
   }
 
-  getInteractiveBranchTargets(sourceInteractionId: string): InteractiveVideoInteraction[] {
-    return this.sortInteractiveTimeline(this.svc.sectionInteractiveVideoTimeline())
-      .filter(interaction => interaction.id !== sourceInteractionId);
-  }
-
   getInteractiveTypeLabel(type: InteractiveVideoInteractionType): string {
     switch (type) {
       case 'single_choice': return 'Câu hỏi';
@@ -875,15 +886,15 @@ export class InteractiveVideoAuthoringPanelComponent {
     return this.formatInteractiveFlowTime(seconds);
   }
 
-  formatInteractiveBranchTargetLabel(target: InteractiveVideoInteraction): string {
-    const title = target.title?.trim() || this.getInteractiveTypeLabel(target.type);
-    return `${this.formatInteractiveFlowTime(target.atSeconds)} · ${title}`;
+  formatInteractiveBranchTargetInput(choice: InteractiveVideoChoice): string {
+    const seconds = this.resolveInteractiveChoiceTargetSeconds(choice);
+    return seconds == null ? '' : this.formatInteractiveDurationInput(seconds);
   }
 
   getInteractiveChoiceRowClass(type: InteractiveVideoInteractionType): string {
     const base = 'grid gap-2 px-3 py-2';
     return type === 'branch'
-      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_7rem_minmax(8rem,10rem)_auto]`
+      ? `${base} sm:grid-cols-[minmax(0,1fr)_7rem_minmax(13rem,16rem)_auto]`
       : `${base} sm:grid-cols-[minmax(0,1fr)_8rem_auto]`;
   }
 
@@ -1069,7 +1080,67 @@ export class InteractiveVideoAuthoringPanelComponent {
     if (value == null || value === '') {
       return null;
     }
-    return this.clampInteractiveTime(value);
+    const seconds = this.parseInteractiveTimeInput(value);
+    return seconds == null ? null : this.clampInteractiveTime(seconds);
+  }
+
+  private parseInteractiveTimeInput(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return value;
+    }
+
+    const text = String(value).trim();
+    if (!text) {
+      return null;
+    }
+
+    if (!text.includes(':')) {
+      return /^\d+$/.test(text) ? this.toNonNegativeInteger(text) : null;
+    }
+
+    const parts = text.split(':').map(part => part.trim());
+    if (parts.length < 2 || parts.length > 3 || parts.some(part => !/^\d+$/.test(part))) {
+      return null;
+    }
+
+    const [hours, minutes, seconds] = parts.length === 3
+      ? parts.map(part => Number(part))
+      : [0, Number(parts[0]), Number(parts[1])];
+    return (hours * 3600) + (minutes * 60) + seconds;
+  }
+
+  private formatInteractiveDurationInput(seconds: number | null | undefined): string {
+    const safeSeconds = this.clampInteractiveTime(seconds ?? 0);
+    const hours = Math.floor(safeSeconds / 3600);
+    const minutes = Math.floor((safeSeconds % 3600) / 60);
+    const rest = safeSeconds % 60;
+    return [
+      hours.toString().padStart(2, '0'),
+      minutes.toString().padStart(2, '0'),
+      rest.toString().padStart(2, '0'),
+    ].join(':');
+  }
+
+  private resolveInteractiveChoiceTargetSeconds(choice: InteractiveVideoChoice): number | null {
+    if (choice.targetTimeSeconds != null) {
+      return this.clampInteractiveTime(choice.targetTimeSeconds);
+    }
+    if (!choice.targetInteractionId) {
+      return null;
+    }
+    const target = this.svc.sectionInteractiveVideoTimeline()
+      .find(interaction => interaction.id === choice.targetInteractionId);
+    return target ? this.clampInteractiveTime(target.atSeconds) : null;
+  }
+
+  private findInteractiveChoice(
+    interactionId: string,
+    choiceId: string,
+  ): InteractiveVideoChoice | null {
+    return this.svc.sectionInteractiveVideoTimeline()
+      .find(interaction => interaction.id === interactionId)
+      ?.choices
+      ?.find(choice => choice.id === choiceId) ?? null;
   }
 
   private getTimelineSecondsFromPointer(event: PointerEvent): number {

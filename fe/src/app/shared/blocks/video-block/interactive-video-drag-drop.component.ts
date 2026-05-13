@@ -159,7 +159,7 @@ interface DragDropResultState {
             </div>
           </div>
 
-          <aside class="min-w-0 rounded-2xl border border-slate-200 bg-slate-50/90 p-3">
+          <aside class="min-w-0 self-start rounded-2xl border border-slate-200 bg-slate-50/90 p-3 md:max-h-[min(32rem,calc(100dvh-12rem))] md:overflow-y-auto">
             <div class="flex items-start justify-between gap-2">
               <div>
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Vật dụng</p>
@@ -199,11 +199,13 @@ interface DragDropResultState {
                     }
                   </span>
                   <span class="min-w-0 flex-1 text-left">
-                    <span class="block text-sm font-extrabold leading-snug text-slate-800">{{ draggable.label }}</span>
+                    <span class="block whitespace-normal text-sm font-extrabold leading-snug text-slate-800 [overflow-wrap:normal]">
+                      {{ draggable.label }}
+                    </span>
                   </span>
                   @if (isChecked()) {
                     <span [class]="draggableStatusClass(draggable)" aria-hidden="true">
-                      {{ isDraggableCorrect(draggable) ? '✓' : '×' }}
+                      {{ draggableResultIcon(draggable) }}
                     </span>
                   }
                 </button>
@@ -484,7 +486,7 @@ export class InteractiveVideoDragDropComponent {
 
   draggableState(draggable: InteractiveVideoDragDropDraggable): 'idle' | 'placed' | 'selected' | 'correct' | 'wrong' {
     if (this.isChecked()) {
-      return this.isDraggableCorrect(draggable) ? 'correct' : 'wrong';
+      return this.isDraggableDisplayedAsCorrect(draggable) ? 'correct' : 'wrong';
     }
     if (this.selectedDraggableId() === draggable.id) {
       return 'selected';
@@ -494,6 +496,10 @@ export class InteractiveVideoDragDropComponent {
 
   isDraggableCorrect(draggable: InteractiveVideoDragDropDraggable): boolean {
     return this.evaluation().states.find(state => state.draggableId === draggable.id)?.isCorrect === true;
+  }
+
+  draggableResultIcon(draggable: InteractiveVideoDragDropDraggable): string {
+    return this.isDraggableDisplayedAsCorrect(draggable) ? '✓' : '×';
   }
 
   dropZoneClass(zone: InteractiveVideoDragDropZone): string {
@@ -539,8 +545,8 @@ export class InteractiveVideoDragDropComponent {
 
   layoutClass(): string {
     return this.density() === 'compact'
-      ? 'grid gap-4 lg:grid-cols-[minmax(0,1.05fr)_minmax(22rem,0.95fr)] lg:items-center'
-      : 'grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(22rem,0.72fr)] xl:items-start';
+      ? 'grid gap-3 md:grid-cols-[minmax(0,1.2fr)_minmax(20rem,0.9fr)] md:items-center'
+      : 'grid gap-4 md:grid-cols-[minmax(0,1.35fr)_minmax(22rem,1fr)] md:items-start';
   }
 
   stageClass(): string {
@@ -551,26 +557,20 @@ export class InteractiveVideoDragDropComponent {
   }
 
   draggableGridClass(): string {
-    return this.density() === 'compact'
-      ? 'mt-3 grid gap-2 grid-cols-[repeat(auto-fit,minmax(13.5rem,1fr))]'
-      : 'mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2';
+    return 'mt-3 grid gap-2 sm:grid-cols-2';
   }
 
   draggableMediaClass(): string {
-    return this.density() === 'compact'
-      ? 'flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm'
-      : 'flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
+    return 'flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm';
   }
 
   draggableImageClass(): string {
-    return this.density() === 'compact'
-      ? 'max-h-[5.25rem] max-w-full object-contain'
-      : 'max-h-12 max-w-full object-contain';
+    return 'max-h-12 max-w-full object-contain';
   }
 
   draggableCardClass(draggable: InteractiveVideoDragDropDraggable): string {
     const base = this.density() === 'compact'
-      ? 'drag-drop-item flex min-h-[6.5rem] w-full min-w-0 cursor-grab items-center gap-3 rounded-2xl border px-3 py-2.5 text-left disabled:cursor-not-allowed'
+      ? 'drag-drop-item flex min-h-[4.5rem] w-full min-w-0 cursor-grab items-center gap-2 rounded-xl border px-2.5 py-2 text-left disabled:cursor-not-allowed'
       : 'drag-drop-item flex w-full min-w-0 cursor-grab items-center gap-2 rounded-xl border px-2.5 py-2 text-left disabled:cursor-not-allowed';
     switch (this.draggableState(draggable)) {
       case 'selected':
@@ -605,7 +605,7 @@ export class InteractiveVideoDragDropComponent {
 
   draggableStatusClass(draggable: InteractiveVideoDragDropDraggable): string {
     const base = 'flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-sm font-black shadow-sm';
-    return this.isDraggableCorrect(draggable)
+    return this.isDraggableDisplayedAsCorrect(draggable)
       ? `${base} bg-emerald-100 text-emerald-700`
       : `${base} bg-red-100 text-red-700`;
   }
@@ -631,5 +631,9 @@ export class InteractiveVideoDragDropComponent {
     return this.dropZones()
       .filter(zone => zone.correctDraggableIds.includes(draggable.id))
       .map(zone => zone.id);
+  }
+
+  private isDraggableDisplayedAsCorrect(draggable: InteractiveVideoDragDropDraggable): boolean {
+    return this.getCorrectZoneIds(draggable).length > 0 && this.isDraggableCorrect(draggable);
   }
 }

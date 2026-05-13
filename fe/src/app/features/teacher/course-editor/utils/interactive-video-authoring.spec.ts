@@ -24,6 +24,14 @@ describe('interactive-video-authoring', () => {
     expect(created.pause).toBeTrue();
   });
 
+  it('does not default new review branches to seek back to the video start', () => {
+    const created = createInteractiveVideoInteraction([], 'branch');
+
+    expect(created.adaptivity?.requireCorrectBeforeContinue).toBeTrue();
+    expect(created.adaptivity?.onWrong?.type).toBe('continue');
+    expect(created.adaptivity?.onWrong?.targetTimeSeconds).toBeUndefined();
+  });
+
   it('creates a default fill-blank interaction with editable blanks', () => {
     const created = createInteractiveVideoInteraction([], 'fill_blank', {
       durationSeconds: 90,

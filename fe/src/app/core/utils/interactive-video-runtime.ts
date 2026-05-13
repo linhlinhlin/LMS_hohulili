@@ -204,6 +204,11 @@ export function resolveInteractiveVideoReviewTarget(
   const adaptivityAction = choice.isCorrect === true
     ? interaction.adaptivity?.onCorrect
     : interaction.adaptivity?.onWrong;
+  const choiceTarget = resolveInteractiveVideoChoiceTarget(
+    choice,
+    timeline,
+    { sourceTimeSeconds: interaction.atSeconds, allowBackwardSeek: true },
+  );
   const adaptivityTarget = adaptivityAction?.type === 'seek'
     ? resolveInteractiveVideoChoiceTarget(
         {
@@ -216,12 +221,7 @@ export function resolveInteractiveVideoReviewTarget(
         { sourceTimeSeconds: interaction.atSeconds, allowBackwardSeek: true },
       )
     : null;
-  const choiceTarget = resolveInteractiveVideoChoiceTarget(
-    choice,
-    timeline,
-    { sourceTimeSeconds: interaction.atSeconds, allowBackwardSeek: true },
-  );
-  const target = adaptivityTarget ?? choiceTarget;
+  const target = choiceTarget ?? adaptivityTarget;
 
   return target == null ? null : Math.max(0, target);
 }
