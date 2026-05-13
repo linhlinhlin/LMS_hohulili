@@ -341,6 +341,7 @@ public class CoursePublicationService {
             section.put("completionThreshold", asDouble(data.get("completionThreshold"), 50.0));
             section.put("quizData", buildSectionQuizData(data, questionMap));
             section.put("interactiveVideoSpec", normalizeInteractiveVideoSpec(data.get("interactiveVideoSpec")));
+            section.put("simulationData", buildSimulationData(data));
             applyVideoAssetView(section, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
             sections.add(section);
         }
@@ -522,6 +523,27 @@ public class CoursePublicationService {
             }
         }
         return ids;
+    }
+
+    private Map<String, Object> buildSimulationData(Map<String, Object> data) {
+        Map<String, Object> simulation = new LinkedHashMap<>();
+        copyIfPresent(simulation, data, "simulationPackageId");
+        copyIfPresent(simulation, data, "simulationVersion");
+        copyIfPresent(simulation, data, "entryUrl");
+        copyIfPresent(simulation, data, "manifestUrl");
+        copyIfPresent(simulation, data, "estimatedSizeBytes");
+        copyIfPresent(simulation, data, "allowOffline");
+        copyIfPresent(simulation, data, "completionPolicy");
+        copyIfPresent(simulation, data, "supportedTargets");
+        copyIfPresent(simulation, data, "fallback");
+        return simulation.isEmpty() ? null : simulation;
+    }
+
+    private void copyIfPresent(Map<String, Object> target, Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (value != null) {
+            target.put(key, value);
+        }
     }
 
     private List<UUID> extractVideoAssetIdsFromPublishedSnapshot(List<Map<String, Object>> chaptersSnapshot) {

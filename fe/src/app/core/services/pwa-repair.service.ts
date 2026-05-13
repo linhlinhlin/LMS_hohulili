@@ -71,6 +71,7 @@ export class PwaRepairService {
       name.startsWith('ngsw:')
       || name === 'offline-videos'
       || name === 'offline-files'
+      || name === 'offline-simulations'
       || name.startsWith('offline-'),
     );
 

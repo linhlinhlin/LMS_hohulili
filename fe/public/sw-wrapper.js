@@ -18,6 +18,11 @@ self.addEventListener('fetch', (event) => {
 
   if (url.pathname.startsWith('/offline-file/')) {
     event.respondWith(handleOfflineFile(event.request));
+    return;
+  }
+
+  if (url.pathname.startsWith('/simulations/')) {
+    event.respondWith(handleSimulationAsset(event.request));
   }
 });
 
@@ -84,6 +89,28 @@ async function handleOfflineFile(request) {
   } catch {
     return new Response('Error loading offline file', {
       status: 500,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+}
+
+async function handleSimulationAsset(request) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      return networkResponse;
+    }
+
+    const cachedResponse = await findInUserCaches('offline-simulations', request);
+    return cachedResponse || networkResponse;
+  } catch {
+    const cachedResponse = await findInUserCaches('offline-simulations', request);
+    if (cachedResponse) {
+      return cachedResponse;
+    }
+
+    return new Response('Simulation package not available offline', {
+      status: 503,
       headers: { 'Content-Type': 'text/plain' },
     });
   }

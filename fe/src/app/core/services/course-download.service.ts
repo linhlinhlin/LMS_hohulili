@@ -25,6 +25,10 @@ import {
   isOfflineVideoTooLargeError,
 } from './offline-video.service';
 import { OfflineFileService } from './offline-file.service';
+import {
+  OfflineSimulationService,
+  isOfflineSimulationTooLargeError,
+} from './offline-simulation.service';
 import { OfflineSyncService } from './offline-sync.service';
 import { NetworkStatusService } from './network-status.service';
 import { OfflineDeviceSettingsService } from './offline-device-settings.service';
@@ -105,6 +109,15 @@ interface OfflineVideoSkipSummary {
 
 type OfflineVideoSkipReason = keyof OfflineVideoSkipSummary;
 
+interface OfflineSimulationSkipSummary {
+  disabled: number;
+  unsupported: number;
+  tooLarge: number;
+  failed: number;
+}
+
+type OfflineSimulationSkipReason = keyof OfflineSimulationSkipSummary;
+
 @Injectable({ providedIn: 'root' })
 export class CourseDownloadService {
   private readonly http = inject(HttpClient);
@@ -112,6 +125,7 @@ export class CourseDownloadService {
   private readonly toast = inject(ToastService);
   private readonly videoService = inject(OfflineVideoService);
   private readonly fileService = inject(OfflineFileService);
+  private readonly simulationService = inject(OfflineSimulationService);
   private readonly syncService = inject(OfflineSyncService);
   private readonly network = inject(NetworkStatusService);
   private readonly offlineSettings = inject(OfflineDeviceSettingsService);
@@ -190,6 +204,12 @@ export class CourseDownloadService {
     const videoSkipSummary: OfflineVideoSkipSummary = {
       unsupported: 0,
       placeholder: 0,
+      tooLarge: 0,
+      failed: 0,
+    };
+    const simulationSkipSummary: OfflineSimulationSkipSummary = {
+      disabled: 0,
+      unsupported: 0,
       tooLarge: 0,
       failed: 0,
     };
@@ -466,6 +486,39 @@ export class CourseDownloadService {
                 });
               }
             }
+
+            if (section.type === 'SIMULATION' && section.simulationData) {
+              if (!effectiveOptions.includeSimulations) {
+                this.recordSimulationSkip(simulationSkipSummary, 'disabled');
+                continue;
+              }
+
+              try {
+                const result = await this.simulationService.downloadPackage(section.simulationData);
+                section.simulationOfflineReady = true;
+                section.simulationOfflineBytes = result.bytes;
+                section.simulationOfflineAt = new Date().toISOString();
+                section.simulationOfflineError = null;
+                section.simulationData = {
+                  ...section.simulationData,
+                  simulationOfflineReady: true,
+                  simulationOfflineBytes: result.bytes,
+                  simulationOfflineAt: section.simulationOfflineAt,
+                  simulationOfflineError: null,
+                };
+                sectionsChanged = true;
+              } catch (simulationErr) {
+                section.simulationOfflineReady = false;
+                section.simulationOfflineError = simulationErr instanceof Error ? simulationErr.message : String(simulationErr);
+                section.simulationData = {
+                  ...section.simulationData,
+                  simulationOfflineReady: false,
+                  simulationOfflineError: section.simulationOfflineError,
+                };
+                sectionsChanged = true;
+                this.recordSimulationDownloadError(simulationSkipSummary, simulationErr);
+              }
+            }
           }
 
           if (sectionsChanged) {
@@ -591,6 +644,10 @@ export class CourseDownloadService {
           );
           if (nonDuplicatedSections.length > 0) {
             totalSize += new Blob([JSON.stringify(nonDuplicatedSections)]).size;
+            totalSize += nonDuplicatedSections.reduce(
+              (sum, section) => sum + (section.simulationOfflineBytes ?? section.simulationData?.simulationOfflineBytes ?? 0),
+              0,
+            );
           }
         }
       }
@@ -632,6 +689,7 @@ export class CourseDownloadService {
       if (!behavior.silentSuccessToast) {
         this.toast.success(`Đã tải khóa học "${courseData.title || courseData.name}" cho ngoại tuyến`);
         this.showVideoSkipSummary(videoSkipSummary);
+        this.showSimulationSkipSummary(simulationSkipSummary);
       }
 
       await this.refreshDownloadedCourses();
@@ -696,6 +754,9 @@ export class CourseDownloadService {
           }
           if (section.fileOfflineUri) {
             await this.fileService.deleteSectionFile(section.id);
+          }
+          if (section.type === 'SIMULATION') {
+            await this.simulationService.deletePackage(section.simulationData);
           }
         }
       }
@@ -774,6 +835,9 @@ export class CourseDownloadService {
         }
         if (section.fileOfflineUri) {
           await this.fileService.deleteSectionFile(section.id);
+        }
+        if (section.type === 'SIMULATION') {
+          await this.simulationService.deletePackage(section.simulationData);
         }
       }
     }
@@ -1198,6 +1262,11 @@ export class CourseDownloadService {
         fileUrl: section.fileUrl || section.downloadUrl,
         fileName: section.fileName,
         sortOrder: section.sortOrder ?? index,
+        simulationData: section.simulationData ?? null,
+        simulationOfflineReady: section.simulationOfflineReady ?? section.simulationData?.simulationOfflineReady ?? false,
+        simulationOfflineBytes: section.simulationOfflineBytes ?? section.simulationData?.simulationOfflineBytes ?? null,
+        simulationOfflineAt: section.simulationOfflineAt ?? section.simulationData?.simulationOfflineAt ?? null,
+        simulationOfflineError: section.simulationOfflineError ?? section.simulationData?.simulationOfflineError ?? null,
         quizData: section.quizData ? {
           quizType: this.normalizeQuizAssessmentType(section.quizData.quizType),
           countsTowardCertificate: Boolean(section.quizData.countsTowardCertificate)
@@ -1314,6 +1383,47 @@ export class CourseDownloadService {
     this.toast.warning(
       `Đã bỏ qua ${total} video khi tạo gói offline (${details.join(', ')}). Các nội dung này vẫn phát khi có mạng ổn định.`,
       { duration: 6500 },
+    );
+  }
+
+  private recordSimulationSkip(summary: OfflineSimulationSkipSummary, reason: OfflineSimulationSkipReason): void {
+    summary[reason] += 1;
+  }
+
+  private recordSimulationDownloadError(summary: OfflineSimulationSkipSummary, error: unknown): void {
+    if (isOfflineSimulationTooLargeError(error)) {
+      this.recordSimulationSkip(summary, 'tooLarge');
+      return;
+    }
+
+    const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+    if (message.includes('disabled')) {
+      this.recordSimulationSkip(summary, 'disabled');
+      return;
+    }
+    if (message.includes('manifest') || message.includes('offline assets') || message.includes('origin')) {
+      this.recordSimulationSkip(summary, 'unsupported');
+      return;
+    }
+
+    this.recordSimulationSkip(summary, 'failed');
+  }
+
+  private showSimulationSkipSummary(summary: OfflineSimulationSkipSummary): void {
+    const total = summary.disabled + summary.unsupported + summary.tooLarge + summary.failed;
+    if (total === 0) {
+      return;
+    }
+
+    const details: string[] = [];
+    if (summary.disabled > 0) details.push(`${summary.disabled} goi chua chon tai offline`);
+    if (summary.tooLarge > 0) details.push(`${summary.tooLarge} goi qua lon`);
+    if (summary.unsupported > 0) details.push(`${summary.unsupported} goi chua co manifest offline hop le`);
+    if (summary.failed > 0) details.push(`${summary.failed} goi chua tai duoc`);
+
+    this.toast.warning(
+      `Da bo qua ${total} goi mo phong khi tao goi offline (${details.join(', ')}). Hoc vien van co the hoc noi dung thay the va chay mo phong khi co mang tren desktop/laptop.`,
+      { duration: 7500 },
     );
   }
 
@@ -1492,6 +1602,7 @@ export class CourseDownloadService {
     const normalizedVideoQuality = normalizeVideoQuality(options?.videoQuality);
     return {
       videoQuality: normalizedVideoQuality,
+      includeSimulations: options?.includeSimulations === true,
     };
   }
 

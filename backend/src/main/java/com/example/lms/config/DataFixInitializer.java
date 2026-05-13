@@ -65,7 +65,7 @@ public class DataFixInitializer {
             jdbcTemplate.execute("ALTER TABLE sections DROP CONSTRAINT IF EXISTS sections_type_check");
             jdbcTemplate.execute(
                 "ALTER TABLE sections ADD CONSTRAINT sections_type_check " +
-                "CHECK (type IN ('VIDEO', 'TEXT', 'QUIZ', 'FILE', 'ASSIGNMENT'))"
+                "CHECK (type IN ('VIDEO', 'TEXT', 'QUIZ', 'FILE', 'ASSIGNMENT', 'SIMULATION'))"
             );
             log.debug("Updated sections_type_check constraint");
         } catch (org.springframework.dao.DataAccessException e) {

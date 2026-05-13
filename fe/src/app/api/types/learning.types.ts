@@ -1,3 +1,5 @@
+import type { SimulationSectionData } from './simulation.types';
+
 /**
  * Learning Types
  * Types for student learning experience, video lessons, progress tracking
@@ -21,7 +23,7 @@ export interface CourseModule {
 export interface CourseLesson {
     id: string;
     title: string;
-    type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'ASSIGNMENT';
+    type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'ASSIGNMENT' | 'SIMULATION';
     duration?: number;
     order: number;
     isCompleted?: boolean;
@@ -203,7 +205,7 @@ export interface CalendarDay {
 export interface LessonDetailForStudent {
     id: string;
     title: string;
-    type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE';
+    type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'SIMULATION';
     content?: string;
     videoUrl?: string;
     duration?: number;
@@ -215,11 +217,12 @@ export interface LessonDetailForStudent {
 
 export interface LessonSection {
     id: string;
-    type: 'VIDEO' | 'TEXT' | 'FILE' | 'QUIZ';
+    type: 'VIDEO' | 'TEXT' | 'FILE' | 'QUIZ' | 'SIMULATION';
     title: string;
     content?: string;
     videoUrl?: string;
     fileUrl?: string;
+    simulationData?: SimulationSectionData | null;
     duration?: number;
     order: number;
 }
@@ -231,4 +234,3 @@ export interface LessonResource {
     url: string;
     size?: number;
 }
-

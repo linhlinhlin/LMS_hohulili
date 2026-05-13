@@ -1315,6 +1315,7 @@ export class CourseLearningComponent implements OnInit {
   getSectionTypeLabel(type: string): string {
     const labels: Record<string, string> = {
       'VIDEO': 'Video',
+      'SIMULATION': 'Mo phong',
       'TEXT': 'Văn bản',
       'QUIZ': 'Trắc nghiệm',
       'FILE': 'Tài liệu',

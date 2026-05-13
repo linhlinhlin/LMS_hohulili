@@ -1133,6 +1133,7 @@ public class CourseQueryControllerV3 {
                     .isRequired(safeBool(data.get("isRequired"), false))
                     .quizData(showContent ? buildSectionQuizData(data, questionMap) : null)
                     .interactiveVideoSpec(showContent ? normalizeInteractiveVideoSpec(data.get("interactiveVideoSpec")) : null)
+                    .simulationData(showContent ? buildSimulationData(data) : null)
                     .build();
             if (showContent) {
                 applyVideoAssetView(response, data, resolveVideoAssetView(videoAssets, data.get("videoAssetId")), videoType);
@@ -1159,6 +1160,27 @@ public class CourseQueryControllerV3 {
             }
         }
         return ids;
+    }
+
+    private Map<String, Object> buildSimulationData(Map<String, Object> data) {
+        Map<String, Object> simulation = new LinkedHashMap<>();
+        copyIfPresent(simulation, data, "simulationPackageId");
+        copyIfPresent(simulation, data, "simulationVersion");
+        copyIfPresent(simulation, data, "entryUrl");
+        copyIfPresent(simulation, data, "manifestUrl");
+        copyIfPresent(simulation, data, "estimatedSizeBytes");
+        copyIfPresent(simulation, data, "allowOffline");
+        copyIfPresent(simulation, data, "completionPolicy");
+        copyIfPresent(simulation, data, "supportedTargets");
+        copyIfPresent(simulation, data, "fallback");
+        return simulation.isEmpty() ? null : simulation;
+    }
+
+    private void copyIfPresent(Map<String, Object> target, Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (value != null) {
+            target.put(key, value);
+        }
     }
 
     private static int safeInt(Object value, int fallback) {
@@ -1663,6 +1685,7 @@ public class CourseQueryControllerV3 {
         private List<Map<String, Object>> availableOfflineProfiles;
         private Map<String, Object> quizData;
         private Map<String, Object> interactiveVideoSpec;
+        private Map<String, Object> simulationData;
     }
 
     @lombok.Builder

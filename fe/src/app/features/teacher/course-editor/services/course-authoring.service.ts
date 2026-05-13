@@ -6,6 +6,7 @@ import { environment } from '../../../../../environments/environment';
 import { PresignedUploadService, UploadEvent } from '../../../../core/services/presigned-upload.service';
 import type { OfflineVideoProfileDescriptor, VideoSourceKind } from '../../../../core/models/video-quality';
 import type { InteractiveVideoSpec } from '../../../../api/types/interactive-video.types';
+import type { SimulationSectionData } from '../../../../api/types/simulation.types';
 
 export type UploadProgressEvent =
   | { type: 'progress'; progress: number }
@@ -33,6 +34,7 @@ export interface SectionDraftDTO { // Renamed from TopicDraftDTO
     isRequired?: boolean;
     completionThreshold?: number;
     availableOfflineProfiles?: CourseVideoOfflineProfile[];
+    simulationData?: SimulationSectionData | null;
     quizData?: {
         quizId?: string;
         quizType?: string;
@@ -230,6 +232,7 @@ interface ChapterResponse { // Was SectionWithLessons
             orderIndex: number;
             isRequired?: boolean;
             availableOfflineProfiles?: CourseVideoOfflineProfile[];
+            simulationData?: SimulationSectionData | null;
             // [NEW] Quiz Data for hydration - SOTA 2025
             quizData?: {
                 quizId?: string;
@@ -262,6 +265,7 @@ interface ChapterResponse { // Was SectionWithLessons
             orderIndex: number;
             isRequired?: boolean;
             availableOfflineProfiles?: CourseVideoOfflineProfile[];
+            simulationData?: SimulationSectionData | null;
             quizData?: {
                 quizId?: string;
                 timeLimitMinutes?: number;
@@ -341,6 +345,7 @@ export class CourseAuthoringService {
                             orderIndex: t.orderIndex,
                             isRequired: t.isRequired,
                             availableOfflineProfiles: t.availableOfflineProfiles || [],
+                            simulationData: t.simulationData ?? null,
                             quizData: t.quizData ? {
                                 quizId: t.quizData.quizId,
                                 quizType: t.quizData.quizType,

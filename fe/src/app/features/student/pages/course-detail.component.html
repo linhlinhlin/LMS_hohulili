@@ -457,6 +457,14 @@
                                 </svg>
                                 Video
                               </span>
+                            } @else if (lesson.primaryType === 'SIMULATION') {
+                              <span class="lesson-type type-simulation">
+                                <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M3 18h18M5 18l2-8h10l2 8M8 10V6h8v4"/>
+                                </svg>
+                                Mo phong
+                              </span>
                             } @else if (lesson.primaryType === 'QUIZ') {
                               <span class="lesson-type type-quiz">
                                 <svg width="12" height="12" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -542,12 +550,18 @@
                               <div class="section-sub-info">
                                 <span class="section-sub-title">{{ sec.title }}</span>
                                 <div class="section-sub-meta">
+                                  @if (sec.type === 'SIMULATION') {
+                                  <span class="section-sub-type stype-simulation">
+                                    Mo phong
+                                  </span>
+                                  } @else {
                                   <span class="section-sub-type" [class]="'stype-' + sec.type.toLowerCase()">
                                     {{ sec.type === 'VIDEO' ? 'Video' :
                                        sec.type === 'TEXT' ? 'Văn bản' :
                                        sec.type === 'QUIZ' ? 'Trắc nghiệm' :
                                        sec.type === 'FILE' ? 'Tài liệu' : 'Bài tập' }}
                                   </span>
+                                  }
                                   @if (sec.duration) {
                                     <span class="section-sub-duration">{{ sec.duration }} phút</span>
                                   }

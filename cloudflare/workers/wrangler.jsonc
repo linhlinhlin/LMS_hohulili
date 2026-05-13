@@ -1,0 +1,83 @@
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "holilihu-simulation-r2",
+  "main": "simulation-r2-worker.js",
+  "compatibility_date": "2026-05-12",
+  "workers_dev": false,
+  "observability": {
+    "enabled": true
+  },
+  "vars": {
+    "SIMULATION_ALLOWED_ORIGINS": "https://holilihu.online",
+    "SIMULATION_OBJECT_PREFIX": "simulations",
+    "SIMULATION_ROUTE_PREFIX": "simulations"
+  },
+  "routes": [
+    {
+      "pattern": "holilihu.online/simulations/*",
+      "zone_name": "holilihu.online"
+    },
+    {
+      "pattern": "media.holilihu.online/simulations/*",
+      "zone_name": "holilihu.online"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "SIMULATION_BUCKET",
+      "bucket_name": "lms-storage"
+    }
+  ],
+  "env": {
+    "staging": {
+      "name": "holilihu-simulation-r2-staging",
+      "workers_dev": false,
+      "vars": {
+        "SIMULATION_ALLOWED_ORIGINS": "https://holilihu.online,http://localhost:4200,http://localhost:4300,http://127.0.0.1:4300",
+        "SIMULATION_OBJECT_PREFIX": "staging/simulations",
+        "SIMULATION_ROUTE_PREFIX": "simulations-staging"
+      },
+      "routes": [
+        {
+          "pattern": "holilihu.online/simulations-staging/*",
+          "zone_name": "holilihu.online"
+        },
+        {
+          "pattern": "media.holilihu.online/simulations-staging/*",
+          "zone_name": "holilihu.online"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SIMULATION_BUCKET",
+          "bucket_name": "lms-storage"
+        }
+      ]
+    },
+    "production": {
+      "name": "holilihu-simulation-r2",
+      "workers_dev": false,
+      "vars": {
+        "SIMULATION_ALLOWED_ORIGINS": "https://holilihu.online",
+        "SIMULATION_OBJECT_PREFIX": "simulations",
+        "SIMULATION_ROUTE_PREFIX": "simulations"
+      },
+      "routes": [
+        {
+          "pattern": "holilihu.online/simulations/*",
+          "zone_name": "holilihu.online"
+        },
+        {
+          "pattern": "media.holilihu.online/simulations/*",
+          "zone_name": "holilihu.online"
+        }
+      ],
+      "r2_buckets": [
+        {
+          "binding": "SIMULATION_BUCKET",
+          "bucket_name": "lms-storage"
+        }
+      ]
+    }
+  }
+}

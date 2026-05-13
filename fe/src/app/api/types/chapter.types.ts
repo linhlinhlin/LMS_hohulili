@@ -1,3 +1,5 @@
+import type { SimulationSectionData } from './simulation.types';
+
 /**
  * Chapter Types - Aligned with PostgreSQL `chapters` table
  * @see V1__lms_consolidated_schema.sql (lines 118-128)
@@ -84,7 +86,7 @@ export interface LessonDetail extends Lesson {
 // ============================================
 
 /** PostgreSQL: type VARCHAR(50) CHECK (...) in sections table */
-export type SectionType = 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+export type SectionType = 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION';
 
 /**
  * Section - matches `sections` table
@@ -103,6 +105,7 @@ export interface Section {
     fileUrl: string | null;            // VARCHAR(1000) NULLABLE
     duration: number | null;           // INTEGER NULLABLE
     durationSeconds: number | null;    // INTEGER NULLABLE
+    simulationData?: SimulationSectionData | null;
     orderIndex: number;                // INTEGER NOT NULL DEFAULT 0
     isRequired: boolean;               // BOOLEAN NOT NULL DEFAULT true
     createdAt: string;                 // TIMESTAMPTZ NOT NULL

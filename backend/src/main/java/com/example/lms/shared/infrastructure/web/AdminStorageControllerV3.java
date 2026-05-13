@@ -33,17 +33,20 @@ public class AdminStorageControllerV3 {
     private final Optional<S3Client> r2Client;
     private final String publicBucket;
     private final String videoBucket;
+    private final String simulationBucket;
 
     @Autowired
     public AdminStorageControllerV3(
             FileAttachmentJpaRepository fileRepository,
             @Autowired(required = false) S3Client r2Client,
             @Value("${cloudflare.r2.bucket:}") String publicBucket,
-            @Value("${cloudflare.r2.video-bucket:}") String videoBucket) {
+            @Value("${cloudflare.r2.video-bucket:}") String videoBucket,
+            @Value("${cloudflare.r2.simulation-bucket:}") String simulationBucket) {
         this.fileRepository = fileRepository;
         this.r2Client = Optional.ofNullable(r2Client);
         this.publicBucket = publicBucket;
         this.videoBucket = videoBucket;
+        this.simulationBucket = simulationBucket;
     }
 
     @GetMapping("/health")
@@ -54,8 +57,10 @@ public class AdminStorageControllerV3 {
 
         Map<String, Object> publicStats = bucketStats(publicBucket);
         Map<String, Object> videoStats = bucketStats(videoBucket);
+        Map<String, Object> simulationStats = bucketStats(simulationBucket);
         result.put("publicBucket", publicStats);
         result.put("videoBucket", videoStats);
+        result.put("simulationBucket", simulationStats);
 
         long totalAttachments = fileRepository.count();
         long pendingReview = fileRepository.findOrphanedBefore(Instant.now()).size();

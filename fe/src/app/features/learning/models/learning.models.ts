@@ -7,6 +7,7 @@
 
 import { LessonType } from './lesson-types.enum';
 import type { InteractiveVideoSpec } from '../../../api/types/interactive-video.types';
+import type { SimulationSectionData } from '../../../api/types/simulation.types';
 
 /**
  * Course Overview
@@ -66,7 +67,7 @@ export interface LessonSummary {
 export interface SectionContent {
   id: string;
   title: string;
-  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION';
   content?: string;
   structuredContent?: Record<string, unknown> | null;
   videoAssetId?: string;
@@ -85,6 +86,11 @@ export interface SectionContent {
   completionThreshold?: number;
   interactiveVideoSpec?: InteractiveVideoSpec | null;
   quizData?: SectionQuizData;
+  simulationData?: SimulationSectionData | null;
+  simulationOfflineReady?: boolean;
+  simulationOfflineBytes?: number | null;
+  simulationOfflineAt?: string | null;
+  simulationOfflineError?: string | null;
 }
 
 export interface SectionQuizQuestionSummary {
