@@ -5,6 +5,7 @@ import type {
   VideoSourceKind,
 } from '../models/video-quality';
 import type { InteractiveVideoSpec } from '../../api/types/interactive-video.types';
+import type { SimulationSectionData } from '../../api/types/simulation.types';
 
 export const OFFLINE_DB_NAME = 'lms-maritime-offline';
 const OFFLINE_DB_ACTIVE_NAME_KEY = 'lms_offline_active_db_name';
@@ -12,7 +13,7 @@ const OFFLINE_DB_KNOWN_NAMES_KEY = 'lms_offline_known_db_names';
 const OFFLINE_STORAGE_HEALTH_KEY = 'lms_offline_storage_health';
 const OFFLINE_STORAGE_TELEMETRY_KEY = 'lms_offline_storage_telemetry';
 const OFFLINE_STORAGE_TELEMETRY_LIMIT = 20;
-const OFFLINE_CACHE_NAMES = ['offline-videos', 'offline-files'] as const;
+const OFFLINE_CACHE_NAMES = ['offline-videos', 'offline-files', 'offline-simulations'] as const;
 
 export type OfflineStorageAvailability = 'ready' | 'recovering' | 'online-only';
 export type OfflineStorageRecoveryAction = 'none' | 'recreated-db' | 'rotated-db' | 'manual-reset';
@@ -76,6 +77,7 @@ export interface OfflineCourse {
 
 export interface OfflineDownloadOptions {
   videoQuality?: VideoQuality;
+  includeSimulations?: boolean;
 }
 
 export interface OfflineChapter {
@@ -114,7 +116,7 @@ export interface OfflineLessonSection {
   id: string;
   lessonId: string;
   title: string;
-  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION';
   content?: string;
   contentBlocks?: any[];
   videoUrl?: string;
@@ -132,6 +134,11 @@ export interface OfflineLessonSection {
   fileName?: string;
   sortOrder?: number;
   quizData?: OfflineSectionQuizData;
+  simulationData?: SimulationSectionData | null;
+  simulationOfflineReady?: boolean;
+  simulationOfflineBytes?: number | null;
+  simulationOfflineAt?: string | null;
+  simulationOfflineError?: string | null;
 }
 
 export interface OfflineSectionQuizQuestionSummary {
@@ -773,7 +780,11 @@ async function clearOfflineCaches(): Promise<void> {
   const allNames = await caches.keys();
   await Promise.all(
     allNames
-      .filter(n => n.startsWith('offline-videos') || n.startsWith('offline-files'))
+      .filter(n =>
+        n.startsWith('offline-videos')
+        || n.startsWith('offline-files')
+        || n.startsWith('offline-simulations')
+      )
       .map(n => caches.delete(n).catch(() => false))
   );
 }

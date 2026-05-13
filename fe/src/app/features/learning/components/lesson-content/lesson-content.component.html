@@ -106,6 +106,68 @@
         <div class="lesson-prose prose prose-slate max-w-none text-sm" [innerHTML]="getSanitizedHtml(section.content)"></div>
       </div>
       }
+
+      @if (section.type === 'SIMULATION') {
+      <div class="space-y-4">
+        <div class="rounded-lg border border-emerald-200 bg-emerald-50 p-5">
+          <div class="flex items-start gap-3">
+            <div class="mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white text-emerald-700">
+              <app-icon name="ship" size="md"></app-icon>
+            </div>
+            <div class="min-w-0">
+              <h3 class="text-base font-bold text-slate-900">{{ section.title || 'Mô phỏng tương tác' }}</h3>
+              <p class="mt-1 text-sm leading-6 text-slate-700">
+                Mô phỏng Unity WebGPU yêu cầu desktop/laptop có WebGPU, WebAssembly và tăng tốc phần cứng. Điện thoại và máy tính bảng vẫn học được nội dung thay thế, video và quiz.
+              </p>
+              <div class="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
+                <span class="rounded-full bg-white px-3 py-1 text-emerald-800">PWA: {{ simulationOfflineLabel() }}</span>
+                <span class="rounded-full bg-white px-3 py-1 text-slate-700">Dung lượng: {{ simulationPackageSizeLabel() }}</span>
+                @if (simulationHasVrLab()) {
+                <span class="rounded-full bg-white px-3 py-1 text-[#0056D2]">Có bản VR lab Meta/Oculus riêng</span>
+                }
+              </div>
+            </div>
+          </div>
+        </div>
+
+        @if (simulationSupport(); as support) {
+        <div
+          class="rounded-lg border p-4 text-sm"
+          [class]="support.canRun ? 'border-slate-200 bg-white text-slate-700' : 'border-amber-200 bg-amber-50 text-amber-800'">
+          {{ support.message }}
+        </div>
+        }
+
+        @if (safeSimulationFrameUrl(); as simulationUrl) {
+        <div class="overflow-hidden rounded-lg border border-slate-200 bg-slate-950 shadow-sm">
+          <div class="flex items-center justify-between border-b border-white/10 px-4 py-2 text-xs text-slate-200">
+            <span>Bridge simulator</span>
+            <button
+              type="button"
+              (click)="openSimulationInNewTab()"
+              class="rounded-md bg-white/10 px-3 py-1 font-semibold text-white transition hover:bg-white/20">
+              Mở riêng
+            </button>
+          </div>
+          <iframe
+            class="block h-[min(70vh,720px)] min-h-[520px] w-full border-0 bg-black"
+            [src]="simulationUrl"
+            title="Maritime simulation"
+            allow="fullscreen; gamepad; xr-spatial-tracking"
+            allowfullscreen>
+          </iframe>
+        </div>
+        } @else if (section.simulationData?.fallback?.walkthroughUrl) {
+        <a
+          class="inline-flex items-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#004BB5]"
+          [href]="section.simulationData?.fallback?.walkthroughUrl"
+          target="_blank"
+          rel="noopener noreferrer">
+          Xem video hướng dẫn thay thế
+        </a>
+        }
+      </div>
+      }
     </div>
     } @else {
     @if (lesson().content) {

@@ -1,6 +1,7 @@
 export type DeliveryMode = 'SELF_PACED' | 'INSTRUCTOR_LED';
 
 import type { InteractiveVideoSpec } from './interactive-video.types';
+import type { SimulationSectionData } from './simulation.types';
 
 // Course Category (2-level hierarchy)
 export interface CourseCategoryDTO {
@@ -134,7 +135,7 @@ export interface CourseContentChapter {
 export interface SectionSummary {
   id: string;
   title: string;
-  type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
+  type: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' | 'SIMULATION';
   content?: string;
   videoAssetId?: string;
   videoProcessingStatus?: string;
@@ -148,6 +149,7 @@ export interface SectionSummary {
   orderIndex: number;
   isRequired?: boolean;
   interactiveVideoSpec?: InteractiveVideoSpec | null;
+  simulationData?: SimulationSectionData | null;
   availableOfflineProfiles?: Array<{
     id: 'SAVER' | 'STANDARD' | 'HIGH' | 'ORIGINAL' | string;
     label: string;
@@ -263,13 +265,14 @@ export interface UpdateChapterRequest {
 export interface CreateSectionRequest {
   lessonId: string;
   title: string;
-  type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE';
+  type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' | 'SIMULATION';
   content?: string;
   videoAssetId?: string;
   videoUrl?: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   interactiveVideoSpec?: InteractiveVideoSpec | null;
+  simulationData?: SimulationSectionData | null;
   duration?: number;
   orderIndex?: number;
   isRequired?: boolean;
@@ -277,13 +280,14 @@ export interface CreateSectionRequest {
 
 export interface UpdateSectionRequest {
   title?: string;
-  type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE'; // Usually type shouldn't change, but ok
+  type?: 'TEXT' | 'VIDEO' | 'QUIZ' | 'FILE' | 'SIMULATION'; // Usually type shouldn't change, but ok
   content?: string;
   videoAssetId?: string;
   videoUrl?: string;
   videoType?: 'YOUTUBE' | 'CLOUDFLARE' | 'ADAPTIVE_R2' | string;
   streamVideoUid?: string;
   interactiveVideoSpec?: InteractiveVideoSpec | null;
+  simulationData?: SimulationSectionData | null;
   duration?: number;
   orderIndex?: number;
   isRequired?: boolean;

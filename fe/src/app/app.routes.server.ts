@@ -14,6 +14,10 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server
   },
   {
+    path: 'simulation-courses',
+    renderMode: RenderMode.Server
+  },
+  {
     path: 'about',
     renderMode: RenderMode.Server
   },
@@ -98,6 +102,10 @@ export const serverRoutes: ServerRoute[] = [
   },
   {
     path: 'student/courses/:id',
+    renderMode: RenderMode.Client
+  },
+  {
+    path: 'student/simulation-courses',
     renderMode: RenderMode.Client
   },
   {

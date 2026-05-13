@@ -26,6 +26,7 @@ import { environment } from '../../../../environments/environment';
 
 export interface DownloadOptions {
   videoQuality: VideoQuality;
+  includeSimulations?: boolean;
 }
 
 interface LessonSummary {
@@ -42,6 +43,15 @@ interface VideoAssetSummary {
   durationMinutes: number;
   streamVideoUid?: string;
   sourceKind: VideoSourceKind;
+}
+
+interface SimulationSummary {
+  sectionId: string;
+  title: string;
+  packageId: string;
+  estimatedSizeBytes: number;
+  allowOffline: boolean;
+  hasManifest: boolean;
 }
 
 interface QualityOption {
@@ -152,6 +162,42 @@ interface QualityOption {
               <hr class="border-gray-200">
             }
 
+            @if (simulationSectionsCount() > 0) {
+              <div class="space-y-3">
+                <div class="flex items-center justify-between gap-3">
+                  <div class="flex items-center gap-2 text-sm text-gray-700">
+                    <svg class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M3 18h18M5 18l2-8h10l2 8M8 10V6h8v4" />
+                    </svg>
+                    Mo phong WebGL ({{ simulationSectionsCount() }} goi)
+                  </div>
+                  <span class="text-sm text-gray-500">
+                    {{ includeSimulations() ? '~' + formatSize(simulationSizeEstimate()) : '0 MB' }}
+                  </span>
+                </div>
+
+                <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-emerald-100 bg-emerald-50 px-3 py-2">
+                  <input
+                    type="checkbox"
+                    [checked]="includeSimulations()"
+                    [disabled]="downloadableSimulationSectionsCount() === 0"
+                    (change)="includeSimulations.set($any($event.target).checked)"
+                    class="mt-0.5 h-4 w-4 rounded border-emerald-300 text-emerald-600 focus:ring-emerald-600">
+                  <span class="text-xs leading-5 text-emerald-800">
+                    Tai goi mo phong de chay offline trong PWA. Goi nay chi nen tai tren desktop/laptop, uu tien Wi-Fi va can du bo nho trinh duyet.
+                  </span>
+                </label>
+
+                @if (simulationWarning()) {
+                  <div class="rounded-lg bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                    {{ simulationWarning() }}
+                  </div>
+                }
+              </div>
+
+              <hr class="border-gray-200">
+            }
+
             <div class="flex items-center justify-between py-1">
               <span class="text-sm font-medium text-gray-900">Tổng ước tính</span>
               <span class="text-sm font-semibold text-gray-900">~{{ formatSize(totalEstimate()) }}</span>
@@ -207,8 +253,10 @@ export class DownloadDialogComponent implements OnInit {
 
   readonly isLoading = signal(true);
   readonly selectedQuality = signal<VideoQuality>(this.offlineSettings.defaultVideoQuality());
+  readonly includeSimulations = signal(true);
   readonly freeSpace = signal(0);
   readonly lessons = signal<LessonSummary[]>([]);
+  readonly simulations = signal<SimulationSummary[]>([]);
   readonly detectedProfileIds = signal<OfflineVideoProfileId[]>([]);
   readonly profileSizeTotals = signal<Partial<Record<OfflineVideoProfileId, number>>>({});
   readonly profileResolutionHints = signal<Partial<Record<OfflineVideoProfileId, string>>>({});
@@ -254,6 +302,15 @@ export class DownloadDialogComponent implements OnInit {
       .reduce((sum, asset) => sum + (asset.durationMinutes || 10), 0),
   );
   readonly originalOnlyVideoCount = computed(() => this.directVideoCount() + this.originalOnlyStreamVideoCount());
+  readonly simulationSectionsCount = computed(() => this.simulations().length);
+  readonly downloadableSimulationSectionsCount = computed(() =>
+    this.simulations().filter((section) => section.allowOffline && section.hasManifest).length,
+  );
+  readonly simulationSizeEstimate = computed(() =>
+    this.simulations()
+      .filter((section) => section.allowOffline && section.hasManifest)
+      .reduce((sum, section) => sum + section.estimatedSizeBytes, 0),
+  );
   // Measured from actual API content payload — not a magic constant
   readonly measuredContentBytes = signal(0);
   readonly textSizeBytes = computed(() => this.measuredContentBytes());
@@ -297,7 +354,27 @@ export class DownloadDialogComponent implements OnInit {
     return options;
   });
 
-  readonly totalEstimate = computed(() => this.textSizeBytes() + this.videoSizeForQuality(this.selectedQuality()));
+  readonly totalEstimate = computed(() =>
+    this.textSizeBytes()
+    + this.videoSizeForQuality(this.selectedQuality())
+    + (this.includeSimulations() ? this.simulationSizeEstimate() : 0),
+  );
+
+  readonly simulationWarning = computed(() => {
+    if (this.simulationSectionsCount() === 0) {
+      return null;
+    }
+    if (this.downloadableSimulationSectionsCount() === 0) {
+      return 'Cac goi mo phong trong khoa hoc nay chua co manifest offline hop le. PWA van tai noi dung bai hoc, video va quiz.';
+    }
+    if (this.includeSimulations() && this.simulationSizeEstimate() === 0) {
+      return 'Chua co uoc tinh dung luong cho goi mo phong. Nen kiem tra tren Wi-Fi va may tinh co nhieu bo nho trong.';
+    }
+    if (this.includeSimulations() && this.simulationSizeEstimate() > 500 * 1024 * 1024) {
+      return 'Goi mo phong lon hon 500 MB nen co the bi bo qua khi tai offline. Hay dung desktop/laptop va toi uu build WebGL truoc khi phat hanh rong.';
+    }
+    return 'Mo phong WebGL offline chi chay tot tren desktop/laptop co WebGL 2, WebAssembly va tang toc phan cung. Dien thoai/may tinh bang nen dung noi dung thay the.';
+  });
 
   readonly showGroupedProfileFallbackNote = computed(() => {
     const selectedQuality = this.selectedQuality();
@@ -331,6 +408,7 @@ export class DownloadDialogComponent implements OnInit {
 
       const chapters = contentRes?.data || contentRes || [];
       const allLessons: LessonSummary[] = [];
+      const allSimulations: SimulationSummary[] = [];
 
       // Measure actual content size from the API payload (SOTA: measure, don't guess)
       let contentBytes = 0;
@@ -356,12 +434,17 @@ export class DownloadDialogComponent implements OnInit {
           const sections = lesson.sections || [];
           if (sections.length > 0) {
             contentBytes += new Blob([JSON.stringify(sections)]).size;
+            allSimulations.push(...this.extractSimulations(sections));
           }
         }
       }
       // Add ~20% overhead for IndexedDB storage, keys, quiz data fetched separately
       this.measuredContentBytes.set(Math.round(contentBytes * 1.2));
       this.lessons.set(allLessons);
+      this.simulations.set(allSimulations);
+      if (allSimulations.length > 0 && allSimulations.every((section) => !section.allowOffline || !section.hasManifest)) {
+        this.includeSimulations.set(false);
+      }
       this.freeSpace.set((storageEstimate.quotaBytes ?? 0) - (storageEstimate.usedBytes ?? 0));
 
       const downloadableVideoAssets = allLessons
@@ -571,6 +654,22 @@ export class DownloadDialogComponent implements OnInit {
     return [];
   }
 
+  private extractSimulations(sections: any[]): SimulationSummary[] {
+    return sections
+      .filter((section: any) => section.type === 'SIMULATION' && section.simulationData)
+      .map((section: any) => {
+        const data = section.simulationData || {};
+        return {
+          sectionId: section.id,
+          title: section.title || data.simulationPackageId || 'Mo phong',
+          packageId: data.simulationPackageId || section.id,
+          estimatedSizeBytes: Math.max(0, Number(data.estimatedSizeBytes ?? 0) || 0),
+          allowOffline: data.allowOffline !== false,
+          hasManifest: typeof data.manifestUrl === 'string' && data.manifestUrl.trim().length > 0,
+        };
+      });
+  }
+
   private buildGroupedQualityOption(profile: OfflineVideoProfileId): QualityOption {
     return {
       value: profile,
@@ -644,7 +743,10 @@ export class DownloadDialogComponent implements OnInit {
   }
 
   onConfirm(): void {
-    this.confirm.emit({ videoQuality: this.selectedQuality() });
+    this.confirm.emit({
+      videoQuality: this.selectedQuality(),
+      includeSimulations: this.includeSimulations() && this.downloadableSimulationSectionsCount() > 0,
+    });
   }
 
   formatSize(bytes: number): string {

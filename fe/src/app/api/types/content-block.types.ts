@@ -1,4 +1,6 @@
-export type BlockType = 'text' | 'formula' | 'image' | 'video';
+import type { SimulationSectionData } from './simulation.types';
+
+export type BlockType = 'text' | 'formula' | 'image' | 'video' | 'simulation';
 
 export interface BaseBlock {
     id: string; // Unique ID for tracking
@@ -34,4 +36,9 @@ export interface VideoBlock extends BaseBlock {
     assetId?: string;
 }
 
-export type ContentBlock = TextBlock | FormulaBlock | ImageBlock | VideoBlock;
+export interface SimulationBlock extends BaseBlock {
+    type: 'simulation';
+    data: SimulationSectionData;
+}
+
+export type ContentBlock = TextBlock | FormulaBlock | ImageBlock | VideoBlock | SimulationBlock;

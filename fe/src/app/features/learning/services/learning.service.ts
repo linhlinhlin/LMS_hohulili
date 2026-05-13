@@ -406,7 +406,7 @@ export class LearningService {
     return {
       id: section.id,
       title: section.title || '',
-      type: (section.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+      type: (section.type?.toUpperCase() || 'TEXT') as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION',
       content: (section.content && section.content !== 'undefined' && section.content !== 'null') ? section.content : undefined,
       videoAssetId: (section.videoAssetId && section.videoAssetId !== 'undefined' && section.videoAssetId !== 'null')
         ? section.videoAssetId
@@ -431,6 +431,7 @@ export class LearningService {
       isRequired: section.isRequired ?? false,
       completionThreshold: section.completionThreshold,
       interactiveVideoSpec: normalizeInteractiveVideoSpecV2(section.interactiveVideoSpec),
+      simulationData: section.simulationData ?? null,
       quizData: section.quizData ? {
         quizType: section.quizData.quizType,
         countsTowardCertificate: section.quizData.countsTowardCertificate,

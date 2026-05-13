@@ -590,6 +590,7 @@ export class CourseCurriculumComponent implements OnDestroy {
     switch (type) {
       case 'TEXT': return 'Bài giảng';
       case 'VIDEO': return 'Video';
+      case 'SIMULATION': return 'Mo phong';
       case 'FILE': return 'Tài liệu';
       case 'QUIZ': return 'Trắc nghiệm';
       default: return type;

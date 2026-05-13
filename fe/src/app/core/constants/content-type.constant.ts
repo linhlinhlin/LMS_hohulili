@@ -73,6 +73,14 @@ export const CONTENT_TYPE_CONFIG = {
         borderColor: 'border-emerald-200'
     },
     // SCORM - Công nghệ / Thiết bị điện tử
+    SIMULATION: {
+        color: 'bg-emerald-600',
+        label: 'Mo phong tuong tac',
+        icon: 'ship',
+        indicatorColor: 'bg-emerald-600',
+        hoverBg: 'hover:bg-emerald-50',
+        borderColor: 'border-emerald-200'
+    },
     SCORM: {
         color: 'bg-[#0056D2]',
         label: 'Bài học tương tác',

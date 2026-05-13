@@ -39,7 +39,7 @@ interface Section {
 interface SectionContent {
   id: string;
   title: string;
-  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  type: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION';
   content?: string;
   videoUrl?: string;
   duration?: number;
@@ -58,7 +58,7 @@ interface Lesson {
   hasQuiz?: boolean;
   quizType?: string;
   quizAllowOffline?: boolean;
-  primaryType?: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT';
+  primaryType?: 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION';
   sections: SectionContent[];
 }
 
@@ -229,7 +229,7 @@ export class CourseDetailComponent implements OnInit {
                 const sections = (lesson.sections || []).map(s => ({
                   id: s.id,
                   title: s.title,
-                  type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT',
+                  type: s.type as 'VIDEO' | 'TEXT' | 'QUIZ' | 'FILE' | 'ASSIGNMENT' | 'SIMULATION',
                   content: s.content,
                   videoUrl: s.videoUrl,
                   duration: s.duration,
@@ -280,6 +280,8 @@ export class CourseDetailComponent implements OnInit {
   /** Detect dominant content type for lesson icon */
   private detectPrimaryType(sections: any[]): Lesson['primaryType'] {
     if (!sections || sections.length === 0) return 'TEXT';
+    const hasSimulation = sections.some((s: any) => s.type === 'SIMULATION');
+    if (hasSimulation) return 'SIMULATION';
     const hasVideo = sections.some((s: any) => s.type === 'VIDEO');
     if (hasVideo) return 'VIDEO';
     const hasQuiz = sections.some((s: any) => s.type === 'QUIZ');

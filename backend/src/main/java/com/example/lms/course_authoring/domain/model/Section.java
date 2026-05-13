@@ -5,7 +5,7 @@ import java.util.Objects;
 
 /**
  * Section entity representing a content block within a lesson.
- * Sections can be of different types: TEXT, VIDEO, QUIZ, FILE.
+ * Sections can be of different types: TEXT, VIDEO, QUIZ, FILE, SIMULATION.
  */
 public class Section extends BaseEntity {
 
@@ -117,6 +117,7 @@ public class Section extends BaseEntity {
     public enum SectionType {
         TEXT("Văn bản"),
         VIDEO("Video"),
+        SIMULATION("Simulation"),
         QUIZ("Bài kiểm tra"),
         FILE("Tệp đính kèm"),
         EMBED("Nhúng nội dung");

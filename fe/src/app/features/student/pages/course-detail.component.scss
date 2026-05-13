@@ -933,6 +933,11 @@ $gray-900: #111827;
     color: #D97706;
   }
 
+  &.type-simulation {
+    background: #D1FAE5;
+    color: $green;
+  }
+
   &.type-file {
     background: #D1FAE5;
     color: $green;
@@ -1081,6 +1086,7 @@ $gray-900: #111827;
   &.stype-quiz { background: #EDE9FE; color: #7C3AED; }
   &.stype-file { background: #D1FAE5; color: $green; }
   &.stype-assignment { background: #FEF3C7; color: $amber-dark; }
+  &.stype-simulation { background: #D1FAE5; color: $green; }
 }
 
 .section-sub-duration {

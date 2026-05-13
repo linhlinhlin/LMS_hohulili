@@ -22,6 +22,12 @@ export const studentSidebarConfig: SidebarConfig = {
       ]
     },
     {
+      label: 'Khóa Học Mô Phỏng (Beta)',
+      route: '/student/simulation-courses',
+      icon: 'ship',
+      group: 'Học tập'
+    },
+    {
       label: 'Bài cần làm',
       route: '/student/tasks',
       icon: 'blog',

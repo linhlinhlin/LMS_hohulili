@@ -308,6 +308,7 @@ export class LectureSectionsPanelComponent {
     switch (type) {
       case 'TEXT': return 'Bài giảng';
       case 'VIDEO': return 'Video';
+      case 'SIMULATION': return 'Mo phong';
       case 'FILE': return 'Tài liệu';
       case 'QUIZ': return 'Trắc nghiệm';
       default: return type;
@@ -356,6 +357,7 @@ export class LectureSectionsPanelComponent {
       case 'VIDEO': return !!(section.videoAssetId || section.videoUrl);
       case 'FILE': return !!section.fileUrl;
       case 'QUIZ': return !!(section.quizData?.questions?.length);
+      case 'SIMULATION': return !!section.simulationData?.simulationPackageId;
       default: return false;
     }
   }

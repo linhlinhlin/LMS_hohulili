@@ -62,6 +62,11 @@ export const routes: Routes = [
         loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
         title: 'Khóa học - LMS Maritime'
       },
+      {
+        path: 'simulation-courses',
+        loadComponent: () => import('./features/student/pages/student-simulation-courses-beta.component').then(m => m.StudentSimulationCoursesBetaComponent),
+        title: 'Khóa Học Mô Phỏng (Beta) - LMS Maritime'
+      },
       // Category routes → redirect to /courses?category={slug} (real API data)
       { path: 'courses/safety', redirectTo: '/courses?category=safety', pathMatch: 'full' },
       { path: 'courses/navigation', redirectTo: '/courses?category=navigation', pathMatch: 'full' },

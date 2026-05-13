@@ -53,6 +53,11 @@ export const studentRoutes: Routes = [
         pathMatch: 'full'
       },
       {
+        path: 'simulation-courses',
+        loadComponent: () => import('./pages/student-simulation-courses-beta.component').then(m => m.StudentSimulationCoursesBetaComponent),
+        title: 'Khóa Học Mô Phỏng (Beta)'
+      },
+      {
         path: 'lesson-viewer',
         redirectTo: 'courses',
         pathMatch: 'full'

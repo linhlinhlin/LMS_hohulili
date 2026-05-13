@@ -233,6 +233,18 @@ export class LessonContentComponent implements AfterViewInit {
     return ls.sections[this.sectionIndex()] || null;
   });
 
+  readonly simulationSupport = computed(() => this.resolveSimulationSupport());
+
+  readonly safeSimulationFrameUrl = computed(() => {
+    const section = this.currentSection();
+    const entryUrl = section?.type === 'SIMULATION' ? section.simulationData?.entryUrl : null;
+    if (!entryUrl || !this.simulationSupport().canRun) {
+      return null;
+    }
+
+    return this.sanitizer.bypassSecurityTrustResourceUrl(entryUrl);
+  });
+
   readonly hasLessonLevelVideo = computed(() => !!(this.lesson()?.videoUrl || this.lesson()?.streamVideoUid));
 
   readonly hasVideoSections = computed(() => {
@@ -398,6 +410,111 @@ export class LessonContentComponent implements AfterViewInit {
     if (section?.fileUrl) {
       window.open(section.fileUrl, '_blank');
     }
+  }
+
+  openSimulationInNewTab(): void {
+    const section = this.currentSection();
+    const entryUrl = section?.type === 'SIMULATION' ? section.simulationData?.entryUrl : null;
+    if (!entryUrl) return;
+    window.open(entryUrl, '_blank', 'noopener,noreferrer');
+  }
+
+  simulationPackageSizeLabel(): string {
+    const section = this.currentSection();
+    const bytes = section?.type === 'SIMULATION'
+      ? section.simulationOfflineBytes ?? section.simulationData?.simulationOfflineBytes ?? section.simulationData?.estimatedSizeBytes ?? 0
+      : 0;
+    return this.formatBytes(bytes);
+  }
+
+  simulationOfflineLabel(): string {
+    const section = this.currentSection();
+    if (section?.type !== 'SIMULATION') {
+      return '';
+    }
+    if (section.simulationOfflineReady || section.simulationData?.simulationOfflineReady) {
+      return `Đã sẵn sàng trong PWA offline (${this.simulationPackageSizeLabel()}).`;
+    }
+    if (section.simulationData?.allowOffline === false) {
+      return 'Gói mô phỏng này chỉ chạy online; PWA vẫn lưu ghi chú, video và quiz nếu có.';
+    }
+    if (!section.simulationData?.manifestUrl) {
+      return 'Chưa có manifest offline nên PWA sẽ không tải gói mô phỏng này.';
+    }
+    return `Có thể tải offline qua nút Tải xuống khóa học. Ước tính ${this.simulationPackageSizeLabel()}, nên dùng Wi-Fi và desktop/laptop.`;
+  }
+
+  simulationHasVrLab(): boolean {
+    const targets = this.currentSection()?.simulationData?.supportedTargets ?? [];
+    return targets.includes('QUEST_NATIVE') || targets.includes('VR_LAB');
+  }
+
+  private resolveSimulationSupport(): { canRun: boolean; message: string } {
+    const section = this.currentSection();
+    if (section?.type !== 'SIMULATION') {
+      return { canRun: false, message: '' };
+    }
+
+    if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+      return { canRun: false, message: 'Mô phỏng chỉ chạy trong trình duyệt có hỗ trợ WebGPU/WebGL.' };
+    }
+
+    if (this.isMobileOrTablet()) {
+      return {
+        canRun: false,
+        message: 'Thiết bị này vẫn học được bài giảng, video và quiz, nhưng mô phỏng 3D hiện chỉ hỗ trợ desktop/laptop.',
+      };
+    }
+
+    if (typeof WebAssembly === 'undefined') {
+      return { canRun: false, message: 'Trình duyệt này chưa bật WebAssembly. Hãy cập nhật Chrome, Edge hoặc Firefox mới.' };
+    }
+
+    if (!this.hasWebGpuSupport()) {
+      return {
+        canRun: false,
+        message: 'Bản mô phỏng hiện tại là Unity WebGPU. Hãy dùng Chrome hoặc Edge mới và bật tăng tốc phần cứng.',
+      };
+    }
+
+    if (!this.canCreateWebGL2Context()) {
+      return { canRun: false, message: 'Không tạo được WebGL 2 để kiểm tra GPU. Hãy bật tăng tốc phần cứng hoặc dùng trình duyệt desktop khác.' };
+    }
+
+    if (!section.simulationData?.entryUrl) {
+      return { canRun: false, message: 'Gói mô phỏng chưa có đường dẫn chạy Unity.' };
+    }
+
+    return { canRun: true, message: 'Thiết bị này đạt yêu cầu để chạy mô phỏng Unity WebGPU.' };
+  }
+
+  private isMobileOrTablet(): boolean {
+    const ua = navigator.userAgent || '';
+    const touchMac = navigator.maxTouchPoints > 1 && /Macintosh/i.test(ua);
+    return /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(ua) || touchMac;
+  }
+
+  private canCreateWebGL2Context(): boolean {
+    try {
+      const canvas = document.createElement('canvas');
+      return !!canvas.getContext('webgl2');
+    } catch {
+      return false;
+    }
+  }
+
+  private hasWebGpuSupport(): boolean {
+    return typeof navigator !== 'undefined'
+      && 'gpu' in navigator
+      && !!(navigator as Navigator & { gpu?: unknown }).gpu;
+  }
+
+  private formatBytes(bytes: number | null | undefined): string {
+    const safeBytes = Math.max(0, Number(bytes ?? 0) || 0);
+    if (safeBytes === 0) return 'chưa có ước tính';
+    if (safeBytes < 1024 * 1024) return `${Math.round(safeBytes / 1024)} KB`;
+    if (safeBytes < 1024 * 1024 * 1024) return `${(safeBytes / (1024 * 1024)).toFixed(1)} MB`;
+    return `${(safeBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
   }
 
   /** Display name for the file: prefer the section title (teacher-named), fall back to the URL filename. */
@@ -896,6 +1013,7 @@ export class LessonContentComponent implements AfterViewInit {
   getSectionTypeLabel(type: string): string {
     const labels: Record<string, string> = {
       'VIDEO': 'Video',
+      'SIMULATION': 'Mô phỏng',
       'TEXT': 'Văn bản',
       'QUIZ': 'Trắc nghiệm',
       'FILE': 'Tài liệu',
