@@ -380,6 +380,17 @@ import { WiiiContextService, type WiiiSidebarOpenDetail } from '../../ai-chat/in
       border-left-color: #e5e7eb;
     }
 
+    @media (max-width: 1535px) {
+      .ai-sidebar.ai-sidebar-open {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 55;
+        box-shadow: -24px 0 60px rgba(15, 23, 42, 0.16);
+      }
+    }
+
     /* ── Resize handle — fixed at sidebar left edge ── */
     .resize-handle-track {
       position: fixed;
