@@ -2,7 +2,9 @@ import { Component, input, signal, inject, effect, OnDestroy, ChangeDetectionStr
 import { CommonModule } from '@angular/common';
 import { DomSanitizer, SafeResourceUrl, SafeHtml } from '@angular/platform-browser';
 import { HttpClient } from '@angular/common/http';
+import { Subscription } from 'rxjs';
 import { PdfViewerService } from '../../services/pdf-viewer.service';
+import { PdfSlideViewerComponent } from '../pdf-slide-viewer/pdf-slide-viewer.component';
 
 /**
  * Shared FilePreviewComponent — detects file type and renders inline preview.
@@ -14,14 +16,19 @@ import { PdfViewerService } from '../../services/pdf-viewer.service';
  */
 @Component({
   selector: 'app-file-preview',
-  imports: [CommonModule],
+  imports: [CommonModule, PdfSlideViewerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     @switch (fileType()) {
       <!-- PDF Preview -->
       @case ('pdf') {
         <div class="w-full rounded-xl border border-gray-200 overflow-hidden bg-white">
-          @if (pdfUrl()) {
+          @if (useMobilePdfSlideViewer() && pdfSourceUrl()) {
+            <app-pdf-slide-viewer
+              [sourceUrl]="pdfSourceUrl() || ''"
+              [fileName]="fileName() || getExtension()"
+              [downloadUrl]="fileUrl()"></app-pdf-slide-viewer>
+          } @else if (pdfUrl()) {
             <iframe [src]="pdfUrl()" class="w-full h-[600px]" frameborder="0"></iframe>
           } @else {
             <div class="h-[600px] flex items-center justify-center">
@@ -94,9 +101,12 @@ export class FilePreviewComponent implements OnDestroy {
   private sanitizer = inject(DomSanitizer);
   private http = inject(HttpClient);
   private pdfViewer = inject(PdfViewerService);
+  private pdfSub?: Subscription;
 
   fileType = signal<'pdf' | 'docx' | 'image' | 'other'>('other');
   pdfUrl = signal<SafeResourceUrl | null>(null);
+  pdfSourceUrl = signal<string | null>(null);
+  readonly useMobilePdfSlideViewer = this.pdfViewer.useCanvasViewer;
   docxHtml = signal<SafeHtml | null>(null);
   docxLoading = signal(false);
   docxError = signal<string | null>(null);
@@ -109,9 +119,15 @@ export class FilePreviewComponent implements OnDestroy {
       const ext = this.detectExtension(name, url);
 
       const normalizedUrl = this.normalizeUrl(url);
+      this.pdfSub?.unsubscribe();
+      this.pdfUrl.set(null);
+      this.pdfSourceUrl.set(null);
       if (ext === 'pdf') {
         this.fileType.set('pdf');
-        this.loadPdf(normalizedUrl);
+        this.pdfSourceUrl.set(normalizedUrl);
+        if (!this.useMobilePdfSlideViewer()) {
+          this.loadPdf(normalizedUrl);
+        }
       } else if (ext === 'docx' || ext === 'doc') {
         this.fileType.set('docx');
         this.loadDocx(normalizedUrl);
@@ -124,6 +140,7 @@ export class FilePreviewComponent implements OnDestroy {
   }
 
   ngOnDestroy(): void {
+    this.pdfSub?.unsubscribe();
     this.pdfViewer.cleanup();
   }
 
@@ -152,7 +169,8 @@ export class FilePreviewComponent implements OnDestroy {
 
   private loadPdf(url: string): void {
     this.pdfUrl.set(null);
-    this.pdfViewer.getSafePdfUrl(url).subscribe({
+    this.pdfSub?.unsubscribe();
+    this.pdfSub = this.pdfViewer.getSafePdfUrl(url).subscribe({
       next: (safeUrl) => this.pdfUrl.set(safeUrl),
       error: () => this.pdfUrl.set(null)
     });

@@ -1,7 +1,7 @@
-import { Injectable, inject } from '@angular/core';
+import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
-import { Observable, map, of } from 'rxjs';
+import { Observable, from, map, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 /**
@@ -14,9 +14,21 @@ export class PdfViewerService {
     private http = inject(HttpClient);
     private sanitizer = inject(DomSanitizer);
     private baseUrl = environment.apiUrl;
+    private readonly canvasViewerQuery =
+        typeof window !== 'undefined'
+            ? window.matchMedia('(max-width: 767px), (pointer: coarse) and (max-width: 920px)')
+            : null;
+
+    readonly useCanvasViewer = signal(this.canvasViewerQuery?.matches ?? false);
 
     // Store current URL to revoke and avoid memory leaks
     private currentUrl?: string;
+
+    constructor() {
+        this.canvasViewerQuery?.addEventListener('change', event => {
+            this.useCanvasViewer.set(event.matches);
+        });
+    }
 
     /**
      * Fetches a PDF file as a blob using authorization headers (provided by HttpClient interceptors)
@@ -46,6 +58,10 @@ export class PdfViewerService {
         }
 
         const fullUrl = this.resolveFileUrl(fileUrl);
+        if (/^blob:/i.test(fullUrl)) {
+            return from(fetch(fullUrl).then(response => response.arrayBuffer()));
+        }
+
         return this.http.get(fullUrl, { responseType: 'arraybuffer' });
     }
 

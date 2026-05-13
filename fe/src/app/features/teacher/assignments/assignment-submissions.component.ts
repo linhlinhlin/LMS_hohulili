@@ -6,6 +6,8 @@ import { AssignmentApi, SubmissionSummary, SubmissionGrade } from '../../../api/
 import { isLateSubmission, formatLateDuration, LateSubmissionResult } from './utils/submission-utils';
 import { validateGrade } from './utils/assignment-validators';
 import { ToastService } from '../../../core/services/toast.service';
+import { PdfViewerService } from '../../../shared/services/pdf-viewer.service';
+import { PdfSlideViewerComponent } from '../../../shared/components/pdf-slide-viewer/pdf-slide-viewer.component';
 
 /** Helper to extract numeric score from grade */
 function getGradeScore(grade: number | SubmissionGrade | undefined): number | undefined {
@@ -56,7 +58,7 @@ interface AssignmentDetail {
  */
 @Component({
   selector: 'app-assignment-submissions',
-  imports: [RouterLink, ReactiveFormsModule],
+  imports: [RouterLink, ReactiveFormsModule, PdfSlideViewerComponent],
   templateUrl: './assignment-submissions.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -65,6 +67,8 @@ export class AssignmentSubmissionsComponent implements OnInit {
   private assignmentApi = inject(AssignmentApi);
   private fb = inject(FormBuilder);
   private toast = inject(ToastService);
+  private pdfViewer = inject(PdfViewerService);
+  readonly useMobilePdfSlideViewer = this.pdfViewer.useCanvasViewer;
 
   // Route params
   assignmentId = '';
@@ -279,4 +283,3 @@ export class AssignmentSubmissionsComponent implements OnInit {
     return texts[status] || status;
   }
 }
-

@@ -222,7 +222,14 @@
               @if (isImageFile(previewingFile()!.fileName)) {
                 <img [src]="previewingFile()!.fileUrl" [alt]="previewingFile()!.fileName" class="max-w-full mx-auto"/>
               } @else if (isPdfFile(previewingFile()!.fileName)) {
-                <iframe [src]="previewingFile()!.fileUrl" class="w-full h-[70vh] border-0"></iframe>
+                @if (useMobilePdfSlideViewer()) {
+                  <app-pdf-slide-viewer
+                    [sourceUrl]="previewingFile()!.fileUrl"
+                    [fileName]="previewingFile()!.fileName"
+                    [downloadUrl]="previewingFile()!.fileUrl"></app-pdf-slide-viewer>
+                } @else {
+                  <iframe [src]="previewingFile()!.fileUrl" class="w-full h-[70vh] border-0"></iframe>
+                }
               } @else {
                 <div class="text-center py-8 text-gray-500">
                   <p>Không thể xem trước file này.</p>
