@@ -211,7 +211,12 @@
         </header>
 
         <!-- Preview area: PDF iframe, or fallback message for unsupported types -->
-        @if (safePdfUrl()) {
+        @if (useMobilePdfSlideViewer() && currentPdfSourceUrl()) {
+          <app-pdf-slide-viewer
+            [sourceUrl]="currentPdfSourceUrl() || ''"
+            [fileName]="displayName"
+            [downloadUrl]="section.fileUrl"></app-pdf-slide-viewer>
+        } @else if (safePdfUrl()) {
           <div #pdfContainer class="relative w-full bg-slate-100 group">
             <iframe [src]="safePdfUrl()"
                     class="w-full h-[520px] md:h-[680px] block"

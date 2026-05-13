@@ -30,6 +30,8 @@ import { formatDuration, formatResolution } from '../../../../../../../core/util
 import { buildInteractiveVideoSpec } from '../../../../utils/interactive-video-authoring';
 import { YouTubePlayerComponent } from '../../../../../../learning/components/youtube-player/youtube-player.component';
 import { InteractiveVideoAuthoringPanelComponent } from './interactive-video-authoring-panel.component';
+import { PdfViewerService } from '../../../../../../../shared/services/pdf-viewer.service';
+import { PdfSlideViewerComponent } from '../../../../../../../shared/components/pdf-slide-viewer/pdf-slide-viewer.component';
 
 type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
 
@@ -54,6 +56,7 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
     BlockRendererComponent,
     YouTubePlayerComponent,
     InteractiveVideoAuthoringPanelComponent,
+    PdfSlideViewerComponent,
   ],
   styleUrls: ['./section-editor-prose.scss'],
   template: `
@@ -634,9 +637,18 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
                 @if (stagedPdfUrl(); as pdfUrl) {
                   <div>
                     <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước</label>
-                    <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                      <iframe [src]="pdfUrl" class="h-full w-full" frameborder="0"></iframe>
-                    </div>
+                    @if (useMobilePdfSlideViewer() && stagedPdfSourceUrl()) {
+                      <div class="min-h-[560px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                        <app-pdf-slide-viewer
+                          [sourceUrl]="stagedPdfSourceUrl() || ''"
+                          [fileName]="svc.selectedFile()?.name || 'PDF'"
+                          [downloadUrl]="stagedPdfSourceUrl()"></app-pdf-slide-viewer>
+                      </div>
+                    } @else {
+                      <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                        <iframe [src]="pdfUrl" class="h-full w-full" frameborder="0"></iframe>
+                      </div>
+                    }
                   </div>
                 }
               } @else {
@@ -728,14 +740,23 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               @if (svc.sectionFileUrl() && !svc.safePdfUrl() && showPdfInlinePreview()) {
                 <div>
                   <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước (PDF gốc)</label>
-                  <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                    <object [data]="svc.sectionFileUrl()!" type="application/pdf" class="h-full w-full">
-                      <p class="p-4 text-xs text-slate-500">
-                        Trình duyệt không hiển thị được tài liệu này. Hãy
-                        <a [href]="svc.sectionFileUrl()" target="_blank" rel="noopener" class="text-[#0056D2] underline">mở trong tab mới</a>.
-                      </p>
-                    </object>
-                  </div>
+                  @if (useMobilePdfSlideViewer()) {
+                    <div class="min-h-[560px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                      <app-pdf-slide-viewer
+                        [sourceUrl]="svc.sectionFileUrl()!"
+                        [fileName]="getFileName(svc.sectionFileUrl()!)"
+                        [downloadUrl]="svc.sectionFileUrl()"></app-pdf-slide-viewer>
+                    </div>
+                  } @else {
+                    <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                      <object [data]="svc.sectionFileUrl()!" type="application/pdf" class="h-full w-full">
+                        <p class="p-4 text-xs text-slate-500">
+                          Trình duyệt không hiển thị được tài liệu này. Hãy
+                          <a [href]="svc.sectionFileUrl()" target="_blank" rel="noopener" class="text-[#0056D2] underline">mở trong tab mới</a>.
+                        </p>
+                      </object>
+                    </div>
+                  }
                 </div>
               }
 
@@ -743,9 +764,18 @@ type CfUploadStatus = 'idle' | 'staged' | 'uploading' | 'done' | 'error';
               @if (svc.safePdfUrl()) {
                 <div>
                   <label class="text-xs font-semibold text-slate-600 mb-2 block">Xem trước (bản đã chuẩn hoá)</label>
-                  <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
-                    <iframe [src]="svc.safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
-                  </div>
+                  @if (useMobilePdfSlideViewer() && svc.previewPdfSourceUrl()) {
+                    <div class="min-h-[560px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                      <app-pdf-slide-viewer
+                        [sourceUrl]="svc.previewPdfSourceUrl() || ''"
+                        [fileName]="getFileName(svc.sectionFileUrl() || svc.previewPdfSourceUrl() || '')"
+                        [downloadUrl]="svc.sectionFileUrl() || svc.previewPdfSourceUrl()"></app-pdf-slide-viewer>
+                    </div>
+                  } @else {
+                    <div class="h-[380px] w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100">
+                      <iframe [src]="svc.safePdfUrl()" class="h-full w-full" frameborder="0"></iframe>
+                    </div>
+                  }
                   <p class="mt-1.5 inline-flex items-center gap-1 text-[11px] text-slate-400">
                     <lucide-icon name="shield-check" [size]="11" class="text-emerald-500"></lucide-icon>
                     Bản xem trước được tạo từ máy chủ — an toàn cho mọi trình duyệt.
@@ -1598,6 +1628,8 @@ export class SectionEditorComponent {
   readonly isDragOver = signal(false);
   readonly expandedQuestionIds = signal<Set<string>>(new Set());
   private readonly sanitizer = inject(DomSanitizer);
+  private readonly pdfViewer = inject(PdfViewerService);
+  readonly useMobilePdfSlideViewer = this.pdfViewer.useCanvasViewer;
 
   private readonly presignedUpload = inject(PresignedUploadService, { optional: true });
   readonly editorUploadFn = createTiptapUploadFn(this.http, environment.apiUrl, this.presignedUpload ?? undefined);
@@ -2204,7 +2236,7 @@ export class SectionEditorComponent {
     this.showPdfInlinePreview.update(v => !v);
   }
 
-  readonly stagedPdfUrl = computed<SafeResourceUrl | null>(() => {
+  readonly stagedPdfSourceUrl = computed<string | null>(() => {
     const file = this.svc.selectedFile();
     if (!file || !file.name.toLowerCase().endsWith('.pdf')) return null;
     // Revoke previous URL
@@ -2212,7 +2244,12 @@ export class SectionEditorComponent {
       URL.revokeObjectURL(this.stagedPdfObjectUrl);
     }
     this.stagedPdfObjectUrl = URL.createObjectURL(file);
-    return this.sanitizer.bypassSecurityTrustResourceUrl(this.stagedPdfObjectUrl);
+    return this.stagedPdfObjectUrl;
+  });
+
+  readonly stagedPdfUrl = computed<SafeResourceUrl | null>(() => {
+    const objectUrl = this.stagedPdfSourceUrl();
+    return objectUrl ? this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl) : null;
   });
 
   triggerFileReplace(): void {

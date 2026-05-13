@@ -132,6 +132,7 @@ export class CurriculumEditorService {
   readonly selectedFile = signal<File | null>(null);
   readonly sectionFileUrl = signal<string | null>(null);
   readonly safePdfUrl = signal<SafeResourceUrl | null>(null);
+  readonly previewPdfSourceUrl = signal<string | null>(null);
   readonly sectionPreviewStatus = signal<string | null>(null);
 
   // Quiz
@@ -963,11 +964,14 @@ export class CurriculumEditorService {
       const canEmbedPreview = !!previewUrl && (!section.previewStatus || section.previewStatus === 'READY');
       if (canEmbedPreview) {
         this.safePdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(previewUrl));
+        this.previewPdfSourceUrl.set(previewUrl);
       } else {
         this.safePdfUrl.set(null);
+        this.previewPdfSourceUrl.set(null);
       }
     } else {
       this.safePdfUrl.set(null);
+      this.previewPdfSourceUrl.set(null);
       this.sectionPreviewStatus.set(null);
     }
 
@@ -1034,6 +1038,7 @@ export class CurriculumEditorService {
     this.selectedFile.set(null);
     this.sectionFileUrl.set(null);
     this.safePdfUrl.set(null);
+    this.previewPdfSourceUrl.set(null);
     this.sectionPreviewStatus.set(null);
 
     this.resetQuizFields();
