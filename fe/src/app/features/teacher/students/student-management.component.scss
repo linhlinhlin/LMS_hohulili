@@ -308,15 +308,19 @@
   border: 1px solid $border-default;
   border-radius: $radius-md;
   box-shadow: $shadow-sm;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-gutter: stable;
 }
 
 .students-table {
   width: 100%;
+  min-width: 1145px;
   border-collapse: collapse;
+  table-layout: fixed;
 
   th, td {
-    padding: 14px 20px;
+    padding: 14px 16px;
     border-bottom: 1px solid $border-default;
     font-size: $text-sm;
     text-align: left;
@@ -342,6 +346,36 @@
 
   tbody tr:hover {
     background: $gray-50;
+  }
+
+  th:nth-child(1), td:nth-child(1) { width: 190px; }
+  th:nth-child(2), td:nth-child(2) { width: 270px; }
+  th:nth-child(3), td:nth-child(3) { width: 135px; }
+  th:nth-child(4), td:nth-child(4) { width: 120px; }
+  th:nth-child(5), td:nth-child(5) { width: 145px; }
+  th:nth-child(6), td:nth-child(6) { width: 115px; }
+  th:nth-child(7), td:nth-child(7) {
+    position: sticky;
+    right: 0;
+    z-index: 1;
+    width: 170px;
+    background: white;
+    box-shadow: -10px 0 14px -14px rgba(15, 23, 42, 0.45);
+  }
+
+  th:nth-child(7) {
+    z-index: 2;
+    background: $gray-50;
+  }
+
+  tbody tr:hover td:nth-child(7) {
+    background: $gray-50;
+  }
+
+  td:nth-child(2) {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .cell-center { text-align: center; }
@@ -601,12 +635,4 @@
     display: none;
   }
 
-  .table-card {
-    overflow-x: auto;
-  }
-
-  .students-table {
-    /* 7 columns: name + email + progress + 2 dates + status + actions */
-    min-width: 880px;
-  }
 }
