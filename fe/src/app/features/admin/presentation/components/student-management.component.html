@@ -94,9 +94,9 @@
                 </th>
                 <th>Học viên</th>
                 <th>Vai trò</th>
-                <th>Trạng thái</th>
+                <th>Trạng thái tài khoản</th>
                 <th>Khóa học</th>
-                <th>Hoạt động</th>
+                <th>Đăng nhập cuối</th>
                 <th class="text-center">Thao tác</th>
               </tr>
             </thead>
@@ -150,13 +150,16 @@
                       {{ student.coursesEnrolled || 0 }} khóa học
                     </button>
                   </td>
-                  <!-- Last Login — relative time (Linear/GitHub/Stripe pattern,
-                       đồng bộ users/all PR #224). cursor-help + title chỉ khi
-                       có lastLogin (tránh hand cursor + tooltip rỗng). -->
+                  <!-- Last Login — explicit account activity timestamp, not account status. -->
                   <td>
-                    <span class="badge" [class]="getStatusBadgeClass(student.accountStatus)">
-                      <span class="status-dot" [class]="getStatusDotClass(student.accountStatus)"></span>
-                      {{ getActivityLabel(student) }}
+                    <span class="last-login-text"
+                          [class.last-login-text--empty]="!student.lastLogin"
+                          [class.cursor-help]="student.lastLogin"
+                          [attr.title]="formatExactDateTime(student.lastLogin)">
+                      <svg aria-hidden="true" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z"></path>
+                      </svg>
+                      {{ student.lastLogin ? formatRelativeTime(student.lastLogin) : 'Chưa đăng nhập' }}
                     </span>
                   </td>
                   <!-- Actions — CC-10: shared kebab replaces inline status
