@@ -840,23 +840,36 @@
                             class="h-3.5 w-3.5 rounded text-[#0056D2] focus:ring-[#0056D2]" />
                           Đáp án đúng
                         </label>
-                        <input type="number" min="0" step="1"
-                          [attr.max]="maxInteractiveTimeSeconds() ?? null"
-                          [ngModel]="choice.targetTimeSeconds"
-                          (ngModelChange)="onInteractiveChoiceTargetChange(interaction.id, choice.id, $event)"
-                          placeholder="Xem lại từ giây"
-                          class="rounded-lg border border-slate-200 px-3 py-2 text-sm tabular-nums focus:border-[#0056D2] focus:ring-[#0056D2]"
-                          aria-label="Mốc xem lại khi trả lời sai" />
-                        <select
-                          [ngModel]="choice.targetInteractionId ?? ''"
-                          (ngModelChange)="onInteractiveChoiceTargetInteractionChange(interaction.id, choice.id, $event)"
-                          class="rounded-lg border border-slate-200 bg-white px-2.5 py-2 text-sm text-slate-700 focus:border-[#0056D2] focus:ring-[#0056D2]"
-                          aria-label="Điểm xem lại">
-                          <option [ngValue]="''">Theo giây</option>
-                          @for (target of getInteractiveBranchTargets(interaction.id); track target.id) {
-                            <option [ngValue]="target.id">{{ formatInteractiveBranchTargetLabel(target) }}</option>
-                          }
-                        </select>
+                        <div class="flex min-w-[13rem] items-stretch overflow-hidden rounded-lg border border-slate-200 bg-white focus-within:border-[#0056D2] focus-within:ring-1 focus-within:ring-[#0056D2]">
+                          <span class="flex shrink-0 items-center border-r border-slate-200 bg-slate-50 px-2 text-[11px] font-semibold text-slate-500">
+                            Xem lại từ
+                          </span>
+                          <input type="text"
+                            inputmode="numeric"
+                            pattern="[0-9:]*"
+                            [value]="formatInteractiveBranchTargetInput(choice)"
+                            (change)="onInteractiveChoiceTargetInputChange(interaction.id, choice.id, $event)"
+                            (keydown.enter)="onInteractiveChoiceTargetInputChange(interaction.id, choice.id, $event)"
+                            (keydown.arrowup)="stepInteractiveChoiceTarget(interaction.id, choice.id, 1); $event.preventDefault()"
+                            (keydown.arrowdown)="stepInteractiveChoiceTarget(interaction.id, choice.id, -1); $event.preventDefault()"
+                            placeholder="00:00:17"
+                            class="min-w-0 flex-1 border-0 px-3 py-2 text-sm tabular-nums text-slate-800 placeholder:text-slate-400 focus:ring-0"
+                            aria-label="Xem lại từ giờ phút giây khi trả lời sai" />
+                          <div class="flex w-8 shrink-0 flex-col border-l border-slate-200 bg-slate-50">
+                            <button type="button"
+                              class="flex flex-1 items-center justify-center text-slate-500 hover:bg-slate-100 hover:text-[#0056D2]"
+                              aria-label="Tăng mốc xem lại 1 giây"
+                              (click)="stepInteractiveChoiceTarget(interaction.id, choice.id, 1)">
+                              <lucide-icon name="chevron-up" [size]="12"></lucide-icon>
+                            </button>
+                            <button type="button"
+                              class="flex flex-1 items-center justify-center border-t border-slate-200 text-slate-500 hover:bg-slate-100 hover:text-[#0056D2]"
+                              aria-label="Giảm mốc xem lại 1 giây"
+                              (click)="stepInteractiveChoiceTarget(interaction.id, choice.id, -1)">
+                              <lucide-icon name="chevron-down" [size]="12"></lucide-icon>
+                            </button>
+                          </div>
+                        </div>
                       } @else {
                         <label class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 px-2 text-xs font-medium text-slate-600">
                           <input type="checkbox"

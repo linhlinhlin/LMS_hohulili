@@ -33,6 +33,8 @@ describe('InteractiveVideoOverlayComponent', () => {
       .find(button => button.textContent?.includes('Tiếp tục')) as HTMLButtonElement;
 
     expect(dialog.getAttribute('aria-modal')).toBe('true');
+    expect(dialog.parentElement?.classList).toContain('interactive-video-overlay');
+    expect(dialog.classList).toContain('interactive-video-overlay__panel');
     expect(dialog.getAttribute('aria-labelledby')).toBe('interactive-video-title-q1');
     expect(dialog.getAttribute('aria-describedby')).toBe('interactive-video-body-q1');
     expect(continueButton.disabled).toBeTrue();
@@ -49,6 +51,26 @@ describe('InteractiveVideoOverlayComponent', () => {
     expect(continueButton.disabled).toBeFalse();
     expect(continueButton.hasAttribute('aria-describedby')).toBeFalse();
     expect(element.querySelector('#interactive-video-choice-hint-q1')).toBeNull();
+  });
+
+  it('gives drag/drop interactions a wide scrollable panel for the two-column workspace', () => {
+    fixture.componentRef.setInput('interaction', {
+      id: 'drag-layout',
+      type: 'drag_drop',
+      atSeconds: 12,
+      title: 'Drag layout',
+      dragDrop: {
+        instruction: 'Pick the right item.',
+        backgroundImage: null,
+        dropZones: [],
+        draggables: [],
+      },
+    });
+    fixture.detectChanges();
+
+    const dialog = fixture.nativeElement.querySelector('[role="dialog"]') as HTMLElement;
+    expect(dialog.classList).toContain('max-w-6xl');
+    expect(dialog.classList).toContain('overflow-y-auto');
   });
 
   it('keeps continue disabled until the selected choice is correct when required by adaptivity', () => {

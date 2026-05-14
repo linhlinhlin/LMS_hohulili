@@ -83,9 +83,7 @@ export function createInteractiveVideoInteraction(
       ? {
           requireCorrectBeforeContinue: true,
           onWrong: {
-            type: 'seek',
-            targetTimeSeconds: 0,
-            targetInteractionId: null,
+            type: 'continue',
             message: 'Hãy xem lại đoạn video trước khi thử trả lời lại.',
           },
           onCorrect: {
