@@ -128,7 +128,16 @@ interface DragDropResultState {
                           </span>
                           @if (isChecked()) {
                             <span [class]="placedStatusClass(draggable)" aria-hidden="true">
-                              {{ isDraggableCorrect(draggable) ? '✓' : '×' }}
+                              @if (isDraggableCorrect(draggable)) {
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="m5 12 5 5L20 7" />
+                                </svg>
+                              } @else {
+                                <svg class="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+                                  <path d="M18 6 6 18" />
+                                  <path d="m6 6 12 12" />
+                                </svg>
+                              }
                             </span>
                           }
                         </span>
@@ -205,7 +214,16 @@ interface DragDropResultState {
                   </span>
                   @if (isChecked()) {
                     <span [class]="draggableStatusClass(draggable)" aria-hidden="true">
-                      {{ draggableResultIcon(draggable) }}
+                      @if (isDraggableDisplayedAsCorrect(draggable)) {
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="m5 12 5 5L20 7" />
+                        </svg>
+                      } @else {
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.75" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      }
                     </span>
                   }
                 </button>
@@ -498,10 +516,6 @@ export class InteractiveVideoDragDropComponent {
     return this.evaluation().states.find(state => state.draggableId === draggable.id)?.isCorrect === true;
   }
 
-  draggableResultIcon(draggable: InteractiveVideoDragDropDraggable): string {
-    return this.isDraggableDisplayedAsCorrect(draggable) ? '✓' : '×';
-  }
-
   dropZoneClass(zone: InteractiveVideoDragDropZone): string {
     const base = [
       'drag-drop-zone absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-2xl border-2 px-2 py-1 text-center',
@@ -633,7 +647,7 @@ export class InteractiveVideoDragDropComponent {
       .map(zone => zone.id);
   }
 
-  private isDraggableDisplayedAsCorrect(draggable: InteractiveVideoDragDropDraggable): boolean {
+  isDraggableDisplayedAsCorrect(draggable: InteractiveVideoDragDropDraggable): boolean {
     return this.getCorrectZoneIds(draggable).length > 0 && this.isDraggableCorrect(draggable);
   }
 }

@@ -129,9 +129,18 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
                 [attr.data-answer-state]="choiceAnswerState(item.choice)"
                 (click)="choiceSelected.emit(item.choice)">
                 <span class="flex items-center gap-2">
-                  @if (choiceStateIcon(item.choice); as stateIcon) {
+                  @if (choiceStateIconName(item.choice); as stateIcon) {
                     <span [class]="choiceStateIconClass(item.choice)" aria-hidden="true">
-                      {{ stateIcon }}
+                      @if (stateIcon === 'check') {
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="m5 12 5 5L20 7" />
+                        </svg>
+                      } @else {
+                        <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M18 6 6 18" />
+                          <path d="m6 6 12 12" />
+                        </svg>
+                      }
                     </span>
                   }
                   <span class="min-w-0" [innerHTML]="item.html"></span>
@@ -167,7 +176,10 @@ type ChoiceAnswerState = 'idle' | 'selected' | 'selected-correct' | 'selected-wr
               class="ml-auto inline-flex shrink-0 items-center gap-2 rounded-lg bg-[#0056D2] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#004BB5] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#0056D2]/40"
               data-testid="interactive-video-review-button"
               (click)="reviewRequested.emit()">
-              <span aria-hidden="true">↺</span>
+              <svg class="h-4 w-4" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.25" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+              </svg>
               Xem lại video
             </button>
           } @else {
@@ -422,13 +434,13 @@ export class InteractiveVideoOverlayComponent implements OnDestroy {
     }
   }
 
-  choiceStateIcon(choice: InteractiveVideoChoice): string | null {
+  choiceStateIconName(choice: InteractiveVideoChoice): 'check' | 'x' | null {
     switch (this.choiceAnswerState(choice)) {
       case 'selected-correct':
       case 'correct-answer':
-        return '✓';
+        return 'check';
       case 'selected-wrong':
-        return '×';
+        return 'x';
       default:
         return null;
     }
