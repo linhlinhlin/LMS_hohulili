@@ -154,7 +154,7 @@ interface ChecklistItem {
 })
 export class StudentSimulationCoursesBetaComponent {
   readonly packageId = 'colreg-rule-15-crossing';
-  readonly version = 'v2026.05.16.2';
+  readonly version = 'v2026.05.16.3';
   readonly packageSizeLabel = '61.2 MB';
   readonly canonicalEntryUrl = `/simulations/${this.packageId}/${this.version}/index.html`;
   readonly canonicalManifestUrl = `/simulations/${this.packageId}/${this.version}/holilihu-simulation.json`;

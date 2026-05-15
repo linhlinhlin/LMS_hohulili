@@ -1,7 +1,7 @@
 # Unity WebGL R2 Production Runbook
 
 Date: 2026-05-16
-Status: Unity WebGPU package `colreg-rule-15-crossing/v2026.05.16.2` is published to the existing `lms-storage` R2 bucket for staging and production. Production Worker/R2 access is verified through Cloudflare on the proxied media host; live same-origin `/simulations/*` on `holilihu.online` remains gated by the root-domain proxy state.
+Status: Unity WebGPU package `colreg-rule-15-crossing/v2026.05.16.3` is published to the existing `lms-storage` R2 bucket for staging and production. Production Worker/R2 access is verified through Cloudflare on the proxied media host; live same-origin `/simulations/*` on `holilihu.online` remains gated by the root-domain proxy state.
 
 ## Decision
 
@@ -139,10 +139,10 @@ simulations/colreg-rule-15-crossing/v2026.05.12.1/holilihu-simulation.json
 Current published package:
 
 ```text
-simulations/colreg-rule-15-crossing/v2026.05.16.2/index.html
-simulations/colreg-rule-15-crossing/v2026.05.16.2/Build/HoliLihuWebGPU_Full.wasm
-simulations/colreg-rule-15-crossing/v2026.05.16.2/Build/HoliLihuWebGPU_Full.data
-simulations/colreg-rule-15-crossing/v2026.05.16.2/holilihu-simulation.json
+simulations/colreg-rule-15-crossing/v2026.05.16.3/index.html
+simulations/colreg-rule-15-crossing/v2026.05.16.3/Build/HoliLihuWebGPU_Full.wasm
+simulations/colreg-rule-15-crossing/v2026.05.16.3/Build/HoliLihuWebGPU_Full.data
+simulations/colreg-rule-15-crossing/v2026.05.16.3/holilihu-simulation.json
 ```
 
 Never mutate a version after publishing to learners. If Unity exports a fix, publish a new version folder and update the LMS package record.
@@ -238,6 +238,19 @@ Then open the staging lesson in a desktop Chrome/Edge browser and confirm:
 - Staging and production packages were uploaded to `lms-storage`.
 - Local Chrome WebGPU QA loaded the Unity canvas successfully and captured `VR_Maritime_LMS/Logs/chrome-webgpu-frames-only-v6.png`.
 - `media.holilihu.online/simulations-staging/.../holilihu-simulation.json` and `media.holilihu.online/simulations/.../holilihu-simulation.json` return `200 OK`, `Server: cloudflare`, and `X-HoliLihu-Simulation-Origin: r2`.
+- Production `index.html` returns `Content-Type: text/html; charset=utf-8` and short-cache headers.
+- Production `.wasm` returns `Content-Type: application/wasm`, immutable cache headers, and `X-HoliLihu-Simulation-Origin: r2`.
+
+2026-05-16 HUD/readability refresh for `v2026.05.16.3`:
+
+- Staging and production packages were uploaded to `lms-storage`.
+- Unity WebGPU local QA captured:
+  - `VR_Maritime_LMS/Logs/webgpu_end_hud_v6_local.png`
+  - `VR_Maritime_LMS/Logs/webgpu_end_hud_v6_endstate_idle.png`
+- Production Chrome WebGPU QA loaded the remote Unity canvas and captured `VR_Maritime_LMS/Logs/webgpu_end_hud_v6_remote.png`.
+- The WebGPU runtime now preserves controlled HUD backplates/frames while still disabling unmanaged non-TMP UI graphics that can trigger magenta fallback.
+- The lesson end-state overlay clearly reports `VƯỢT QUA` or `KHÔNG VƯỢT QUA`, with score, grade, time, CPA/TCPA, objective count, and retry guidance.
+- `media.holilihu.online/simulations/.../holilihu-simulation.json`, `index.html`, `.data`, `.framework.js`, `.loader.js`, and `.wasm` return `200 OK`, `Server: cloudflare`, and `X-HoliLihu-Simulation-Origin: r2`.
 - Production `index.html` returns `Content-Type: text/html; charset=utf-8` and short-cache headers.
 - Production `.wasm` returns `Content-Type: application/wasm`, immutable cache headers, and `X-HoliLihu-Simulation-Origin: r2`.
 
