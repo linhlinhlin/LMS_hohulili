@@ -2,6 +2,7 @@ import { Component, signal, computed, inject, OnInit, ChangeDetectionStrategy } 
 import { DOCUMENT } from '@angular/common';
 import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
+import { combineLatest } from 'rxjs';
 import { finalize } from 'rxjs/operators';
 import { CourseCardComponent } from './shared/course-card.component';
 import { PaginationComponent, PaginationInfo } from '../../shared/components/pagination/pagination.component';
@@ -14,6 +15,115 @@ import { GetCoursesUseCase } from './application/use-cases/get-courses.use-case'
 import { ToastService } from '../../core/services/toast.service';
 import { SeoService } from '../../core/services/seo.service';
 
+interface CourseLandingContent {
+  category?: CourseCategory;
+  path: string;
+  eyebrow: string;
+  heading: string;
+  description: string;
+  title: string;
+  metaDescription: string;
+  breadcrumbName: string;
+  keywords: string[];
+}
+
+const COURSE_LANDING_CONTENT: Record<string, CourseLandingContent> = {
+  all: {
+    path: '/courses',
+    eyebrow: 'Danh mục khóa học',
+    heading: 'Khóa học hàng hải',
+    description: 'Khám phá khóa học STCW, an toàn, điều khiển tàu, máy tàu, logistics và luật hàng hải.',
+    title: 'Khóa học hàng hải trực tuyến',
+    metaDescription: 'Tìm khóa học hàng hải trực tuyến: STCW, an toàn hàng hải, điều khiển tàu, kỹ thuật máy tàu, logistics và luật hàng hải.',
+    breadcrumbName: 'Khóa học',
+    keywords: ['lms hàng hải', 'khóa học hàng hải', 'đào tạo hàng hải trực tuyến', 'STCW']
+  },
+  safety: {
+    category: CourseCategory.SAFETY,
+    path: '/courses/an-toan-hang-hai',
+    eyebrow: 'An toàn hàng hải',
+    heading: 'Khóa học an toàn hàng hải',
+    description: 'Học an toàn lao động trên tàu, cứu sinh, phòng cháy chữa cháy và quy trình ứng phó sự cố theo bối cảnh hàng hải.',
+    title: 'Khóa học an toàn hàng hải',
+    metaDescription: 'Khóa học an toàn hàng hải cho thuyền viên và học viên: cứu sinh, phòng cháy chữa cháy, ứng phó sự cố và nền tảng STCW.',
+    breadcrumbName: 'An toàn hàng hải',
+    keywords: ['khóa học an toàn hàng hải', 'an toàn hàng hải', 'STCW basic safety', 'phòng cháy chữa cháy trên tàu']
+  },
+  navigation: {
+    category: CourseCategory.NAVIGATION,
+    path: '/courses/dieu-khien-tau',
+    eyebrow: 'Điều khiển tàu',
+    heading: 'Khóa học điều khiển tàu',
+    description: 'Nâng năng lực trực ca, radar, ECDIS, hành hải ven bờ và xử lý tình huống điều động tàu.',
+    title: 'Khóa học điều khiển tàu',
+    metaDescription: 'Khóa học điều khiển tàu và hàng hải thực hành: radar, ECDIS, trực ca, hành hải ven bờ và kỹ năng điều động tàu.',
+    breadcrumbName: 'Điều khiển tàu',
+    keywords: ['khóa học điều khiển tàu', 'ECDIS', 'radar hàng hải', 'hành hải ven bờ']
+  },
+  engineering: {
+    category: CourseCategory.ENGINEERING,
+    path: '/courses/ky-thuat-may-tau',
+    eyebrow: 'Kỹ thuật máy tàu',
+    heading: 'Khóa học kỹ thuật máy tàu',
+    description: 'Học vận hành, bảo trì máy chính, máy phụ, hệ thống điện và an toàn buồng máy trên tàu biển.',
+    title: 'Khóa học kỹ thuật máy tàu',
+    metaDescription: 'Khóa học kỹ thuật máy tàu cho thợ máy và kỹ sư hàng hải: động cơ diesel, hệ thống điện, vận hành và bảo trì buồng máy.',
+    breadcrumbName: 'Kỹ thuật máy tàu',
+    keywords: ['khóa học kỹ thuật máy tàu', 'máy tàu biển', 'động cơ diesel tàu thủy', 'buồng máy tàu biển']
+  },
+  logistics: {
+    category: CourseCategory.LOGISTICS,
+    path: '/courses/logistics-hang-hai',
+    eyebrow: 'Logistics hàng hải',
+    heading: 'Khóa học logistics hàng hải',
+    description: 'Nắm vững vận tải biển, khai thác cảng, container, chứng từ và chuỗi cung ứng trong ngành hàng hải.',
+    title: 'Khóa học logistics hàng hải',
+    metaDescription: 'Khóa học logistics hàng hải về vận tải biển, khai thác cảng, container, chứng từ và quản trị chuỗi cung ứng.',
+    breadcrumbName: 'Logistics hàng hải',
+    keywords: ['khóa học logistics hàng hải', 'vận tải biển', 'khai thác cảng', 'chuỗi cung ứng hàng hải']
+  },
+  law: {
+    category: CourseCategory.LAW,
+    path: '/courses/luat-hang-hai',
+    eyebrow: 'Luật hàng hải',
+    heading: 'Khóa học luật hàng hải',
+    description: 'Tìm hiểu luật biển, hợp đồng vận chuyển, bảo hiểm hàng hải, trách nhiệm pháp lý và tuân thủ quốc tế.',
+    title: 'Khóa học luật hàng hải',
+    metaDescription: 'Khóa học luật hàng hải về luật biển, hợp đồng vận chuyển, bảo hiểm hàng hải, trách nhiệm pháp lý và tuân thủ quốc tế.',
+    breadcrumbName: 'Luật hàng hải',
+    keywords: ['khóa học luật hàng hải', 'luật biển', 'bảo hiểm hàng hải', 'hợp đồng vận chuyển biển']
+  },
+  certificates: {
+    category: CourseCategory.CERTIFICATES,
+    path: '/courses/stcw',
+    eyebrow: 'Chứng chỉ STCW',
+    heading: 'Khóa học chứng chỉ STCW',
+    description: 'Tổng hợp khóa học chứng chỉ STCW, GMDSS, Radar, ECDIS và các năng lực nghề nghiệp cho thuyền viên.',
+    title: 'Khóa học chứng chỉ STCW',
+    metaDescription: 'Khóa học chứng chỉ STCW, GMDSS, Radar, ECDIS và các chứng chỉ nghề nghiệp hàng hải dành cho thuyền viên.',
+    breadcrumbName: 'Chứng chỉ STCW',
+    keywords: ['khóa học STCW', 'chứng chỉ STCW', 'GMDSS', 'ECDIS certificate']
+  }
+};
+
+const COURSE_CATEGORY_LINKS: Array<{ category: CourseCategory; label: string; path: string }> = [
+  { category: CourseCategory.SAFETY, label: 'An toàn hàng hải', path: '/courses/an-toan-hang-hai' },
+  { category: CourseCategory.NAVIGATION, label: 'Điều khiển tàu', path: '/courses/dieu-khien-tau' },
+  { category: CourseCategory.ENGINEERING, label: 'Kỹ thuật máy tàu', path: '/courses/ky-thuat-may-tau' },
+  { category: CourseCategory.LOGISTICS, label: 'Logistics hàng hải', path: '/courses/logistics-hang-hai' },
+  { category: CourseCategory.LAW, label: 'Luật hàng hải', path: '/courses/luat-hang-hai' },
+  { category: CourseCategory.CERTIFICATES, label: 'Chứng chỉ STCW', path: '/courses/stcw' }
+];
+
+const CATEGORY_PATH_BY_VALUE: Record<CourseCategory, string> = {
+  [CourseCategory.SAFETY]: '/courses/an-toan-hang-hai',
+  [CourseCategory.NAVIGATION]: '/courses/dieu-khien-tau',
+  [CourseCategory.ENGINEERING]: '/courses/ky-thuat-may-tau',
+  [CourseCategory.LOGISTICS]: '/courses/logistics-hang-hai',
+  [CourseCategory.LAW]: '/courses/luat-hang-hai',
+  [CourseCategory.CERTIFICATES]: '/courses/stcw'
+};
+
 @Component({
   selector: 'app-courses',
   imports: [RouterModule, FormsModule, CourseCardComponent, PaginationComponent],
@@ -23,9 +133,19 @@ import { SeoService } from '../../core/services/seo.service';
       <div class="relative overflow-hidden bg-[#0a1628]">
         <div class="absolute inset-0 bg-gradient-to-r from-[#0a1628] to-[#0d2847]"></div>
         <div class="relative z-10 mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-          <p class="mb-1 text-xs font-medium uppercase tracking-widest text-blue-300/60">Danh mục khóa học</p>
-          <h1 class="text-2xl font-bold text-white sm:text-3xl">Khóa học Hàng hải</h1>
-          <p class="mt-2 max-w-xl text-sm text-blue-100/50">Khám phá các khóa học chuyên nghiệp dành cho ngành hàng hải</p>
+          <p class="mb-1 text-xs font-medium uppercase tracking-widest text-blue-300/60">{{ currentLanding().eyebrow }}</p>
+          <h1 class="text-2xl font-bold text-white sm:text-3xl">{{ currentLanding().heading }}</h1>
+          <p class="mt-2 max-w-xl text-sm text-blue-100/50">{{ currentLanding().description }}</p>
+          <nav class="mt-5 flex max-w-3xl flex-wrap gap-2" aria-label="Chủ đề khóa học hàng hải">
+            @for (link of categoryLinks; track link.path) {
+              <a
+                [routerLink]="link.path"
+                [attr.aria-current]="link.path === currentLanding().path ? 'page' : null"
+                class="rounded-full border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-medium text-blue-50 transition-colors hover:border-white/35 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40">
+                {{ link.label }}
+              </a>
+            }
+          </nav>
         </div>
       </div>
 
@@ -86,8 +206,8 @@ import { SeoService } from '../../core/services/seo.service';
               <!-- Category -->
               <div class="mb-5">
                 <label class="mb-1.5 block text-xs font-medium text-gray-600">Danh mục</label>
-                <select [(ngModel)]="filters.category"
-                        (ngModelChange)="applyFilters()"
+                <select [ngModel]="filters.category"
+                        (ngModelChange)="onCategoryChange($event)"
                         class="w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm focus:border-[#0056D2] focus:outline-none focus:ring-2 focus:ring-[#0056D2]/20 transition-colors"
                         [class]="filters.category ? 'text-gray-900' : 'text-gray-400'">
                   <option [ngValue]="undefined" class="text-gray-400">Tất cả danh mục</option>
@@ -249,10 +369,12 @@ export class CoursesComponent implements OnInit {
     hasNext: false,
     hasPrevious: false
   });
+  currentLanding = signal<CourseLandingContent>(COURSE_LANDING_CONTENT['all']);
 
   // Make CourseCategory and LEVEL_LABELS available in template
   CourseCategory = CourseCategory;
   LEVEL_LABELS = LEVEL_LABELS;
+  readonly categoryLinks = COURSE_CATEGORY_LINKS;
   filters: FilterOptions = {
     search: '',
     category: undefined,
@@ -269,29 +391,18 @@ export class CoursesComponent implements OnInit {
 
 
   ngOnInit(): void {
-    // Static SEO for listing page
-    this.seo.setPageMeta(
-      'Khóa học',
-      'Danh sách khóa học hàng hải chuyên nghiệp — an toàn hàng hải, điều khiển tàu, kỹ thuật máy tàu, logistics, luật hàng hải.',
-      undefined,
-      'https://holilihu.online/courses'
-    );
-    this.seo.setCanonical('https://holilihu.online/courses');
-    // SEO Phase 6: BreadcrumbList → tăng khả năng sitelinks
-    this.seo.setBreadcrumb([
-      { name: 'Trang chủ', url: 'https://holilihu.online/' },
-      { name: 'Khóa học' }
-    ]);
-
     // Preload enrolled courses for logged-in students to enable isEnrolled check
     if (this.authService.isAuthenticated() && this.authService.userRole() === 'student') {
       this.enrollmentService.loadEnrolledCourses(0, 100); // Load enough courses for cache
     }
 
+    combineLatest([this.route.data, this.route.queryParamMap]).subscribe(([data, params]) => {
+      const landing = this.resolveLanding(data['categoryLanding'] as string | undefined);
+      this.currentLanding.set(landing);
+      this.applyLandingSeo(landing);
 
-    this.route.queryParamMap.subscribe((params) => {
       const q = params.get('q') || '';
-      const category = params.get('category') as CourseCategory | null;
+      const queryCategory = params.get('category') as CourseCategory | null;
       const level = params.get('level') as CourseLevel | null;
       const sort = params.get('sort') as keyof Course | null;
       const order = (params.get('order') as 'asc' | 'desc' | null) || 'desc';
@@ -302,7 +413,7 @@ export class CoursesComponent implements OnInit {
 
       this.filters = {
         search: q,
-        category: category ? (category as CourseCategory) : undefined,
+        category: landing.category ?? (queryCategory ? (queryCategory as CourseCategory) : undefined),
         level: level ? (level as CourseLevel) : undefined,
         sortBy: (sort as keyof Course) || ('rating' as keyof Course),
         sortOrder: order,
@@ -314,6 +425,56 @@ export class CoursesComponent implements OnInit {
       this.priceMax = priceMax ? Number(priceMax) : null;
 
       this.loadCourses(page);
+    });
+  }
+
+  private resolveLanding(key?: string): CourseLandingContent {
+    if (!key) return COURSE_LANDING_CONTENT['all'];
+    return COURSE_LANDING_CONTENT[key] ?? COURSE_LANDING_CONTENT['all'];
+  }
+
+  private applyLandingSeo(landing: CourseLandingContent): void {
+    const canonicalUrl = `https://holilihu.online${landing.path}`;
+
+    this.seo.setPageMeta(
+      landing.title,
+      landing.metaDescription,
+      undefined,
+      canonicalUrl
+    );
+    this.seo.setCanonical(canonicalUrl);
+    this.seo.setKeywords(landing.keywords);
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      landing.path === '/courses'
+        ? { name: landing.breadcrumbName }
+        : { name: 'Khóa học', url: 'https://holilihu.online/courses' },
+      ...(landing.path === '/courses' ? [] : [{ name: landing.breadcrumbName }])
+    ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-courses-page',
+      name: landing.heading,
+      description: landing.metaDescription,
+      url: canonicalUrl,
+      about: landing.breadcrumbName
+    });
+    this.setCategoryNavigationJsonLd();
+  }
+
+  private setCategoryNavigationJsonLd(): void {
+    this.seo.setJsonLd('jsonld-course-category-list', {
+      '@context': 'https://schema.org',
+      '@type': 'ItemList',
+      name: 'Danh mục khóa học hàng hải',
+      itemListElement: COURSE_CATEGORY_LINKS.map((link, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        item: {
+          '@type': 'CollectionPage',
+          name: link.label,
+          url: `https://holilihu.online${link.path}`
+        }
+      }))
     });
   }
 
@@ -400,10 +561,10 @@ export class CoursesComponent implements OnInit {
     });
   }
 
-  applyFilters(): void {
-    const queryParams: Record<string, any> = {
+  private buildFilterQueryParams(includeCategory: boolean): Record<string, any> {
+    return {
       q: this.filters.search || undefined,
-      category: this.filters.category || undefined,
+      category: includeCategory ? this.filters.category || undefined : undefined,
       level: this.filters.level || undefined,
       sort: this.filters.sortBy || undefined,
       order: this.filters.sortOrder || undefined,
@@ -412,11 +573,24 @@ export class CoursesComponent implements OnInit {
       rating: this.filters.rating ?? undefined,
       page: 1 // Reset to first page when filters change
     };
+  }
+
+  applyFilters(): void {
+    const queryParams = this.buildFilterQueryParams(!this.currentLanding().category);
 
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams,
       queryParamsHandling: 'merge'
+    });
+  }
+
+  onCategoryChange(category: CourseCategory | undefined): void {
+    this.filters.category = category;
+    const targetPath = category ? CATEGORY_PATH_BY_VALUE[category] : '/courses';
+
+    this.router.navigate([targetPath], {
+      queryParams: this.buildFilterQueryParams(false)
     });
   }
 
@@ -433,13 +607,16 @@ export class CoursesComponent implements OnInit {
   }
 
   clearFilters(): void {
+    const landingCategory = this.currentLanding().category;
     this.filters = {
       search: '',
-      category: undefined,
+      category: landingCategory,
       level: undefined,
       sortBy: 'rating' as keyof Course,
       sortOrder: 'desc'
     };
+    this.priceMin = null;
+    this.priceMax = null;
     this.router.navigate([], {
       relativeTo: this.route,
       queryParams: {
@@ -461,7 +638,7 @@ export class CoursesComponent implements OnInit {
   activeFilterCount(): number {
     let count = 0;
     if (this.filters.search?.trim()) count++;
-    if (this.filters.category) count++;
+    if (this.filters.category && !this.currentLanding().category) count++;
     if (this.filters.level) count++;
     if (this.filters.priceRange) count++;
     if (this.filters.rating) count++;

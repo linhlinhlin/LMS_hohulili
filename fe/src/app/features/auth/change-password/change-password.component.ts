@@ -1,7 +1,8 @@
-import { Component, ChangeDetectionStrategy, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
+import { SeoService } from '../../../core/services/seo.service';
 import { AUTH_ENDPOINTS } from '../../../api/endpoints/auth.endpoints';
 import { ApiResponse } from '../../../api/types/common.types';
 
@@ -173,10 +174,11 @@ import { ApiResponse } from '../../../api/types/common.types';
     .btn-submit:disabled { opacity: .5; cursor: not-allowed; }
   `]
 })
-export class ChangePasswordComponent {
+export class ChangePasswordComponent implements OnInit {
   private http = inject(HttpClient);
   private router = inject(Router);
   private authService = inject(AuthService);
+  private seo = inject(SeoService);
 
   currentPassword = signal('');
   newPassword = signal('');
@@ -191,6 +193,10 @@ export class ChangePasswordComponent {
     this.newPassword().length >= 8 &&
     this.passwordsMatch()
   );
+
+  ngOnInit(): void {
+    this.seo.setNoindex();
+  }
 
   submit(): void {
     if (!this.canSubmit() || this.submitting()) return;

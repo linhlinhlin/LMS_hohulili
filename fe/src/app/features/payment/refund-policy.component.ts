@@ -1,5 +1,6 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { SeoService } from '../../core/services/seo.service';
 
 @Component({
   selector: 'app-refund-policy',
@@ -132,4 +133,27 @@ import { RouterLink } from '@angular/router';
     </div>
   `
 })
-export class RefundPolicyComponent {}
+export class RefundPolicyComponent implements OnInit {
+  private seo = inject(SeoService);
+
+  ngOnInit(): void {
+    this.seo.setPageMeta(
+      'Chính sách hoàn tiền',
+      'Chính sách hoàn tiền LMS Maritime cho khóa học trả phí: điều kiện 7 ngày, tiến độ dưới 30%, quy trình yêu cầu và hỗ trợ qua email.',
+      'https://holilihu.online/og-image.png',
+      'https://holilihu.online/refund-policy'
+    );
+    this.seo.setCanonical('https://holilihu.online/refund-policy');
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Chính sách hoàn tiền' }
+    ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-refund-policy',
+      name: 'Chính sách hoàn tiền',
+      description: 'Chính sách hoàn tiền LMS Maritime cho khóa học trả phí: điều kiện 7 ngày, tiến độ dưới 30%, quy trình yêu cầu và hỗ trợ qua email.',
+      url: 'https://holilihu.online/refund-policy',
+      about: 'Chính sách hoàn tiền khóa học trực tuyến'
+    });
+  }
+}

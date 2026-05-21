@@ -1,8 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { ToastService } from '../../../core/services/toast.service';
 import { PwaRepairService, type PwaRepairResult } from '../../../core/services/pwa-repair.service';
+import { SeoService } from '../../../core/services/seo.service';
 
 @Component({
   selector: 'app-pwa-repair',
@@ -109,10 +110,11 @@ import { PwaRepairService, type PwaRepairResult } from '../../../core/services/p
     </div>
   `,
 })
-export class PwaRepairComponent {
+export class PwaRepairComponent implements OnInit {
   private readonly pwaRepair = inject(PwaRepairService);
   private readonly toast = inject(ToastService);
   private readonly route = inject(ActivatedRoute);
+  private readonly seo = inject(SeoService);
 
   readonly isRunning = signal(false);
   readonly result = signal<PwaRepairResult | null>(null);
@@ -139,6 +141,10 @@ export class PwaRepairComponent {
       ? 'Ứng dụng đã gỡ service worker và xóa cache của LMS Maritime, nhưng bộ nhớ site của trình duyệt này vẫn chưa mở lại được hoàn toàn. Bạn nên xóa toàn bộ site data rồi đăng nhập lại.'
       : 'PWA đã được làm sạch và bộ nhớ ngoại tuyến đã được tạo lại. Bạn có thể tải lại ứng dụng rồi quay về Lưu trữ ngoại tuyến để kiểm tra hoặc tải lại khóa học.';
   });
+
+  ngOnInit(): void {
+    this.seo.setNoindex();
+  }
 
   async onRunRepair(): Promise<void> {
     this.isRunning.set(true);

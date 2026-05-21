@@ -50,7 +50,7 @@ export const routes: Routes = [
       {
         path: '',
         loadComponent: () => import('./features/home/home-simple.component').then(m => m.HomeSimpleComponent),
-        title: 'Trang chủ - LMS Maritime'
+        title: 'Đào tạo hàng hải trực tuyến - LMS Maritime'
       },
       {
         path: 'courses',
@@ -63,17 +63,53 @@ export const routes: Routes = [
         title: 'Khóa học - LMS Maritime'
       },
       {
+        path: 'courses/an-toan-hang-hai',
+        loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
+        title: 'Khóa học an toàn hàng hải - LMS Maritime',
+        data: { categoryLanding: 'safety' }
+      },
+      {
+        path: 'courses/dieu-khien-tau',
+        loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
+        title: 'Khóa học điều khiển tàu - LMS Maritime',
+        data: { categoryLanding: 'navigation' }
+      },
+      {
+        path: 'courses/ky-thuat-may-tau',
+        loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
+        title: 'Khóa học kỹ thuật máy tàu - LMS Maritime',
+        data: { categoryLanding: 'engineering' }
+      },
+      {
+        path: 'courses/logistics-hang-hai',
+        loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
+        title: 'Khóa học logistics hàng hải - LMS Maritime',
+        data: { categoryLanding: 'logistics' }
+      },
+      {
+        path: 'courses/luat-hang-hai',
+        loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
+        title: 'Khóa học luật hàng hải - LMS Maritime',
+        data: { categoryLanding: 'law' }
+      },
+      {
+        path: 'courses/stcw',
+        loadComponent: () => import('./features/courses/courses.component').then(m => m.CoursesComponent),
+        title: 'Khóa học chứng chỉ STCW - LMS Maritime',
+        data: { categoryLanding: 'certificates' }
+      },
+      {
         path: 'simulation-courses',
         loadComponent: () => import('./features/student/pages/student-simulation-courses-beta.component').then(m => m.StudentSimulationCoursesBetaComponent),
-        title: 'Khóa Học Mô Phỏng (Beta) - LMS Maritime'
+        title: 'Mô phỏng buồng lái hàng hải - LMS Maritime'
       },
-      // Category routes → redirect to /courses?category={slug} (real API data)
-      { path: 'courses/safety', redirectTo: '/courses?category=safety', pathMatch: 'full' },
-      { path: 'courses/navigation', redirectTo: '/courses?category=navigation', pathMatch: 'full' },
-      { path: 'courses/engineering', redirectTo: '/courses?category=engineering', pathMatch: 'full' },
-      { path: 'courses/logistics', redirectTo: '/courses?category=logistics', pathMatch: 'full' },
-      { path: 'courses/law', redirectTo: '/courses?category=law', pathMatch: 'full' },
-      { path: 'courses/certificates', redirectTo: '/courses?category=certificates', pathMatch: 'full' },
+      // Legacy category slugs redirect to canonical SEO landing pages.
+      { path: 'courses/safety', redirectTo: '/courses/an-toan-hang-hai', pathMatch: 'full' },
+      { path: 'courses/navigation', redirectTo: '/courses/dieu-khien-tau', pathMatch: 'full' },
+      { path: 'courses/engineering', redirectTo: '/courses/ky-thuat-may-tau', pathMatch: 'full' },
+      { path: 'courses/logistics', redirectTo: '/courses/logistics-hang-hai', pathMatch: 'full' },
+      { path: 'courses/law', redirectTo: '/courses/luat-hang-hai', pathMatch: 'full' },
+      { path: 'courses/certificates', redirectTo: '/courses/stcw', pathMatch: 'full' },
       // Course Detail — simple path matching, component handle UUID validation.
       // Trước đây canMatch/UrlMatcher đều có vấn đề trong SSR context (route
       // không match → fall through redirect hoặc Angular SSR bail). Đơn giản

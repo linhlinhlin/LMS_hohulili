@@ -40,6 +40,13 @@ export class TermsOfServiceComponent implements OnInit, OnDestroy {
       { name: 'Trang chủ', url: 'https://holilihu.online/' },
       { name: 'Điều khoản sử dụng' }
     ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-terms-page',
+      name: 'Điều khoản sử dụng LMS Maritime',
+      description: 'Điều khoản sử dụng dịch vụ LMS Maritime cho người học, giảng viên và tổ chức khi tham gia nền tảng đào tạo hàng hải.',
+      url: 'https://holilihu.online/terms',
+      about: 'Điều khoản sử dụng nền tảng đào tạo hàng hải trực tuyến'
+    });
 
     if (isPlatformBrowser(this.platformId)) {
       this.updateActiveSection();
@@ -102,4 +109,3 @@ export class TermsOfServiceComponent implements OnInit, OnDestroy {
     this.isTocVisible.set(value);
   }
 }
-

@@ -1,7 +1,7 @@
 {
-  "name": "LMS Maritime - Hệ thống quản lý học tập",
+  "name": "LMS Maritime - Đào tạo hàng hải trực tuyến",
   "short_name": "LMS Maritime",
-  "description": "Hệ thống quản lý học tập chuyên về ngành hàng hải",
+  "description": "Nền tảng đào tạo hàng hải trực tuyến với khóa học STCW, AI trợ giảng và học ngoại tuyến cho thuyền viên Việt Nam.",
   "display": "standalone",
   "scope": "./",
   "start_url": "./",

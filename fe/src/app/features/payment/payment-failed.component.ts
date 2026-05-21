@@ -2,6 +2,7 @@ import { Component, OnInit, signal, inject, ChangeDetectionStrategy } from '@ang
 
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
+import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 
 /**
@@ -191,11 +192,14 @@ import { IconComponent } from '../../shared/components/icon/icon.component';
 export class PaymentFailedComponent implements OnInit {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
+    private seo = inject(SeoService);
 
     reason = signal<string | null>(null);
     errorMessage = signal<string>('Đã có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.');
 
     ngOnInit() {
+        this.seo.setNoindex();
+
         this.route.queryParams.pipe(take(1)).subscribe(params => {
             this.reason.set(params['reason'] || null);
 

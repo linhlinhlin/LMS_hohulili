@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/cor
 import { ActivatedRoute, Router } from '@angular/router';
 import { firstValueFrom, take } from 'rxjs';
 import { PaymentApi } from '../../api/client/payment.api';
+import { SeoService } from '../../core/services/seo.service';
 
 /**
  * Payment Callback Component
@@ -67,8 +68,11 @@ export class PaymentCallbackComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private paymentApi = inject(PaymentApi);
+  private seo = inject(SeoService);
 
   ngOnInit(): void {
+    this.seo.setNoindex();
+
     this.route.queryParams.pipe(take(1)).subscribe(params => {
       const txnRef = params['vnp_TxnRef'] || params['txnRef'];
       const transactionNo = params['vnp_TransactionNo'];

@@ -4,7 +4,14 @@
 
 ## Public pages
 - [Trang chủ](https://holilihu.online/): Giới thiệu nền tảng, khóa học nổi bật
-- [Khóa học](https://holilihu.online/courses): Danh sách toàn bộ khóa học (filter theo category)
+- [Khóa học](https://holilihu.online/courses): Danh sách toàn bộ khóa học hàng hải
+- [Khóa học an toàn hàng hải](https://holilihu.online/courses/an-toan-hang-hai): Cứu sinh, phòng cháy chữa cháy, ứng phó sự cố
+- [Khóa học điều khiển tàu](https://holilihu.online/courses/dieu-khien-tau): Radar, ECDIS, trực ca, điều động tàu
+- [Khóa học kỹ thuật máy tàu](https://holilihu.online/courses/ky-thuat-may-tau): Máy chính, máy phụ, điện tàu biển
+- [Khóa học logistics hàng hải](https://holilihu.online/courses/logistics-hang-hai): Vận tải biển, khai thác cảng, container
+- [Khóa học luật hàng hải](https://holilihu.online/courses/luat-hang-hai): Luật biển, bảo hiểm, hợp đồng vận chuyển
+- [Khóa học chứng chỉ STCW](https://holilihu.online/courses/stcw): STCW, GMDSS, Radar, ECDIS
+- [Mô phỏng hàng hải](https://holilihu.online/simulation-courses): Trang giới thiệu gói mô phỏng buồng lái Unity WebGPU
 - [Giới thiệu](https://holilihu.online/about): Về The Wiii Lab + sứ mệnh
 - [Liên hệ](https://holilihu.online/contact): Tư vấn khóa học, hợp tác
 - [Chính sách bảo mật](https://holilihu.online/privacy)
@@ -12,12 +19,12 @@
 - [Chính sách hoàn tiền](https://holilihu.online/refund-policy)
 
 ## Course categories
-- An toàn hàng hải (Maritime safety) — STCW Basic Safety Training, Fire fighting
-- Điều khiển tàu biển (Ship handling)
-- Kỹ thuật máy tàu (Marine engineering)
-- Logistics hàng hải (Maritime logistics)
-- Luật hàng hải (Maritime law)
-- Tiếng Anh hàng hải (Maritime English)
+- [An toàn hàng hải](https://holilihu.online/courses/an-toan-hang-hai) (Maritime safety) — STCW Basic Safety Training, Fire fighting
+- [Điều khiển tàu biển](https://holilihu.online/courses/dieu-khien-tau) (Ship handling)
+- [Kỹ thuật máy tàu](https://holilihu.online/courses/ky-thuat-may-tau) (Marine engineering)
+- [Logistics hàng hải](https://holilihu.online/courses/logistics-hang-hai) (Maritime logistics)
+- [Luật hàng hải](https://holilihu.online/courses/luat-hang-hai) (Maritime law)
+- [Chứng chỉ STCW](https://holilihu.online/courses/stcw) (STCW certificates)
 
 ## Public API (read-only, JSON)
 - `GET /api/v3/courses` — Course list (paginated)
@@ -51,7 +58,7 @@ Site đã expose 4 public tools qua `navigator.modelContext.registerTool()`:
 - /admin/*, /teacher/*, /student/*, /org-admin/* (private portals)
 - /auth/* (authentication forms — sensitive)
 - /payment/* (payment flows — VNPay/SePay)
-- /offline, /reset-sw, /clear-site-data (PWA utility paths)
+- /offline, /pwa-repair, /reset-sw, /clear-site-data (PWA utility paths)
 
 ## Tech stack (for context)
 - Backend: Spring Boot 3.2 + PostgreSQL 16 + Java 21
@@ -65,5 +72,6 @@ Site đã expose 4 public tools qua `navigator.modelContext.registerTool()`:
 - 2026-04 Phase 1-4: Multi-org foundation (10 PRs, 600+ files touched)
 - 2026-04 Phase 5: Encoding fix (mojibake) + auth noindex + SeoService extended
 - 2026-04 Phase 6: BreadcrumbList JSON-LD + AI bot rules + course og:image fallback
+- 2026-05 Phase 7: SEO hardening for indexability, social metadata, static page schema, simulation landing page, robots and sitemap hygiene
 
-Last updated: 2026-04-27
+Last updated: 2026-05-20

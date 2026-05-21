@@ -39,6 +39,13 @@ export class PrivacyPolicyComponent implements OnInit, OnDestroy {
       { name: 'Trang chủ', url: 'https://holilihu.online/' },
       { name: 'Chính sách bảo mật' }
     ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-privacy-page',
+      name: 'Chính sách bảo mật LMS Maritime',
+      description: 'Chính sách bảo mật và bảo vệ dữ liệu cá nhân của LMS Maritime cho người học, giảng viên và tổ chức đào tạo.',
+      url: 'https://holilihu.online/privacy',
+      about: 'Bảo mật dữ liệu cá nhân trên nền tảng đào tạo hàng hải'
+    });
 
     if (isPlatformBrowser(this.platformId)) {
       this.updateActiveSection();
@@ -95,4 +102,3 @@ export class PrivacyPolicyComponent implements OnInit, OnDestroy {
     this.isTocVisible.set(value);
   }
 }
-

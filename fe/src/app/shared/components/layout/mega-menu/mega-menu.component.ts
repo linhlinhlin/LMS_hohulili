@@ -38,8 +38,7 @@ import { RouterModule } from '@angular/router';
               <ul class="space-y-1">
                 @for (cat of categories; track cat.slug) {
                   <li>
-                    <a [routerLink]="['/courses']"
-                       [queryParams]="{category: cat.slug}"
+                    <a [routerLink]="cat.path"
                        (click)="hideMenu()"
                        class="flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-700 transition-colors hover:bg-[#0056D2]/5 hover:text-[#0056D2]">
                       <svg class="h-4 w-4 flex-shrink-0 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1.5">
@@ -117,12 +116,12 @@ export class MegaMenuComponent {
   menuTop = computed(() => this.isScrolled() ? '64px' : '130px');
 
   readonly categories = [
-    { slug: 'safety', name: 'An toàn hàng hải', icon: 'shield' },
-    { slug: 'navigation', name: 'Điều khiển tàu', icon: 'compass' },
-    { slug: 'engineering', name: 'Kỹ thuật máy tàu', icon: 'cog' },
-    { slug: 'logistics', name: 'Logistics hàng hải', icon: 'truck' },
-    { slug: 'law', name: 'Luật hàng hải', icon: 'scale' },
-    { slug: 'certificates', name: 'Chứng chỉ STCW', icon: 'award' },
+    { slug: 'safety', path: '/courses/an-toan-hang-hai', name: 'An toàn hàng hải', icon: 'shield' },
+    { slug: 'navigation', path: '/courses/dieu-khien-tau', name: 'Điều khiển tàu', icon: 'compass' },
+    { slug: 'engineering', path: '/courses/ky-thuat-may-tau', name: 'Kỹ thuật máy tàu', icon: 'cog' },
+    { slug: 'logistics', path: '/courses/logistics-hang-hai', name: 'Logistics hàng hải', icon: 'truck' },
+    { slug: 'law', path: '/courses/luat-hang-hai', name: 'Luật hàng hải', icon: 'scale' },
+    { slug: 'certificates', path: '/courses/stcw', name: 'Chứng chỉ STCW', icon: 'award' },
   ];
 
   readonly certificates = [

@@ -1,6 +1,7 @@
 import { Component, inject, signal, ChangeDetectionStrategy, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { environment } from '../../../../environments/environment';
+import { SeoService } from '../../../core/services/seo.service';
 
 @Component({
   selector: 'app-verify-email',
@@ -98,6 +99,7 @@ import { environment } from '../../../../environments/environment';
 })
 export class VerifyEmailComponent implements OnInit {
   private route = inject(ActivatedRoute);
+  private seo = inject(SeoService);
 
   isLoading = signal(false);
   isResending = signal(false);
@@ -107,6 +109,8 @@ export class VerifyEmailComponent implements OnInit {
   private userEmail = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.seo.setNoindex();
+
     const token = this.route.snapshot.queryParamMap.get('token');
     this.userEmail.set(this.route.snapshot.queryParamMap.get('email'));
 

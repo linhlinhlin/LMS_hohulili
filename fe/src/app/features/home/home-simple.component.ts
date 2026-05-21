@@ -212,7 +212,7 @@ interface FeaturedCourse {
         </div>
         <div class="grid grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-3">
           @for (cat of categories; track cat.slug; let idx = $index) {
-            <a [routerLink]="['/courses']" [queryParams]="{category: cat.slug}"
+            <a [routerLink]="cat.path"
                class="stagger-child group flex items-start gap-4 rounded-xl border border-gray-200 bg-white p-5 transition-all duration-300 hover:border-[#0056D2]/30 hover:bg-[#0056D2]/[0.02] hover:shadow-sm sm:p-6"
                [style.--stagger-index]="idx">
               <div class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg" [class]="cat.bgClass">
@@ -482,12 +482,12 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
   ];
 
   readonly categories = [
-    { name: 'An toàn hàng hải', slug: 'safety', svgId: 'shield', desc: 'SOLAS, cứu sinh, phòng cháy', bgClass: 'bg-red-50', iconColor: 'text-red-500' },
-    { name: 'Điều khiển tàu', slug: 'navigation', svgId: 'compass', desc: 'Hàng hải thiên văn, radar, ECDIS', bgClass: 'bg-blue-50', iconColor: 'text-blue-500' },
-    { name: 'Kỹ thuật máy tàu', slug: 'engineering', svgId: 'cog', desc: 'Diesel, turbine, hệ thống điện', bgClass: 'bg-slate-100', iconColor: 'text-slate-600' },
-    { name: 'Logistics hàng hải', slug: 'logistics', svgId: 'truck', desc: 'Vận tải container, cảng biển', bgClass: 'bg-amber-50', iconColor: 'text-amber-600' },
-    { name: 'Luật hàng hải', slug: 'law', svgId: 'scale', desc: 'UNCLOS, bảo hiểm, hợp đồng', bgClass: 'bg-purple-50', iconColor: 'text-purple-500' },
-    { name: 'Chứng chỉ STCW', slug: 'certificates', svgId: 'award', desc: 'GMDSS, Radar, ECDIS, GOC', bgClass: 'bg-green-50', iconColor: 'text-green-600' },
+    { name: 'An toàn hàng hải', slug: 'safety', path: '/courses/an-toan-hang-hai', svgId: 'shield', desc: 'SOLAS, cứu sinh, phòng cháy', bgClass: 'bg-red-50', iconColor: 'text-red-500' },
+    { name: 'Điều khiển tàu', slug: 'navigation', path: '/courses/dieu-khien-tau', svgId: 'compass', desc: 'Hàng hải thiên văn, radar, ECDIS', bgClass: 'bg-blue-50', iconColor: 'text-blue-500' },
+    { name: 'Kỹ thuật máy tàu', slug: 'engineering', path: '/courses/ky-thuat-may-tau', svgId: 'cog', desc: 'Diesel, turbine, hệ thống điện', bgClass: 'bg-slate-100', iconColor: 'text-slate-600' },
+    { name: 'Logistics hàng hải', slug: 'logistics', path: '/courses/logistics-hang-hai', svgId: 'truck', desc: 'Vận tải container, cảng biển', bgClass: 'bg-amber-50', iconColor: 'text-amber-600' },
+    { name: 'Luật hàng hải', slug: 'law', path: '/courses/luat-hang-hai', svgId: 'scale', desc: 'UNCLOS, bảo hiểm, hợp đồng', bgClass: 'bg-purple-50', iconColor: 'text-purple-500' },
+    { name: 'Chứng chỉ STCW', slug: 'certificates', path: '/courses/stcw', svgId: 'award', desc: 'GMDSS, Radar, ECDIS, GOC', bgClass: 'bg-green-50', iconColor: 'text-green-600' },
   ];
 
   readonly aiFeatures = [
@@ -517,8 +517,8 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
 
   ngOnInit(): void {
     this.seo.setPageMeta(
-      'Trang chủ',
-      'Nền tảng đào tạo hàng hải Việt Nam — học mọi lúc, kể cả trên biển. Tích hợp AI và hoạt động ngoại tuyến.',
+      'Đào tạo hàng hải trực tuyến',
+      'LMS Maritime đào tạo hàng hải trực tuyến với khóa học STCW, an toàn, điều khiển tàu, AI trợ giảng và học ngoại tuyến cho thuyền viên Việt Nam. Xem khóa học.',
       'https://holilihu.online/og-image.png',
       'https://holilihu.online/'
     );
@@ -533,7 +533,7 @@ export class HomeSimpleComponent implements OnInit, AfterViewInit {
       name: 'LMS Maritime',
       url: 'https://holilihu.online',
       logo: 'https://holilihu.online/icons/logo-master.png',
-      description: 'Nền tảng đào tạo hàng hải Việt Nam — tích hợp AI và hoạt động ngoại tuyến.',
+      description: 'Nền tảng đào tạo hàng hải trực tuyến cho thuyền viên Việt Nam, tích hợp AI trợ giảng và học ngoại tuyến.',
       sameAs: ['https://wiii.holilihu.online'],
       parentOrganization: {
         '@type': 'Organization',

@@ -194,5 +194,12 @@ export class AboutComponent implements OnInit {
       { name: 'Trang chủ', url: 'https://holilihu.online/' },
       { name: 'Giới thiệu' }
     ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-about-page',
+      name: 'Giới thiệu LMS Maritime',
+      description: 'Về LMS Maritime, nền tảng đào tạo hàng hải trực tuyến phát triển bởi The Wiii Lab tại Hải Phòng.',
+      url: 'https://holilihu.online/about',
+      about: 'The Wiii Lab và nền tảng đào tạo hàng hải trực tuyến'
+    });
   }
 }

@@ -1,7 +1,8 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
+import { SeoService } from '../../../core/services/seo.service';
 import { getPortalRootRoute } from '../../../core/utils/portal-route.util';
 
 @Component({
@@ -239,13 +240,18 @@ import { getPortalRootRoute } from '../../../core/utils/portal-route.util';
     </div>
   `
 })
-export class OnboardingComponent {
+export class OnboardingComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
+  private seo = inject(SeoService);
 
   readonly nameControl = new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.minLength(1)] });
   readonly isLoading = signal(false);
   readonly errorMessage = signal('');
+
+  ngOnInit(): void {
+    this.seo.setNoindex();
+  }
 
   submit(): void {
     const name = this.nameControl.value.trim();

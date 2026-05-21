@@ -1,10 +1,11 @@
-import { Component, ChangeDetectionStrategy, inject, computed, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, computed, signal } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { LucideAngularModule } from 'lucide-angular';
 import { CourseDownloadService } from '../../../core/services/course-download.service';
 import { StorageManagerService } from '../../../core/services/storage-manager.service';
 import { OfflineSyncService } from '../../../core/services/offline-sync.service';
 import { NetworkStatusService } from '../../../core/services/network-status.service';
+import { SeoService } from '../../../core/services/seo.service';
 
 export const OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX = '/student/learn/course';
 
@@ -207,12 +208,13 @@ export const OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX = '/student/learn/course';
     </div>
   `,
 })
-export class OfflineFallbackComponent {
+export class OfflineFallbackComponent implements OnInit {
   private readonly courseDownload = inject(CourseDownloadService);
   private readonly storageManager = inject(StorageManagerService);
   private readonly syncService = inject(OfflineSyncService);
   private readonly networkStatus = inject(NetworkStatusService);
   private readonly router = inject(Router);
+  private readonly seo = inject(SeoService);
 
   protected readonly courseRoutePrefix = OFFLINE_FALLBACK_COURSE_ROUTE_PREFIX;
   protected readonly isRetrying = signal(false);
@@ -232,6 +234,10 @@ export class OfflineFallbackComponent {
 
   protected formatSize(bytes: number): string {
     return this.storageManager.formatBytes(bytes);
+  }
+
+  ngOnInit(): void {
+    this.seo.setNoindex();
   }
 
   protected async retry(): Promise<void> {

@@ -3,6 +3,7 @@ import { RouterModule, ActivatedRoute, Router } from '@angular/router';
 import { OrganizationService } from '../../admin/infrastructure/services/organization.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { SeoService } from '../../../core/services/seo.service';
 import { OrganizationInvite } from '../../../shared/types/user.types';
 import { getPortalLandingRoute } from '../../../core/utils/portal-route.util';
 
@@ -77,6 +78,7 @@ export class JoinOrgComponent implements OnInit {
   private orgService = inject(OrganizationService);
   private authService = inject(AuthService);
   private toast = inject(ToastService);
+  private seo = inject(SeoService);
 
   isLoading = signal(true);
   error = signal('');
@@ -86,6 +88,8 @@ export class JoinOrgComponent implements OnInit {
   currentUrl = signal('');
 
   ngOnInit(): void {
+    this.seo.setNoindex();
+
     this.isAuthenticated.set(this.authService.isAuthenticated());
     this.currentUrl.set(this.router.url);
 

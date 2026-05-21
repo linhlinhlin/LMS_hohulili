@@ -9,6 +9,7 @@ import {
 import { isPlatformBrowser } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthResponse, AuthService, User } from '../../../core/services/auth.service';
+import { SeoService } from '../../../core/services/seo.service';
 import { getPortalRootRoute, mapAdminPortalPathForRole } from '../../../core/utils/portal-route.util';
 import { isNewUser } from '../../../core/utils/auth.util';
 
@@ -123,11 +124,14 @@ export class GoogleCallbackComponent implements OnInit {
   private auth = inject(AuthService);
   private router = inject(Router);
   private platformId = inject(PLATFORM_ID);
+  private seo = inject(SeoService);
 
   protected readonly status = signal<'processing' | 'error'>('processing');
   protected readonly errorMessage = signal('');
 
   ngOnInit(): void {
+    this.seo.setNoindex();
+
     if (!isPlatformBrowser(this.platformId)) {
       // SSR — nothing to do, the fragment isn't visible to the server anyway.
       return;

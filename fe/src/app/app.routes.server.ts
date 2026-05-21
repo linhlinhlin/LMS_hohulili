@@ -10,6 +10,30 @@ export const serverRoutes: ServerRoute[] = [
     renderMode: RenderMode.Server
   },
   {
+    path: 'courses/an-toan-hang-hai',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'courses/dieu-khien-tau',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'courses/ky-thuat-may-tau',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'courses/logistics-hang-hai',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'courses/luat-hang-hai',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'courses/stcw',
+    renderMode: RenderMode.Server
+  },
+  {
     path: 'courses/:id',
     renderMode: RenderMode.Server
   },
@@ -42,6 +66,34 @@ export const serverRoutes: ServerRoute[] = [
     // static HTML từ đầu (Google bot fetch lần đầu không cần execute JS).
     // GoogleSigninButton.ngAfterViewInit có platform guard skip trên server.
     path: 'auth/login',
+    renderMode: RenderMode.Server
+  },
+  {
+    // Account recovery pages are public URLs but must ship noindex in SSR HTML.
+    path: 'auth/forgot-password',
+    renderMode: RenderMode.Server
+  },
+  {
+    // Token-bearing reset links should never be indexable.
+    path: 'auth/reset-password',
+    renderMode: RenderMode.Server
+  },
+  {
+    // Public recovery utility pages should emit noindex without waiting for
+    // client-side JavaScript.
+    path: 'offline',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'pwa-repair',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'reset-sw',
+    renderMode: RenderMode.Server
+  },
+  {
+    path: 'clear-site-data',
     renderMode: RenderMode.Server
   },
   {

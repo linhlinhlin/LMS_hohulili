@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, OnDestroy, OnInit
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { take } from 'rxjs';
 import { PaymentResponse } from '../../api/client/payment.api';
+import { SeoService } from '../../core/services/seo.service';
 import { IconComponent } from '../../shared/components/icon/icon.component';
 import {
     PaymentAccessActivationResult,
@@ -298,6 +299,7 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private paymentService = inject(PaymentService);
+    private seo = inject(SeoService);
 
     transactionId = signal<string | null>(null);
     orderId = signal<string | null>(null);
@@ -356,6 +358,8 @@ export class PaymentSuccessComponent implements OnInit, OnDestroy {
     private destroyed = false;
 
     ngOnInit() {
+        this.seo.setNoindex();
+
         this.route.queryParams.pipe(take(1)).subscribe(params => {
             this.transactionId.set(params['txn'] || params['vnp_TransactionNo'] || null);
             this.orderId.set(params['orderId'] || params['vnp_TxnRef'] || null);

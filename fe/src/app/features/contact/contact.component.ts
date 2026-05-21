@@ -33,6 +33,13 @@ export class ContactComponent implements OnInit {
       { name: 'Trang chủ', url: 'https://holilihu.online/' },
       { name: 'Liên hệ' }
     ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-contact-page',
+      name: 'Liên hệ LMS Maritime',
+      description: 'Liên hệ The Wiii Lab để được tư vấn khóa học hàng hải, hợp tác đào tạo và hỗ trợ tổ chức triển khai LMS Maritime.',
+      url: 'https://holilihu.online/contact',
+      about: 'Tư vấn khóa học hàng hải và hợp tác đào tạo'
+    });
   }
 
   formData = {

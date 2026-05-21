@@ -62,12 +62,12 @@ import { RouterModule } from '@angular/router';
             <div>
               <h3 class="text-lg font-semibold mb-6">Khóa học</h3>
               <ul class="space-y-3">
-                <li><a routerLink="/courses" [queryParams]="{category: 'safety'}" class="text-gray-400 hover:text-white">An toàn hàng hải</a></li>
-                <li><a routerLink="/courses" [queryParams]="{category: 'navigation'}" class="text-gray-400 hover:text-white">Điều khiển tàu</a></li>
-                <li><a routerLink="/courses" [queryParams]="{category: 'engineering'}" class="text-gray-400 hover:text-white">Kỹ thuật máy tàu</a></li>
-                <li><a routerLink="/courses" [queryParams]="{category: 'logistics'}" class="text-gray-400 hover:text-white">Logistics hàng hải</a></li>
-                <li><a routerLink="/courses" [queryParams]="{category: 'law'}" class="text-gray-400 hover:text-white">Luật hàng hải</a></li>
-                <li><a routerLink="/courses" [queryParams]="{category: 'certificates'}" class="text-gray-400 hover:text-white">Chứng chỉ STCW</a></li>
+                <li><a routerLink="/courses/an-toan-hang-hai" class="text-gray-400 hover:text-white">An toàn hàng hải</a></li>
+                <li><a routerLink="/courses/dieu-khien-tau" class="text-gray-400 hover:text-white">Điều khiển tàu</a></li>
+                <li><a routerLink="/courses/ky-thuat-may-tau" class="text-gray-400 hover:text-white">Kỹ thuật máy tàu</a></li>
+                <li><a routerLink="/courses/logistics-hang-hai" class="text-gray-400 hover:text-white">Logistics hàng hải</a></li>
+                <li><a routerLink="/courses/luat-hang-hai" class="text-gray-400 hover:text-white">Luật hàng hải</a></li>
+                <li><a routerLink="/courses/stcw" class="text-gray-400 hover:text-white">Chứng chỉ STCW</a></li>
               </ul>
             </div>
 

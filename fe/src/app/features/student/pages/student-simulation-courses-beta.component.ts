@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { RouterModule } from '@angular/router';
+import { SeoService } from '../../../core/services/seo.service';
 import { IconComponent } from '../../../shared/components/icon/icon.component';
 import type { IconName } from '../../../shared/components/icon/icon.component';
 
@@ -17,7 +18,6 @@ interface ChecklistItem {
 
 @Component({
   selector: 'app-student-simulation-courses-beta',
-  standalone: true,
   imports: [RouterModule, IconComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
@@ -152,7 +152,9 @@ interface ChecklistItem {
     </main>
   `,
 })
-export class StudentSimulationCoursesBetaComponent {
+export class StudentSimulationCoursesBetaComponent implements OnInit {
+  private seo = inject(SeoService);
+
   readonly packageId = 'colreg-rule-15-crossing';
   readonly version = 'v2026.05.16.3';
   readonly packageSizeLabel = '61.2 MB';
@@ -160,6 +162,41 @@ export class StudentSimulationCoursesBetaComponent {
   readonly canonicalManifestUrl = `/simulations/${this.packageId}/${this.version}/holilihu-simulation.json`;
   readonly publicLaunchUrl = `https://media.holilihu.online${this.canonicalEntryUrl}`;
   readonly publicManifestUrl = `https://media.holilihu.online${this.canonicalManifestUrl}`;
+
+  ngOnInit(): void {
+    this.seo.setPageMeta(
+      'Mô phỏng buồng lái hàng hải',
+      'Trải nghiệm mô phỏng buồng lái hàng hải Unity WebGPU cho COLREG Rule 15, phục vụ kiểm thử kỹ năng tránh va và đào tạo tình huống thực tế.',
+      'https://holilihu.online/og-image.png',
+      'https://holilihu.online/simulation-courses'
+    );
+    this.seo.setCanonical('https://holilihu.online/simulation-courses');
+    this.seo.setBreadcrumb([
+      { name: 'Trang chủ', url: 'https://holilihu.online/' },
+      { name: 'Mô phỏng hàng hải' }
+    ]);
+    this.seo.setWebPageJsonLd({
+      id: 'jsonld-simulation-webpage',
+      name: 'Mô phỏng buồng lái hàng hải',
+      description: 'Trang giới thiệu gói mô phỏng buồng lái hàng hải Unity WebGPU cho tình huống COLREG Rule 15.',
+      url: 'https://holilihu.online/simulation-courses',
+      about: 'Mô phỏng đào tạo hàng hải',
+      mainEntity: {
+        '@type': 'LearningResource',
+        name: 'Mô phỏng buồng lái hàng hải COLREG Rule 15',
+        learningResourceType: 'Simulation',
+        teaches: 'COLREG Rule 15 crossing situation',
+        educationalLevel: 'Professional',
+        inLanguage: 'vi',
+        url: this.publicLaunchUrl,
+        provider: {
+          '@type': 'Organization',
+          name: 'LMS Maritime',
+          url: 'https://holilihu.online'
+        }
+      }
+    });
+  }
 
   readonly capabilityItems: readonly CapabilityItem[] = [
     {
