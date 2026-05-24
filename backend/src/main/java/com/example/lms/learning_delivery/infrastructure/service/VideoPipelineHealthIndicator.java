@@ -30,8 +30,27 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
         boolean shakaAvailable = isShakaPackagerAvailable();
         boolean targetStackReady = r2Enabled && privateVideoStorageReady && shakaAvailable;
         boolean mediaDomainConfigured = hasText(environment.getProperty("app.video.media-domain", ""));
-        boolean edgeAuthConfigured = isEdgeAuthConfigured();
+        String edgeAuthMode = environment.getProperty("app.video.edge-auth-mode", "disabled");
+        String edgeHmacSecret = environment.getProperty("app.video.edge-hmac-secret", "");
+        long edgeTokenExpirySeconds = longProperty("app.video.edge-token-expiry-seconds", 300L);
+        boolean edgeAuthConfigured = VideoPlaybackDeliveryPolicy.isMediaDomainEdgeAuthEnabled(
+                edgeAuthMode,
+                edgeHmacSecret,
+                edgeTokenExpirySeconds
+        );
         boolean cdnSegmentDeliveryReady = mediaDomainConfigured && edgeAuthConfigured;
+        long manifestCacheSeconds = longProperty("app.video.manifest-cache-seconds", 60L);
+        long objectRedirectCacheSeconds = longProperty("app.video.object-redirect-cache-seconds", 30L);
+        long segmentPresignTtlSeconds = longProperty("app.video.segment-presign-ttl-seconds", 120L);
+        long effectiveManifestCacheSeconds = VideoPlaybackDeliveryPolicy.effectiveManifestCacheSeconds(
+                manifestCacheSeconds,
+                edgeAuthConfigured,
+                edgeTokenExpirySeconds
+        );
+        long effectiveObjectRedirectCacheSeconds = VideoPlaybackDeliveryPolicy.effectiveObjectRedirectCacheSeconds(
+                objectRedirectCacheSeconds,
+                segmentPresignTtlSeconds
+        );
 
         Health.Builder builder = (privateVideoStorageReady || localFallbackAvailable) && shakaAvailable
                 ? Health.up()
@@ -48,8 +67,11 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
                 .withDetail("cdnSegmentDeliveryReady", cdnSegmentDeliveryReady)
                 .withDetail("mediaDomainConfigured", mediaDomainConfigured)
                 .withDetail("edgeAuthConfigured", edgeAuthConfigured)
-                .withDetail("manifestCacheSeconds", longProperty("app.video.manifest-cache-seconds", 60L))
-                .withDetail("objectRedirectCacheSeconds", longProperty("app.video.object-redirect-cache-seconds", 30L))
+                .withDetail("edgeTokenExpirySeconds", edgeTokenExpirySeconds)
+                .withDetail("manifestCacheSeconds", manifestCacheSeconds)
+                .withDetail("effectiveManifestCacheSeconds", effectiveManifestCacheSeconds)
+                .withDetail("objectRedirectCacheSeconds", objectRedirectCacheSeconds)
+                .withDetail("effectiveObjectRedirectCacheSeconds", effectiveObjectRedirectCacheSeconds)
                 .withDetail("adaptiveSegmentDurationSeconds", longProperty("app.video.adaptive-segment-duration-seconds", 6L))
                 .withDetail("binaryStorage", privateVideoStorageReady
                         ? "R2 private video bucket"
@@ -61,22 +83,6 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
                 .withDetail("shakaAvailable", shakaAvailable)
                 .withDetail("localFallbackAvailable", localFallbackAvailable)
                 .build();
-    }
-
-    private boolean isEdgeAuthConfigured() {
-        String mode = environment.getProperty("app.video.edge-auth-mode", "disabled");
-        String secret = environment.getProperty("app.video.edge-hmac-secret", "");
-        long ttl = longProperty("app.video.edge-token-expiry-seconds", 300L);
-        return "media_hmac_query".equals(normalizeEdgeAuthMode(mode)) && hasText(secret) && ttl > 0;
-    }
-
-    private String normalizeEdgeAuthMode(String mode) {
-        String normalized = mode == null ? "" : mode.trim().toLowerCase(java.util.Locale.ROOT);
-        return switch (normalized) {
-            case "media_hmac_query", "query_hmac", "hmac_query", "waf_hmac_query", "worker_hmac_query" ->
-                    "media_hmac_query";
-            default -> "disabled";
-        };
     }
 
     private long longProperty(String key, long fallback) {

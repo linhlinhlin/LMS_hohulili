@@ -1,5 +1,6 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
+import com.example.lms.learning_delivery.infrastructure.service.VideoPlaybackDeliveryPolicy;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -18,10 +19,22 @@ import java.time.Instant;
 public class VideoPlaybackCacheHeaderFilter extends OncePerRequestFilter {
 
     @Value("${app.video.manifest-cache-seconds:60}")
-    private long manifestCacheSeconds;
+    private long manifestCacheSeconds = 60L;
 
     @Value("${app.video.object-redirect-cache-seconds:30}")
-    private long objectRedirectCacheSeconds;
+    private long objectRedirectCacheSeconds = 30L;
+
+    @Value("${app.video.segment-presign-ttl-seconds:120}")
+    private long segmentPresignTtlSeconds = 120L;
+
+    @Value("${app.video.edge-auth-mode:disabled}")
+    private String edgeAuthMode = "disabled";
+
+    @Value("${app.video.edge-hmac-secret:}")
+    private String edgeHmacSecret = "";
+
+    @Value("${app.video.edge-token-expiry-seconds:300}")
+    private long edgeTokenExpirySeconds = 300L;
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
@@ -41,11 +54,11 @@ public class VideoPlaybackCacheHeaderFilter extends OncePerRequestFilter {
 
         String uri = request.getRequestURI();
         if (response.getStatus() == HttpStatus.OK.value() && isManifestPath(uri)) {
-            applyCacheHeaders(response, Math.max(10, manifestCacheSeconds));
+            applyCacheHeaders(response, effectiveManifestCacheSeconds());
             return;
         }
         if (response.getStatus() == HttpStatus.FOUND.value() && uri.endsWith("/object")) {
-            applyCacheHeaders(response, Math.max(10, objectRedirectCacheSeconds));
+            applyCacheHeaders(response, effectiveObjectRedirectCacheSeconds());
         }
     }
 
@@ -56,9 +69,38 @@ public class VideoPlaybackCacheHeaderFilter extends OncePerRequestFilter {
     }
 
     private void applyCacheHeaders(HttpServletResponse response, long ttlSeconds) {
+        response.setHeader(HttpHeaders.CACHE_CONTROL, VideoPlaybackDeliveryPolicy.privatePlaybackCacheControl(ttlSeconds));
+        response.setHeader("X-Content-Type-Options", "nosniff");
+        response.setHeader(HttpHeaders.VARY, "Authorization, Cookie");
+
+        if (ttlSeconds <= 0) {
+            response.setHeader(HttpHeaders.PRAGMA, "no-cache");
+            response.setDateHeader(HttpHeaders.EXPIRES, 0);
+            return;
+        }
+
         Instant expiresAt = Instant.now().plus(Duration.ofSeconds(ttlSeconds));
-        response.setHeader(HttpHeaders.CACHE_CONTROL, "private, max-age=" + ttlSeconds);
         response.setHeader(HttpHeaders.PRAGMA, "");
         response.setDateHeader(HttpHeaders.EXPIRES, expiresAt.toEpochMilli());
+    }
+
+    private long effectiveManifestCacheSeconds() {
+        boolean edgeAuthEnabled = VideoPlaybackDeliveryPolicy.isMediaDomainEdgeAuthEnabled(
+                edgeAuthMode,
+                edgeHmacSecret,
+                edgeTokenExpirySeconds
+        );
+        return VideoPlaybackDeliveryPolicy.effectiveManifestCacheSeconds(
+                manifestCacheSeconds,
+                edgeAuthEnabled,
+                edgeTokenExpirySeconds
+        );
+    }
+
+    private long effectiveObjectRedirectCacheSeconds() {
+        return VideoPlaybackDeliveryPolicy.effectiveObjectRedirectCacheSeconds(
+                objectRedirectCacheSeconds,
+                segmentPresignTtlSeconds
+        );
     }
 }
