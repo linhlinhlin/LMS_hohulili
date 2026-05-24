@@ -8,6 +8,7 @@ import {
   type OfflineLessonSection,
 } from '../db/lms-offline.db';
 import type { OfflineVideoProfileId, VideoSourceKind } from '../models/video-quality';
+import { isOnlineOnlyVideoSource } from '../utils/video-offline-policy';
 
 export const OFFLINE_VIDEO_MAX_CACHE_BYTES = 500 * 1024 * 1024;
 
@@ -320,15 +321,11 @@ export class OfflineVideoService {
 
     let changed = false;
     const updatedSections = sections.map((section) => {
-      const isYoutube = section?.videoType === 'YOUTUBE'
-        || (typeof section?.videoUrl === 'string'
-          && /(youtube\.com|youtu\.be)/i.test(section.videoUrl));
-
       if (
         section?.type !== 'VIDEO'
         || section?.videoOfflineUri
         || section?.streamVideoUid
-        || isYoutube
+        || isOnlineOnlyVideoSource(section)
       ) {
         return section;
       }
