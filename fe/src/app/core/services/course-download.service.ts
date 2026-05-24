@@ -2056,14 +2056,11 @@ export class CourseDownloadService {
 
     let changed = false;
     const repairedSections = lesson.sections.map((section) => {
-      const isYoutube = section.videoType === 'YOUTUBE'
-        || (typeof section.videoUrl === 'string' && /(youtube\.com|youtu\.be)/i.test(section.videoUrl));
-
       if (
         section.type !== 'VIDEO'
         || section.videoOfflineUri
         || section.streamVideoUid
-        || isYoutube
+        || isOnlineOnlyVideoSource(section)
       ) {
         return section;
       }
