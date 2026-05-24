@@ -64,6 +64,9 @@ public class VideoAssetLifecycleService {
         asset.setAdaptivePackagedAt(null);
         asset.setHlsManifestStorageKey(null);
         asset.setDashManifestStorageKey(null);
+        asset.setPackageSizeBytes(null);
+        asset.setDuplicateOfAssetId(null);
+        asset.setContentFingerprintStatus("PENDING");
         asset.setPlaybackUrl(null);
         asset.setStreamVideoUid(null);
         videoAssetRepository.save(asset);

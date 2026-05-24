@@ -17,14 +17,24 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StopWatch;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.UncheckedIOException;
+import java.security.DigestInputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
@@ -49,6 +59,12 @@ public class VideoAssetIngestService {
 
     @Value("${app.video.package-upload-concurrency:6}")
     private int packageUploadConcurrency;
+
+    @Value("${app.video.offline-profiles:SAVER,STANDARD,HIGH}")
+    private String offlineProfiles;
+
+    @Value("${app.video.retain-source-after-ready:true}")
+    private boolean retainSourceAfterReady;
 
     public int processRunnableJobs(int maxJobs) {
         List<UUID> claimedJobIds = videoIngestJobClaimRepository.claimRunnableJobIds(Instant.now(), maxJobs);
@@ -114,6 +130,21 @@ public class VideoAssetIngestService {
             );
             sourceTemp = sourceBinary.path();
             Path materializedSource = sourceTemp;
+            String contentSha256 = runTimed(
+                    stopWatch,
+                    "fingerprint-source",
+                    () -> sha256(materializedSource)
+            );
+            asset.setContentSha256(contentSha256);
+            asset.setContentFingerprintStatus("READY");
+            videoAssetRepository.save(asset);
+
+            Optional<VideoAssetJpaEntity> reusableCanonical = videoAssetRepository.findReusableCanonicalAsset(contentSha256, asset.getId());
+            if (reusableCanonical.isPresent()) {
+                completeAsDuplicate(job, asset, reusableCanonical.get(), stopWatch);
+                return;
+            }
+
             FfmpegVideoProcessingService.VideoProbe probe = runTimed(
                     stopWatch,
                     "probe-source",
@@ -131,7 +162,9 @@ public class VideoAssetIngestService {
             if (abortIfAssetDeleted(asset.getId(), "reset-renditions")) {
                 return;
             }
-            createOriginalRendition(asset, sourceAttachment, probe);
+            if (retainSourceAfterReady) {
+                createOriginalRendition(asset, sourceAttachment, probe);
+            }
 
             List<RenditionSpec> renditionSpecs = buildRenditionSpecs(sourceAttachment, probe);
             Map<String, FfmpegVideoProcessingService.TranscodedRendition> transcodedRenditions = runTimed(
@@ -215,6 +248,10 @@ public class VideoAssetIngestService {
 
             asset.setHlsManifestStorageKey(packageMetadata.hlsManifestStorageKey());
             asset.setDashManifestStorageKey(packageMetadata.dashManifestStorageKey());
+            asset.setPackageSizeBytes(packageMetadata.packageSizeBytes());
+            if (!retainSourceAfterReady) {
+                discardSourceAfterReady(asset);
+            }
             asset.setAdaptivePackagingStatus("READY");
             asset.setAdaptivePackagedAt(Instant.now());
             asset.setAdaptiveErrorMessage(null);
@@ -262,6 +299,54 @@ public class VideoAssetIngestService {
         return true;
     }
 
+    private void completeAsDuplicate(
+            VideoIngestJobJpaEntity job,
+            VideoAssetJpaEntity asset,
+            VideoAssetJpaEntity canonical,
+            StopWatch stopWatch
+    ) {
+        renditionReset(asset.getId());
+        for (VideoRenditionJpaEntity canonicalRendition : videoRenditionRepository.findByVideoAssetId(canonical.getId())) {
+            videoRenditionRepository.save(VideoRenditionJpaEntity.builder()
+                    .videoAssetId(asset.getId())
+                    .playbackKind(canonicalRendition.getPlaybackKind())
+                    .profile(canonicalRendition.getProfile())
+                    .actualResolution(canonicalRendition.getActualResolution())
+                    .fileSizeBytes(canonicalRendition.getFileSizeBytes())
+                    .storageKey(canonicalRendition.getStorageKey())
+                    .fileUrl(canonicalRendition.getFileUrl())
+                    .status(canonicalRendition.getStatus())
+                    .build());
+        }
+
+        asset.setDuplicateOfAssetId(canonical.getId());
+        asset.setWidth(canonical.getWidth());
+        asset.setHeight(canonical.getHeight());
+        asset.setDurationSeconds(canonical.getDurationSeconds());
+        asset.setHlsManifestStorageKey(canonical.getHlsManifestStorageKey());
+        asset.setDashManifestStorageKey(canonical.getDashManifestStorageKey());
+        asset.setPackageSizeBytes(canonical.getPackageSizeBytes());
+        asset.setAdaptivePackagingStatus("READY");
+        asset.setAdaptivePackagedAt(Instant.now());
+        asset.setAdaptiveErrorMessage(null);
+        asset.setStatus("READY");
+        asset.setProcessedAt(Instant.now());
+        asset.setErrorMessage(null);
+        videoAssetRepository.save(asset);
+
+        job.setStatus("COMPLETED");
+        job.setFinishedAt(Instant.now());
+        job.setLastError(null);
+        videoIngestJobRepository.save(job);
+
+        log.info("[VideoAsset] Ingest reused canonical asset: assetId={}, canonicalAssetId={}, sha256={}, totalMs={}, stages={}",
+                asset.getId(),
+                canonical.getId(),
+                asset.getContentSha256(),
+                stopWatch.getTotalTimeMillis(),
+                summarizeStopWatch(stopWatch));
+    }
+
     private AdaptivePackageMetadata packageAdaptive(
             UUID assetId,
             List<ShakaPackagerService.PackagerInput> adaptiveInputs,
@@ -286,6 +371,7 @@ public class VideoAssetIngestService {
         return new AdaptivePackageMetadata(
                 storagePrefix + packageOutput.hlsManifestRelativePath(),
                 storagePrefix + packageOutput.dashManifestRelativePath(),
+                sumPackagedFileBytes(packageOutput.files()),
                 packageOutput.outputDirectory()
         );
     }
@@ -348,6 +434,14 @@ public class VideoAssetIngestService {
         String storageKey = storagePrefix + packagedFile.relativePath();
         String contentType = contentTypeFor(packagedFile.relativePath());
         videoBinaryStorageService.storeGenerated(packagedFile.file(), storageKey, contentType);
+    }
+
+    private long sumPackagedFileBytes(List<ShakaPackagerService.PackagedFile> packagedFiles) throws IOException {
+        long total = 0L;
+        for (ShakaPackagerService.PackagedFile packagedFile : packagedFiles) {
+            total += Files.size(packagedFile.file());
+        }
+        return total;
     }
 
     private IOException unwrapUploadFailure(ExecutionException executionException) {
@@ -426,24 +520,66 @@ public class VideoAssetIngestService {
         }
 
         int saverHeight = Math.min(height, 360);
-        specs.add(new RenditionSpec("SAVER", saverHeight, saverHeight + "p", canReuseSource(sourceAttachment, height, saverHeight)));
+        if (enabledOfflineProfiles().contains("SAVER")) {
+            specs.add(new RenditionSpec("SAVER", saverHeight, saverHeight + "p", canReuseSource(sourceAttachment, height, saverHeight)));
+        }
 
-        if (height >= 480) {
+        if (height >= 480 && enabledOfflineProfiles().contains("STANDARD")) {
             int standardHeight = Math.min(height, 720);
             specs.add(new RenditionSpec("STANDARD", standardHeight, standardHeight + "p", canReuseSource(sourceAttachment, height, standardHeight)));
         }
 
-        if (height >= 1080) {
+        if (height >= 1080 && enabledOfflineProfiles().contains("HIGH")) {
             specs.add(new RenditionSpec("HIGH", 1080, "1080p", canReuseSource(sourceAttachment, height, 1080)));
+        }
+
+        if (specs.isEmpty()) {
+            specs.add(new RenditionSpec("SAVER", saverHeight, saverHeight + "p", false));
         }
 
         return specs;
     }
 
     private boolean canReuseSource(FileAttachmentJpaEntity sourceAttachment, int sourceHeight, int targetHeight) {
-        return sourceHeight == targetHeight
+        return retainSourceAfterReady
+                && sourceHeight == targetHeight
                 && sourceAttachment.getContentType() != null
                 && sourceAttachment.getContentType().equalsIgnoreCase("video/mp4");
+    }
+
+    Set<String> enabledOfflineProfiles() {
+        Set<String> parsed = new LinkedHashSet<>();
+        if (offlineProfiles != null) {
+            for (String rawProfile : offlineProfiles.split(",")) {
+                String profile = rawProfile.trim().toUpperCase(Locale.ROOT);
+                if (profile.equals("SAVER") || profile.equals("STANDARD") || profile.equals("HIGH")) {
+                    parsed.add(profile);
+                }
+            }
+        }
+        return parsed.isEmpty() ? Set.of("SAVER", "STANDARD", "HIGH") : parsed;
+    }
+
+    private String sha256(Path file) throws IOException {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            try (InputStream input = Files.newInputStream(file);
+                 DigestInputStream digestInput = new DigestInputStream(input, digest)) {
+                digestInput.transferTo(OutputStream.nullOutputStream());
+            }
+            return HexFormat.of().formatHex(digest.digest());
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IOException("SHA-256 digest is not available", ex);
+        }
+    }
+
+    private void discardSourceAfterReady(VideoAssetJpaEntity asset) {
+        if (!Boolean.TRUE.equals(asset.getSourceRetained()) || asset.getSourceStorageKey() == null || asset.getSourceStorageKey().isBlank()) {
+            asset.setSourceRetained(false);
+            return;
+        }
+        videoBinaryStorageService.delete(asset.getSourceStorageKey());
+        asset.setSourceRetained(false);
     }
 
     private static final int MAX_RETRY_ATTEMPTS = 5;
@@ -540,6 +676,7 @@ public class VideoAssetIngestService {
     private record AdaptivePackageMetadata(
             String hlsManifestStorageKey,
             String dashManifestStorageKey,
+            long packageSizeBytes,
             Path localOutputDir
     ) {}
 

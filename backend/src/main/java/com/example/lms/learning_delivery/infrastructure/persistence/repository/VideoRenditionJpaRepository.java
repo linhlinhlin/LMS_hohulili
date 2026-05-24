@@ -15,6 +15,8 @@ public interface VideoRenditionJpaRepository extends JpaRepository<VideoRenditio
 
     List<VideoRenditionJpaEntity> findByVideoAssetIdOrderByCreatedAtAsc(UUID videoAssetId);
 
+    List<VideoRenditionJpaEntity> findByVideoAssetId(UUID videoAssetId);
+
     /**
      * Bulk delete renditions cho 1 asset. Dùng khi re-package — clear partial output.
      * @Modifying + @Transactional bắt buộc cho Spring Data derived delete: nếu thiếu,

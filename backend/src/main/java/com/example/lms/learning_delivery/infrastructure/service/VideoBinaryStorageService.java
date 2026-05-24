@@ -191,6 +191,16 @@ public class VideoBinaryStorageService {
         localStorageService.ifPresent(service -> service.delete(storageKey));
     }
 
+    public int deletePrefix(String storagePrefix) {
+        if (storagePrefix == null || storagePrefix.isBlank()) {
+            return 0;
+        }
+        if (r2VideoStorageService.isPresent()) {
+            return r2VideoStorageService.get().deleteByPrefix(storagePrefix);
+        }
+        return localStorageService.map(service -> service.deleteByPrefix(storagePrefix)).orElse(0);
+    }
+
     public String resolveCanonicalUrl(String storageKey) {
         if (r2VideoStorageService.isPresent()) {
             return r2VideoStorageService.get().resolveInternalUrl(storageKey);

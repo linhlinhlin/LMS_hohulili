@@ -66,7 +66,7 @@ public class AdaptiveVideoPlaybackService {
                 ? asset.getHlsManifestStorageKey()
                 : requestedStorageKey;
 
-        ensureStorageKeyAllowed(assetId, storageKey);
+        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
         if (!storageKey.endsWith(".m3u8")) {
             throw new AccessDeniedException("Invalid HLS manifest key");
         }
@@ -79,7 +79,7 @@ public class AdaptiveVideoPlaybackService {
         VideoAssetJpaEntity asset = requirePlayableAsset(assetId);
         validateClaims(token, assetId, "dash");
         String storageKey = asset.getDashManifestStorageKey();
-        ensureStorageKeyAllowed(assetId, storageKey);
+        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
 
         String manifest = readManifest(storageKey);
         return rewriteDashManifest(assetId, token, storageKey, manifest);
@@ -87,7 +87,8 @@ public class AdaptiveVideoPlaybackService {
 
     public String resolveObjectRedirect(UUID assetId, String token, String storageKey) {
         validateClaims(token, assetId, null);
-        ensureStorageKeyAllowed(assetId, storageKey);
+        VideoAssetJpaEntity asset = requirePlayableAsset(assetId);
+        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
         String redirectUrl = adaptiveVideoPlaybackCacheService.createObjectRedirect(
                 storageKey,
                 Duration.ofSeconds(segmentPresignTtlSeconds)
@@ -106,14 +107,16 @@ public class AdaptiveVideoPlaybackService {
     public com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectMetadata
             headObject(UUID assetId, String token, String storageKey) throws IOException {
         validateClaims(token, assetId, null);
-        ensureStorageKeyAllowed(assetId, storageKey);
+        VideoAssetJpaEntity asset = requirePlayableAsset(assetId);
+        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
         return adaptiveVideoPlaybackCacheService.headObject(storageKey);
     }
 
     public com.example.lms.shared.infrastructure.service.R2VideoStorageService.ObjectBytes
             readObject(UUID assetId, String token, String storageKey, String rangeHeader) throws IOException {
         validateClaims(token, assetId, null);
-        ensureStorageKeyAllowed(assetId, storageKey);
+        VideoAssetJpaEntity asset = requirePlayableAsset(assetId);
+        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
         return adaptiveVideoPlaybackCacheService.readObject(storageKey, rangeHeader);
     }
 
@@ -277,6 +280,10 @@ public class AdaptiveVideoPlaybackService {
         if (!storageKey.startsWith(expectedPrefix)) {
             throw new AccessDeniedException("Requested storage key is outside of the video package");
         }
+    }
+
+    private UUID packageAssetId(VideoAssetJpaEntity asset) {
+        return asset.getDuplicateOfAssetId() != null ? asset.getDuplicateOfAssetId() : asset.getId();
     }
 
     private String resolveRelativeKey(String manifestStorageKey, String reference) {

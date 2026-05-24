@@ -46,6 +46,16 @@ public class VideoAssetJpaEntity {
     @Builder.Default
     private String sourceKind = "INTERNAL_UPLOAD";
 
+    @Column(name = "content_sha256", length = 64)
+    private String contentSha256;
+
+    @Column(name = "content_fingerprint_status", nullable = false, length = 30)
+    @Builder.Default
+    private String contentFingerprintStatus = "PENDING";
+
+    @Column(name = "duplicate_of_asset_id")
+    private UUID duplicateOfAssetId;
+
     @Column(name = "status", nullable = false, length = 30)
     @Builder.Default
     private String status = "PENDING";
@@ -65,6 +75,20 @@ public class VideoAssetJpaEntity {
 
     @Column(name = "dash_manifest_storage_key", length = 500)
     private String dashManifestStorageKey;
+
+    @Column(name = "package_size_bytes")
+    private Long packageSizeBytes;
+
+    @Column(name = "storage_state", nullable = false, length = 30)
+    @Builder.Default
+    private String storageState = "ACTIVE";
+
+    @Column(name = "storage_deleted_at")
+    private Instant storageDeletedAt;
+
+    @Column(name = "source_retained", nullable = false)
+    @Builder.Default
+    private Boolean sourceRetained = true;
 
     @Column(name = "adaptive_packaged_at")
     private Instant adaptivePackagedAt;
