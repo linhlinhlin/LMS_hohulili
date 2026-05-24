@@ -399,6 +399,42 @@ describe('LearningService — videoOfflineUri preservation', () => {
     });
   });
 
+  describe('YouTube/offline video boundaries', () => {
+    it('does not apply lesson-level offline fallback to YouTube section URLs', () => {
+      const sections = [
+        buildSection({
+          id: 'youtube-section',
+          videoUrl: 'https://youtu.be/dQw4w9WgXcQ',
+        }),
+      ];
+
+      const result = (service as any).applyLessonOfflineVideoFallback(
+        sections,
+        '/offline-video/lesson-1',
+      ) as SectionContent[];
+
+      expect(result[0].videoOfflineUri).toBeUndefined();
+      expect(result[0].videoUrl).toBe('https://youtu.be/dQw4w9WgXcQ');
+    });
+
+    it('keeps internal video sections eligible for lesson-level offline fallback', () => {
+      const sections = [
+        buildSection({
+          id: 'internal-section',
+          videoUrl: '/media/lesson-1.mp4',
+        }),
+      ];
+
+      const result = (service as any).applyLessonOfflineVideoFallback(
+        sections,
+        '/offline-video/lesson-1',
+      ) as SectionContent[];
+
+      expect(result[0].videoOfflineUri).toBe('/offline-video/lesson-1');
+      expect(result[0].videoUrl).toBe('/offline-video/lesson-1');
+    });
+  });
+
   describe('Test 5: fetchLessonFromApi merges from IndexedDB on fresh load', () => {
     /**
      * NOTE: Test này depends on sub-agent A's pending fix — apply

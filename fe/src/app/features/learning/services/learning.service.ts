@@ -22,6 +22,7 @@ import { CourseDownloadService } from '../../../core/services/course-download.se
 import { NetworkStatusService } from '../../../core/services/network-status.service';
 import { offlineDb, getCurrentUserId } from '../../../core/db/lms-offline.db';
 import { normalizeInteractiveVideoSpecV2 } from '../../../core/utils/interactive-video-normalizer';
+import { isOnlineOnlyVideoSource } from '../../../core/utils/video-offline-policy';
 
 /**
  * Learning Service
@@ -463,7 +464,12 @@ export class LearningService {
     }
 
     return sections.map(section => {
-      if (section.type !== 'VIDEO' || section.videoOfflineUri || section.videoType === 'YOUTUBE' || section.streamVideoUid) {
+      if (
+        section.type !== 'VIDEO'
+        || section.videoOfflineUri
+        || section.streamVideoUid
+        || isOnlineOnlyVideoSource(section)
+      ) {
         return section;
       }
 

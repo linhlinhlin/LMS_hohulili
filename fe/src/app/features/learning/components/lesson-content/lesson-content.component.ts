@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms';
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser';
 import { Router } from '@angular/router';
 import { firstValueFrom, Subscription } from 'rxjs';
-import { LessonDetail } from '../../models/learning.models';
+import { LessonDetail, SectionContent } from '../../models/learning.models';
 import { LessonType } from '../../models/lesson-types.enum';
 import { WatchedSegmentsTracker } from '../../services/watched-segments-tracker.service';
 import { HeartbeatTracker } from '../../services/heartbeat-tracker.service';
@@ -25,6 +25,10 @@ import { IconComponent } from '../../../../shared/components/icon/icon.component
 import { SideDrawerComponent } from '../../../../shared/components/side-drawer/side-drawer.component';
 import { CompetencyBadgeComponent } from '../competency-badge/competency-badge.component';
 import { PdfSlideViewerComponent } from '../../../../shared/components/pdf-slide-viewer/pdf-slide-viewer.component';
+import {
+  isOnlineOnlyVideoSource,
+  isYoutubeVideoUrl,
+} from '../../../../core/utils/video-offline-policy';
 
 interface DocumentPreviewResponse {
   status: 'PROCESSING' | 'READY' | 'FAILED' | string;
@@ -902,8 +906,23 @@ export class LessonContentComponent implements AfterViewInit {
   }
 
   isYouTubeUrl(url: string | undefined): boolean {
-    if (!url) return false;
-    return url.includes('youtube.com') || url.includes('youtu.be');
+    return isYoutubeVideoUrl(url);
+  }
+
+  isSectionOnlineOnlyVideoBlocked(section: SectionContent): boolean {
+    return !this.network.online()
+      && isOnlineOnlyVideoSource({
+        videoUrl: section.videoUrl || this.lesson().videoUrl,
+        videoType: section.videoType,
+        videoSourceKind: section.videoSourceKind,
+      });
+  }
+
+  isLessonOnlineOnlyVideoBlocked(): boolean {
+    return !this.network.online()
+      && isOnlineOnlyVideoSource({
+        videoUrl: this.lesson().videoUrl,
+      });
   }
 
   // Mark lesson as complete

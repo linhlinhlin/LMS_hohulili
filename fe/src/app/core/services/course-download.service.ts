@@ -39,6 +39,7 @@ import {
   type OfflineVideoProfileId,
   type VideoSourceKind,
 } from '../models/video-quality';
+import { isOnlineOnlyVideoSource } from '../utils/video-offline-policy';
 import { environment } from '../../../environments/environment';
 
 export type { OfflineCourse, OfflineChapter, OfflineLesson };
@@ -359,6 +360,14 @@ export class CourseDownloadService {
 
           const vl = videoLessons[vi];
           try {
+            if (isOnlineOnlyVideoSource({
+              videoUrl: vl.videoManifestUrl,
+              videoSourceKind: vl.videoSourceKind,
+            })) {
+              this.recordVideoSkip(videoSkipSummary, 'unsupported');
+              continue;
+            }
+
             let downloadUrl = vl.videoManifestUrl!;
             let downloadedVideoProfileId: OfflineVideoProfileId | null = null;
             let downloadedVideoProfileLabel: string | null = null;
@@ -1431,7 +1440,7 @@ export class CourseDownloadService {
     section: OfflineLessonSection,
     profile: OfflineVideoProfileId,
   ): Promise<OfflineVideoDownloadDescriptor> {
-    if (section.videoType === 'YOUTUBE' || section.videoSourceKind === 'EXTERNAL') {
+    if (isOnlineOnlyVideoSource(section)) {
       return { downloadUrl: null };
     }
 
@@ -2047,14 +2056,11 @@ export class CourseDownloadService {
 
     let changed = false;
     const repairedSections = lesson.sections.map((section) => {
-      const isYoutube = section.videoType === 'YOUTUBE'
-        || (typeof section.videoUrl === 'string' && /(youtube\.com|youtu\.be)/i.test(section.videoUrl));
-
       if (
         section.type !== 'VIDEO'
         || section.videoOfflineUri
         || section.streamVideoUid
-        || isYoutube
+        || isOnlineOnlyVideoSource(section)
       ) {
         return section;
       }
