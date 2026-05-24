@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -109,8 +110,13 @@ public class VideoAssetControllerV3 {
     public ResponseEntity<ApiResponse<VideoStorageManagementService.VideoCleanupResult>> cleanupOrphanedStorage(
             @RequestParam(defaultValue = "true") Boolean dryRun,
             @RequestParam(defaultValue = "14") Integer retentionDays,
-            @RequestParam(defaultValue = "20") Integer limit
+            @RequestParam(defaultValue = "20") Integer limit,
+            @AuthenticationPrincipal UserJpaEntity user
     ) {
+        if (Boolean.FALSE.equals(dryRun)
+                && (user == null || user.getRole() != UserJpaEntity.UserRole.ADMIN)) {
+            throw new AccessDeniedException("Only ADMIN can execute global video storage cleanup");
+        }
         return ResponseEntity.ok(ApiResponse.success(
                 videoStorageManagementService.cleanupOrphanedAssets(dryRun, retentionDays, limit),
                 dryRun ? "Video orphan cleanup preview" : "Video orphan cleanup completed"

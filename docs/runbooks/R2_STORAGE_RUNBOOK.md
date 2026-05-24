@@ -168,7 +168,7 @@ Read the audit log lines printed before each delete (Phase 1 hardening) — they
    ```bash
    VIDEO_OFFLINE_PROFILES=SAVER,STANDARD
    ```
-   Keep `VIDEO_RETAIN_SOURCE_AFTER_READY=true` unless you have a separate source backup and accept re-upload on repackage.
+   Keep `VIDEO_ADAPTIVE_PROFILES=SAVER,STANDARD,HIGH` unless you intentionally want to reduce the online HLS/DASH ladder. Keep `VIDEO_RETAIN_SOURCE_AFTER_READY=true` unless you have a separate source backup and accept re-upload on repackage.
 
 ## 7. Disaster recovery — restore from backup
 

@@ -46,6 +46,7 @@ public class VideoStorageManagementService {
 
         Map<UUID, Long> renditionBytesByAsset = renditions.stream()
                 .filter(rendition -> "READY".equalsIgnoreCase(rendition.getStatus()))
+                .filter(this::isOwnedGeneratedRendition)
                 .collect(Collectors.groupingBy(
                         VideoRenditionJpaEntity::getVideoAssetId,
                         Collectors.summingLong(rendition -> nullToZero(rendition.getFileSizeBytes()))
@@ -62,7 +63,7 @@ public class VideoStorageManagementService {
         long packageBytes = assets.stream().mapToLong(this::retainedPackageBytes).sum();
         long renditionBytes = assets.stream()
                 .filter(this::isActive)
-                .mapToLong(asset -> renditionBytesByAsset.getOrDefault(asset.getId(), 0L))
+                .mapToLong(asset -> retainedRenditionBytes(asset, renditionBytesByAsset))
                 .sum();
 
         Map<UUID, ReferenceCounts> referencesByAsset = assets.stream()
@@ -76,6 +77,7 @@ public class VideoStorageManagementService {
                 .sum();
         long unknownPackageAssets = assets.stream()
                 .filter(this::isActive)
+                .filter(this::isCanonicalOwner)
                 .filter(asset -> "READY".equalsIgnoreCase(asset.getStatus()))
                 .filter(asset -> asset.getPackageSizeBytes() == null)
                 .count();
@@ -128,7 +130,7 @@ public class VideoStorageManagementService {
         long reclaimedBytes = 0;
         int deletedObjects = 0;
         for (VideoAssetJpaEntity asset : candidates) {
-            long estimatedBytes = estimatedBytes(asset, Map.of(asset.getId(), readyRenditionBytes(asset.getId())));
+            long estimatedBytes = estimatedBytes(asset, Map.of(asset.getId(), readyRenditionBytes(asset)));
             if (!previewOnly) {
                 deletedObjects += deleteAssetStorage(asset);
                 markStorageDeleted(asset);
@@ -150,7 +152,7 @@ public class VideoStorageManagementService {
                                 asset.getStatus(),
                                 asset.getDuplicateOfAssetId(),
                                 retainedSourceBytes(asset),
-                                nullToZero(asset.getPackageSizeBytes()),
+                                retainedPackageBytes(asset),
                                 assetUpdatedAt(asset)
                         ))
                         .toList()
@@ -163,7 +165,7 @@ public class VideoStorageManagementService {
             ReferenceCounts referenceCounts
     ) {
         long sourceBytes = retainedSourceBytes(asset);
-        long renditionBytes = renditionBytesByAsset.getOrDefault(asset.getId(), 0L);
+        long renditionBytes = retainedRenditionBytes(asset, renditionBytesByAsset);
         long packageBytes = retainedPackageBytes(asset);
         return new VideoAssetStorageView(
                 asset.getId(),
@@ -243,12 +245,16 @@ public class VideoStorageManagementService {
     private long estimatedBytes(VideoAssetJpaEntity asset, Map<UUID, Long> renditionBytesByAsset) {
         return retainedSourceBytes(asset)
                 + retainedPackageBytes(asset)
-                + renditionBytesByAsset.getOrDefault(asset.getId(), 0L);
+                + retainedRenditionBytes(asset, renditionBytesByAsset);
     }
 
-    private long readyRenditionBytes(UUID assetId) {
-        return videoRenditionRepository.findByVideoAssetId(assetId).stream()
+    private long readyRenditionBytes(VideoAssetJpaEntity asset) {
+        if (!isCanonicalOwner(asset)) {
+            return 0L;
+        }
+        return videoRenditionRepository.findByVideoAssetId(asset.getId()).stream()
                 .filter(rendition -> "READY".equalsIgnoreCase(rendition.getStatus()))
+                .filter(this::isOwnedGeneratedRendition)
                 .mapToLong(rendition -> nullToZero(rendition.getFileSizeBytes()))
                 .sum();
     }
@@ -261,7 +267,17 @@ public class VideoStorageManagementService {
     }
 
     private long retainedPackageBytes(VideoAssetJpaEntity asset) {
-        return isActive(asset) ? nullToZero(asset.getPackageSizeBytes()) : 0L;
+        return isActive(asset) && isCanonicalOwner(asset) ? nullToZero(asset.getPackageSizeBytes()) : 0L;
+    }
+
+    private long retainedRenditionBytes(VideoAssetJpaEntity asset, Map<UUID, Long> renditionBytesByAsset) {
+        return isActive(asset) && isCanonicalOwner(asset)
+                ? renditionBytesByAsset.getOrDefault(asset.getId(), 0L)
+                : 0L;
+    }
+
+    private boolean isCanonicalOwner(VideoAssetJpaEntity asset) {
+        return asset != null && asset.getDuplicateOfAssetId() == null;
     }
 
     private boolean isActive(VideoAssetJpaEntity asset) {
@@ -280,6 +296,13 @@ public class VideoStorageManagementService {
 
     private boolean isOwnedGeneratedRendition(UUID assetId, String storageKey) {
         return storageKey.startsWith("video-renditions/" + assetId + "/");
+    }
+
+    private boolean isOwnedGeneratedRendition(VideoRenditionJpaEntity rendition) {
+        return rendition != null
+                && rendition.getVideoAssetId() != null
+                && hasText(rendition.getStorageKey())
+                && isOwnedGeneratedRendition(rendition.getVideoAssetId(), rendition.getStorageKey());
     }
 
     private int normalizeLimit(Integer requestedLimit, int defaultLimit, int maxLimit) {

@@ -66,9 +66,9 @@ class VideoStorageManagementServiceTest {
         assertThat(report.referencedAssets()).isEqualTo(1);
         assertThat(report.duplicateAssets()).isEqualTo(1);
         assertThat(report.sourceBytes()).isEqualTo(200);
-        assertThat(report.renditionBytes()).isEqualTo(120);
+        assertThat(report.renditionBytes()).isEqualTo(60);
         assertThat(report.packageBytes()).isEqualTo(40);
-        assertThat(report.estimatedTotalBytes()).isEqualTo(360);
+        assertThat(report.estimatedTotalBytes()).isEqualTo(300);
         assertThat(report.duplicateSourceBytes()).isEqualTo(100);
         assertThat(report.topAssets()).extracting(VideoStorageManagementService.VideoAssetStorageView::assetId)
                 .containsExactly(referencedId, duplicateId);
@@ -123,6 +123,37 @@ class VideoStorageManagementServiceTest {
         verify(videoBinaryStorageService).delete("videos/" + orphanId + ".mp4");
         verify(videoBinaryStorageService).delete("video-renditions/" + orphanId + "/standard.mp4");
         verify(videoRenditionRepository).deleteByVideoAssetId(orphanId);
+    }
+
+    @Test
+    @DisplayName("orphan cleanup for duplicate assets deletes only duplicate source storage")
+    void cleanupDuplicateDeletesOnlyDuplicateSourceStorage() {
+        UUID canonicalId = UUID.randomUUID();
+        UUID duplicateId = UUID.randomUUID();
+        VideoAssetJpaEntity duplicate = asset(duplicateId, "duplicate.mp4", 100, 40, canonicalId);
+        duplicate.setUpdatedAt(Instant.now().minusSeconds(30L * 24L * 60L * 60L));
+
+        when(videoAssetRepository.findAll()).thenReturn(List.of(duplicate));
+        when(videoAssetRepository.findByDuplicateOfAssetId(duplicateId)).thenReturn(List.of());
+        when(videoRenditionRepository.findByVideoAssetId(duplicateId)).thenReturn(List.of(
+                rendition(duplicateId, "STANDARD", 60, "video-renditions/" + canonicalId + "/standard.mp4")
+        ));
+        when(jdbcTemplate.queryForObject(anyString(), eq(Long.class), any())).thenReturn(0L);
+        when(videoBinaryStorageService.deletePrefix("video-packages/" + duplicateId + "/")).thenReturn(0);
+        when(videoAssetRepository.save(any(VideoAssetJpaEntity.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        VideoStorageManagementService.VideoCleanupResult result = service.cleanupOrphanedAssets(false, 14, 10);
+
+        assertThat(result.reclaimedBytes()).isEqualTo(100);
+        assertThat(result.deletedObjects()).isEqualTo(1);
+        assertThat(result.candidates()).singleElement()
+                .extracting(VideoStorageManagementService.CleanupCandidate::packageBytes)
+                .isEqualTo(0L);
+        verify(videoBinaryStorageService).delete("videos/" + duplicateId + ".mp4");
+        verify(videoBinaryStorageService, never()).delete("video-renditions/" + canonicalId + "/standard.mp4");
+        verify(videoBinaryStorageService).deletePrefix("video-packages/" + duplicateId + "/");
+        verify(videoBinaryStorageService, never()).deletePrefix("video-packages/" + canonicalId + "/");
+        verify(videoRenditionRepository).deleteByVideoAssetId(duplicateId);
     }
 
     private VideoAssetJpaEntity asset(UUID id, String name, long sourceBytes, long packageBytes, UUID duplicateOfAssetId) {

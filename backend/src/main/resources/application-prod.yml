@@ -109,6 +109,7 @@ app:
     adaptive-segment-duration-seconds: ${VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS:6}
     ffmpeg-preset: ${VIDEO_FFMPEG_PRESET:veryfast}
     offline-profiles: ${VIDEO_OFFLINE_PROFILES:SAVER,STANDARD,HIGH}
+    adaptive-profiles: ${VIDEO_ADAPTIVE_PROFILES:SAVER,STANDARD,HIGH}
     retain-source-after-ready: ${VIDEO_RETAIN_SOURCE_AFTER_READY:true}
 
 # R2 Storage

@@ -29,6 +29,7 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -62,6 +63,9 @@ public class VideoAssetIngestService {
 
     @Value("${app.video.offline-profiles:SAVER,STANDARD,HIGH}")
     private String offlineProfiles;
+
+    @Value("${app.video.adaptive-profiles:SAVER,STANDARD,HIGH}")
+    private String adaptiveProfiles;
 
     @Value("${app.video.retain-source-after-ready:true}")
     private boolean retainSourceAfterReady;
@@ -166,14 +170,18 @@ public class VideoAssetIngestService {
                 createOriginalRendition(asset, sourceAttachment, probe);
             }
 
-            List<RenditionSpec> renditionSpecs = buildRenditionSpecs(sourceAttachment, probe);
+            List<RenditionSpec> offlineRenditionSpecs = buildRenditionSpecs(sourceAttachment, probe, enabledOfflineProfiles());
+            List<RenditionSpec> adaptiveRenditionSpecs = buildRenditionSpecs(sourceAttachment, probe, enabledAdaptiveProfiles());
+            Map<String, RenditionSpec> requiredRenditionSpecs = new LinkedHashMap<>();
+            offlineRenditionSpecs.forEach(spec -> requiredRenditionSpecs.putIfAbsent(spec.profile(), spec));
+            adaptiveRenditionSpecs.forEach(spec -> requiredRenditionSpecs.putIfAbsent(spec.profile(), spec));
             Map<String, FfmpegVideoProcessingService.TranscodedRendition> transcodedRenditions = runTimed(
                     stopWatch,
                     "transcode-adaptive-renditions",
                     () -> ffmpegVideoProcessingService.transcodeMp4Renditions(
                             materializedSource,
                             asset.getId(),
-                            renditionSpecs.stream()
+                            requiredRenditionSpecs.values().stream()
                                     .filter(spec -> !spec.reuseOriginalSource())
                                     .map(spec -> new FfmpegVideoProcessingService.TranscodeRequest(spec.profile(), spec.targetHeight()))
                                     .toList(),
@@ -191,9 +199,7 @@ public class VideoAssetIngestService {
                 return;
             }
 
-            List<ShakaPackagerService.PackagerInput> adaptiveInputs = new ArrayList<>();
-            for (RenditionSpec spec : renditionSpecs) {
-                Path packageSourcePath = sourceTemp;
+            for (RenditionSpec spec : offlineRenditionSpecs) {
                 long fileSize = sourceAttachment.getFileSize() != null ? sourceAttachment.getFileSize() : 0L;
                 String storageKey = asset.getSourceStorageKey();
                 String fileUrl = asset.getSourceFileUrl();
@@ -212,7 +218,6 @@ public class VideoAssetIngestService {
                             "upload-rendition-" + spec.profile().toLowerCase(),
                             () -> videoBinaryStorageService.storeGenerated(generated, renditionStorageKey, "video/mp4")
                     );
-                    packageSourcePath = generated;
                     fileSize = stored.fileSize();
                     fileUrl = stored.fileUrl();
                 }
@@ -230,7 +235,18 @@ public class VideoAssetIngestService {
                         .fileUrl(fileUrl)
                         .status("READY")
                         .build());
+            }
 
+            List<ShakaPackagerService.PackagerInput> adaptiveInputs = new ArrayList<>();
+            for (RenditionSpec spec : adaptiveRenditionSpecs) {
+                Path packageSourcePath = sourceTemp;
+                if (!spec.reuseOriginalSource()) {
+                    FfmpegVideoProcessingService.TranscodedRendition transcodedRendition = transcodedRenditions.get(spec.profile());
+                    if (transcodedRendition == null) {
+                        throw new IOException("Missing generated rendition for profile " + spec.profile());
+                    }
+                    packageSourcePath = transcodedRendition.outputPath();
+                }
                 adaptiveInputs.add(new ShakaPackagerService.PackagerInput(
                         spec.profile(),
                         spec.actualResolution(),
@@ -326,6 +342,9 @@ public class VideoAssetIngestService {
         asset.setHlsManifestStorageKey(canonical.getHlsManifestStorageKey());
         asset.setDashManifestStorageKey(canonical.getDashManifestStorageKey());
         asset.setPackageSizeBytes(canonical.getPackageSizeBytes());
+        if (!retainSourceAfterReady) {
+            discardSourceAfterReady(asset);
+        }
         asset.setAdaptivePackagingStatus("READY");
         asset.setAdaptivePackagedAt(Instant.now());
         asset.setAdaptiveErrorMessage(null);
@@ -511,7 +530,8 @@ public class VideoAssetIngestService {
 
     private List<RenditionSpec> buildRenditionSpecs(
             FileAttachmentJpaEntity sourceAttachment,
-            FfmpegVideoProcessingService.VideoProbe probe
+            FfmpegVideoProcessingService.VideoProbe probe,
+            Set<String> enabledProfiles
     ) {
         List<RenditionSpec> specs = new ArrayList<>();
         int height = probe.height();
@@ -520,16 +540,16 @@ public class VideoAssetIngestService {
         }
 
         int saverHeight = Math.min(height, 360);
-        if (enabledOfflineProfiles().contains("SAVER")) {
+        if (enabledProfiles.contains("SAVER")) {
             specs.add(new RenditionSpec("SAVER", saverHeight, saverHeight + "p", canReuseSource(sourceAttachment, height, saverHeight)));
         }
 
-        if (height >= 480 && enabledOfflineProfiles().contains("STANDARD")) {
+        if (height >= 480 && enabledProfiles.contains("STANDARD")) {
             int standardHeight = Math.min(height, 720);
             specs.add(new RenditionSpec("STANDARD", standardHeight, standardHeight + "p", canReuseSource(sourceAttachment, height, standardHeight)));
         }
 
-        if (height >= 1080 && enabledOfflineProfiles().contains("HIGH")) {
+        if (height >= 1080 && enabledProfiles.contains("HIGH")) {
             specs.add(new RenditionSpec("HIGH", 1080, "1080p", canReuseSource(sourceAttachment, height, 1080)));
         }
 
@@ -548,9 +568,17 @@ public class VideoAssetIngestService {
     }
 
     Set<String> enabledOfflineProfiles() {
+        return enabledProfiles(offlineProfiles);
+    }
+
+    Set<String> enabledAdaptiveProfiles() {
+        return enabledProfiles(adaptiveProfiles);
+    }
+
+    private Set<String> enabledProfiles(String configuredProfiles) {
         Set<String> parsed = new LinkedHashSet<>();
-        if (offlineProfiles != null) {
-            for (String rawProfile : offlineProfiles.split(",")) {
+        if (configuredProfiles != null) {
+            for (String rawProfile : configuredProfiles.split(",")) {
                 String profile = rawProfile.trim().toUpperCase(Locale.ROOT);
                 if (profile.equals("SAVER") || profile.equals("STANDARD") || profile.equals("HIGH")) {
                     parsed.add(profile);
