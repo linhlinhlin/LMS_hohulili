@@ -52,6 +52,14 @@ Expected results:
 - second signed full-object request: `200`, `X-Edge-Cache: HIT`
 - signed range request: `206`, `Content-Range`, `X-Edge-Cache: MISS`
 
+Local Worker regression test:
+
+```bash
+node --test cloudflare/workers/media-edge-auth-worker.test.mjs
+```
+
+This covers the token-before-cache rule, cache sharing across valid signed URLs, HEAD reads from cache, and ranged reads bypassing Worker Cache API.
+
 ## 3. Cache policy
 
 Use different cache behavior by object type:

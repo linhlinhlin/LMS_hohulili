@@ -1,0 +1,177 @@
+import assert from "node:assert/strict";
+import { beforeEach, test } from "node:test";
+
+import worker from "./media-edge-auth-worker.js";
+
+const SECRET = "worker-test-secret";
+const OBJECT_PATH = "/video-packages/asset-1/segments/standard/init.mp4";
+const OBJECT_KEY = OBJECT_PATH.slice(1);
+
+let cache;
+let bucket;
+let ctx;
+
+beforeEach(() => {
+  cache = createMemoryCache();
+  bucket = createR2Bucket();
+  ctx = createExecutionContext();
+  globalThis.caches = { default: cache };
+});
+
+test("rejects unsigned media object requests before touching R2", async () => {
+  const response = await worker.fetch(new Request(`https://media.example.com${OBJECT_PATH}`), env(), ctx);
+
+  assert.equal(response.status, 403);
+  assert.equal(bucket.getCalls.length, 0);
+  assert.equal(cache.matchCalls.length, 0);
+});
+
+test("validates token before serving cached media objects", async () => {
+  const signedUrl = await signedObjectUrl();
+  const first = await worker.fetch(new Request(signedUrl), env(), ctx);
+  await ctx.flush();
+
+  assert.equal(first.status, 200);
+  assert.equal(first.headers.get("X-Edge-Cache"), "MISS");
+  assert.equal(await first.text(), "abcdef");
+  assert.equal(bucket.getCalls.length, 1);
+
+  const invalid = await worker.fetch(new Request(`${signedUrl.slice(0, signedUrl.indexOf("?"))}?verify=bad-token`), env(), ctx);
+
+  assert.equal(invalid.status, 403);
+  assert.equal(bucket.getCalls.length, 1);
+});
+
+test("caches full object responses by pathname after token validation", async () => {
+  const now = Math.floor(Date.now() / 1000);
+  const firstUrl = await signedObjectUrl(now - 1);
+  const secondUrl = await signedObjectUrl(now);
+
+  const first = await worker.fetch(new Request(firstUrl), env(), ctx);
+  await ctx.flush();
+  const second = await worker.fetch(new Request(secondUrl), env(), ctx);
+
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.equal(first.headers.get("X-Edge-Cache"), "MISS");
+  assert.equal(second.headers.get("X-Edge-Cache"), "HIT");
+  assert.equal(await second.text(), "abcdef");
+  assert.equal(bucket.getCalls.length, 1);
+  assert.deepEqual(cache.keys(), [`https://media.example.com${OBJECT_PATH}`]);
+});
+
+test("serves HEAD from the cached full object without a response body", async () => {
+  const signedUrl = await signedObjectUrl();
+  await worker.fetch(new Request(signedUrl), env(), ctx);
+  await ctx.flush();
+
+  const response = await worker.fetch(new Request(signedUrl, { method: "HEAD" }), env(), ctx);
+
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("X-Edge-Cache"), "HIT");
+  assert.equal(await response.text(), "");
+  assert.equal(bucket.getCalls.length, 1);
+});
+
+test("bypasses Worker cache for range requests and returns partial content headers", async () => {
+  const signedUrl = await signedObjectUrl();
+  const request = new Request(signedUrl, {
+    headers: {
+      Range: "bytes=0-2",
+    },
+  });
+
+  const response = await worker.fetch(request, env(), ctx);
+  await ctx.flush();
+
+  assert.equal(response.status, 206);
+  assert.equal(response.headers.get("Accept-Ranges"), "bytes");
+  assert.equal(response.headers.get("Content-Range"), "bytes 0-2/6");
+  assert.equal(response.headers.get("Content-Length"), "3");
+  assert.equal(response.headers.get("X-Edge-Cache"), "MISS");
+  assert.equal(await response.text(), "abc");
+  assert.equal(bucket.getCalls.length, 1);
+  assert.equal(bucket.getCalls[0].options.range.get("Range"), "bytes=0-2");
+  assert.equal(cache.putCalls.length, 0);
+});
+
+function env() {
+  return {
+    MEDIA_ALLOWED_ORIGIN: "https://lms.example.com",
+    MEDIA_EDGE_HMAC_SECRET: SECRET,
+    MEDIA_EDGE_TOKEN_EXPIRY_SECONDS: "300",
+    MEDIA_BUCKET: bucket,
+  };
+}
+
+async function signedObjectUrl(issuedAt = Math.floor(Date.now() / 1000)) {
+  const verify = await mintToken(OBJECT_PATH, issuedAt);
+  return `https://media.example.com${OBJECT_PATH}?verify=${encodeURIComponent(verify)}`;
+}
+
+async function mintToken(pathname, issuedAt) {
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(SECRET),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign("HMAC", key, encoder.encode(`${pathname}${issuedAt}`));
+  return `${issuedAt}-${Buffer.from(signature).toString("base64")}`;
+}
+
+function createR2Bucket() {
+  return {
+    getCalls: [],
+    async get(key, options) {
+      this.getCalls.push({ key, options });
+      if (key !== OBJECT_KEY) {
+        return null;
+      }
+      const isRange = options?.range?.get("Range") === "bytes=0-2";
+      return {
+        body: isRange ? "abc" : "abcdef",
+        httpEtag: '"test-etag"',
+        range: isRange ? { offset: 0, length: 3 } : undefined,
+        size: 6,
+        writeHttpMetadata(headers) {
+          headers.set("Content-Type", "video/mp4");
+        },
+      };
+    },
+  };
+}
+
+function createMemoryCache() {
+  const store = new Map();
+  return {
+    matchCalls: [],
+    putCalls: [],
+    async match(request) {
+      this.matchCalls.push(request.url);
+      const cached = store.get(request.url);
+      return cached ? cached.clone() : undefined;
+    },
+    async put(request, response) {
+      this.putCalls.push(request.url);
+      store.set(request.url, response.clone());
+    },
+    keys() {
+      return [...store.keys()];
+    },
+  };
+}
+
+function createExecutionContext() {
+  const promises = [];
+  return {
+    waitUntil(promise) {
+      promises.push(promise);
+    },
+    async flush() {
+      await Promise.all(promises.splice(0));
+    },
+  };
+}
