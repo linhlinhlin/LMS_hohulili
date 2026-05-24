@@ -21,6 +21,13 @@ class VideoPipelineHealthIndicatorTest {
         Environment environment = mock(Environment.class);
         when(environment.getActiveProfiles()).thenReturn(new String[]{"prod"});
         when(environment.getProperty("cloudflare.r2.enabled", "false")).thenReturn("true");
+        when(environment.getProperty("app.video.media-domain", "")).thenReturn("https://media.holilihu.online");
+        when(environment.getProperty("app.video.edge-auth-mode", "disabled")).thenReturn("media_hmac_query");
+        when(environment.getProperty("app.video.edge-hmac-secret", "")).thenReturn("secret");
+        when(environment.getProperty("app.video.edge-token-expiry-seconds")).thenReturn("300");
+        when(environment.getProperty("app.video.manifest-cache-seconds")).thenReturn("60");
+        when(environment.getProperty("app.video.object-redirect-cache-seconds")).thenReturn("30");
+        when(environment.getProperty("app.video.adaptive-segment-duration-seconds")).thenReturn("6");
 
         VideoPipelineHealthIndicator indicator = new VideoPipelineHealthIndicator(
                 environment,
@@ -39,6 +46,8 @@ class VideoPipelineHealthIndicatorTest {
         assertThat(health.getDetails())
                 .containsEntry("profile", "prod")
                 .containsEntry("targetStackReady", true)
+                .containsEntry("cdnSegmentDeliveryReady", true)
+                .containsEntry("cdnDeliveryMode", "Custom media domain + edge HMAC segment delivery")
                 .containsEntry("onlinePlayback", "R2 + Shaka adaptive playback")
                 .containsEntry("binaryStorage", "R2 private video bucket");
     }
@@ -49,6 +58,9 @@ class VideoPipelineHealthIndicatorTest {
         Environment environment = mock(Environment.class);
         when(environment.getActiveProfiles()).thenReturn(new String[]{"prod"});
         when(environment.getProperty("cloudflare.r2.enabled", "false")).thenReturn("false");
+        when(environment.getProperty("app.video.media-domain", "")).thenReturn("");
+        when(environment.getProperty("app.video.edge-auth-mode", "disabled")).thenReturn("disabled");
+        when(environment.getProperty("app.video.edge-hmac-secret", "")).thenReturn("");
 
         VideoPipelineHealthIndicator indicator = new VideoPipelineHealthIndicator(
                 environment,
@@ -66,6 +78,8 @@ class VideoPipelineHealthIndicatorTest {
         assertThat(health.getStatus().getCode()).isEqualTo("UP");
         assertThat(health.getDetails())
                 .containsEntry("targetStackReady", false)
+                .containsEntry("cdnSegmentDeliveryReady", false)
+                .containsEntry("cdnDeliveryMode", "Backend-mediated tokenized manifest/object path")
                 .containsEntry("onlinePlayback", "R2 + Shaka adaptive playback")
                 .containsEntry("binaryStorage", "Local filesystem fallback")
                 .containsEntry("localFallbackAvailable", true);

@@ -216,7 +216,14 @@ class AdaptiveVideoPlaybackServiceTest {
         String token = "play-token";
         String storageKey = "video-packages/" + assetId + "/segments/standard/1.m4s";
 
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .build();
+
         ReflectionTestUtils.setField(service, "segmentPresignTtlSeconds", 90L);
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
                 new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
         );
@@ -226,6 +233,34 @@ class AdaptiveVideoPlaybackServiceTest {
         String redirectUrl = service.resolveObjectRedirect(assetId, token, storageKey);
 
         assertThat(redirectUrl).isEqualTo("https://signed.example/segment.m4s");
+    }
+
+    @Test
+    @DisplayName("resolveObjectRedirect allows duplicate assets to read canonical package objects")
+    void resolveObjectRedirectAllowsCanonicalPackageForDuplicateAsset() {
+        UUID canonicalAssetId = UUID.randomUUID();
+        UUID duplicateAssetId = UUID.randomUUID();
+        String token = "play-token";
+        String storageKey = "video-packages/" + canonicalAssetId + "/segments/standard/1.m4s";
+
+        VideoAssetJpaEntity duplicateAsset = VideoAssetJpaEntity.builder()
+                .id(duplicateAssetId)
+                .duplicateOfAssetId(canonicalAssetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .build();
+
+        ReflectionTestUtils.setField(service, "segmentPresignTtlSeconds", 90L);
+        when(videoAssetRepository.findById(duplicateAssetId)).thenReturn(Optional.of(duplicateAsset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(duplicateAssetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.createObjectRedirect(storageKey, java.time.Duration.ofSeconds(90)))
+                .thenReturn("https://signed.example/canonical-segment.m4s");
+
+        String redirectUrl = service.resolveObjectRedirect(duplicateAssetId, token, storageKey);
+
+        assertThat(redirectUrl).isEqualTo("https://signed.example/canonical-segment.m4s");
     }
 
     @Test
@@ -241,7 +276,13 @@ class AdaptiveVideoPlaybackServiceTest {
                 "video/iso.segment",
                 "bytes 0-2/10"
         );
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .build();
 
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
         when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
                 new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
         );

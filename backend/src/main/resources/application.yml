@@ -109,6 +109,9 @@ app:
     package-upload-concurrency: ${VIDEO_PACKAGE_UPLOAD_CONCURRENCY:6}
     adaptive-segment-duration-seconds: ${VIDEO_ADAPTIVE_SEGMENT_DURATION_SECONDS:6}
     ffmpeg-preset: ${VIDEO_FFMPEG_PRESET:veryfast}
+    offline-profiles: ${VIDEO_OFFLINE_PROFILES:SAVER,STANDARD,HIGH}
+    adaptive-profiles: ${VIDEO_ADAPTIVE_PROFILES:SAVER,STANDARD,HIGH}
+    retain-source-after-ready: ${VIDEO_RETAIN_SOURCE_AFTER_READY:true}
 
 # Wiii AI Integration (Sprint 175: "Cắm Phích Cắm")
 wiii:
@@ -130,6 +133,9 @@ cloudflare:
     account-id: ${CLOUDFLARE_R2_ACCOUNT_ID:}
     access-key: ${CLOUDFLARE_R2_ACCESS_KEY:}
     secret-key: ${CLOUDFLARE_R2_SECRET_KEY:}
+    endpoint: ${CLOUDFLARE_R2_ENDPOINT:}
+    region: ${CLOUDFLARE_R2_REGION:auto}
+    path-style-access: ${CLOUDFLARE_R2_PATH_STYLE_ACCESS:true}
     bucket: ${CLOUDFLARE_R2_BUCKET:lms-tracnghiemj-image}
     video-bucket: ${CLOUDFLARE_R2_VIDEO_BUCKET:lms-storage}
     simulation-bucket: ${CLOUDFLARE_R2_SIMULATION_BUCKET:lms-storage}

@@ -5,11 +5,13 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Video
 import com.example.lms.learning_delivery.infrastructure.service.AdaptiveVideoPlaybackService;
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetLifecycleService;
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
+import com.example.lms.learning_delivery.infrastructure.service.VideoStorageManagementService;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -27,6 +29,7 @@ public class VideoAssetControllerV3 {
     private final VideoAssetLifecycleService videoAssetLifecycleService;
     private final VideoAssetPresentationService videoAssetPresentationService;
     private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
+    private final VideoStorageManagementService videoStorageManagementService;
 
     @PostMapping("/from-upload")
     @PreAuthorize("hasAnyRole('TEACHER','ADMIN','ORG_ADMIN')")
@@ -87,6 +90,37 @@ public class VideoAssetControllerV3 {
     public ResponseEntity<ApiResponse<Map<String, Object>>> pipelineDiagnostics() {
         Map<String, Object> diag = videoAssetLifecycleService.getPipelineDiagnostics();
         return ResponseEntity.ok(ApiResponse.success(diag, "Video pipeline diagnostics"));
+    }
+
+    @GetMapping("/storage/report")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Get video storage accounting and largest retained assets")
+    public ResponseEntity<ApiResponse<VideoStorageManagementService.VideoStorageReport>> storageReport(
+            @RequestParam(defaultValue = "20") Integer limit
+    ) {
+        return ResponseEntity.ok(ApiResponse.success(
+                videoStorageManagementService.getStorageReport(limit),
+                "Video storage report"
+        ));
+    }
+
+    @PostMapping("/storage/orphan-cleanup")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Preview or delete unreferenced video asset storage")
+    public ResponseEntity<ApiResponse<VideoStorageManagementService.VideoCleanupResult>> cleanupOrphanedStorage(
+            @RequestParam(defaultValue = "true") Boolean dryRun,
+            @RequestParam(defaultValue = "14") Integer retentionDays,
+            @RequestParam(defaultValue = "20") Integer limit,
+            @AuthenticationPrincipal UserJpaEntity user
+    ) {
+        if (Boolean.FALSE.equals(dryRun)
+                && (user == null || user.getRole() != UserJpaEntity.UserRole.ADMIN)) {
+            throw new AccessDeniedException("Only ADMIN can execute global video storage cleanup");
+        }
+        return ResponseEntity.ok(ApiResponse.success(
+                videoStorageManagementService.cleanupOrphanedAssets(dryRun, retentionDays, limit),
+                dryRun ? "Video orphan cleanup preview" : "Video orphan cleanup completed"
+        ));
     }
 
     @GetMapping("/{assetId}/status")
@@ -150,6 +184,11 @@ public class VideoAssetControllerV3 {
                 view.errorMessage(),
                 view.hlsManifestStorageKey(),
                 view.dashManifestStorageKey(),
+                asset.getPackageSizeBytes(),
+                asset.getDuplicateOfAssetId(),
+                asset.getContentFingerprintStatus(),
+                asset.getStorageState(),
+                asset.getSourceRetained(),
                 profiles
         );
     }
@@ -185,6 +224,11 @@ public class VideoAssetControllerV3 {
             String errorMessage,
             String hlsManifestStorageKey,
             String dashManifestStorageKey,
+            Long packageSizeBytes,
+            UUID duplicateOfAssetId,
+            String contentFingerprintStatus,
+            String storageState,
+            Boolean sourceRetained,
             List<VideoAssetProfileResponse> availableOfflineProfiles
     ) {}
 }

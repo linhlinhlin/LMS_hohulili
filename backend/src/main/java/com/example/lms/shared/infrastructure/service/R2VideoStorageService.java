@@ -8,6 +8,7 @@ import software.amazon.awssdk.core.ResponseBytes;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
+import software.amazon.awssdk.services.s3.model.DeleteObjectsRequest;
 import software.amazon.awssdk.services.s3.model.AbortMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompleteMultipartUploadRequest;
 import software.amazon.awssdk.services.s3.model.CompletedMultipartUpload;
@@ -17,7 +18,9 @@ import software.amazon.awssdk.services.s3.model.CreateMultipartUploadResponse;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectResponse;
 import software.amazon.awssdk.services.s3.model.HeadObjectRequest;
+import software.amazon.awssdk.services.s3.model.ListObjectsV2Request;
 import software.amazon.awssdk.services.s3.model.NoSuchKeyException;
+import software.amazon.awssdk.services.s3.model.ObjectIdentifier;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.UploadPartRequest;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
@@ -272,6 +275,38 @@ public class R2VideoStorageService {
                 .bucket(videoBucket)
                 .key(storageKey)
                 .build());
+    }
+
+    public int deleteByPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return 0;
+        }
+
+        int deleted = 0;
+        String continuationToken = null;
+        do {
+            var listResponse = r2Client.listObjectsV2(ListObjectsV2Request.builder()
+                    .bucket(videoBucket)
+                    .prefix(prefix)
+                    .continuationToken(continuationToken)
+                    .build());
+
+            List<ObjectIdentifier> objects = listResponse.contents().stream()
+                    .map(object -> ObjectIdentifier.builder().key(object.key()).build())
+                    .toList();
+
+            if (!objects.isEmpty()) {
+                r2Client.deleteObjects(DeleteObjectsRequest.builder()
+                        .bucket(videoBucket)
+                        .delete(delete -> delete.objects(objects))
+                        .build());
+                deleted += objects.size();
+            }
+
+            continuationToken = listResponse.nextContinuationToken();
+        } while (continuationToken != null && !continuationToken.isBlank());
+
+        return deleted;
     }
 
     public String resolveInternalUrl(String storageKey) {

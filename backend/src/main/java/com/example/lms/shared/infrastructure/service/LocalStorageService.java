@@ -11,6 +11,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
+import java.util.Comparator;
 import java.util.UUID;
 
 /**
@@ -84,6 +85,39 @@ public class LocalStorageService {
             }
         } catch (IOException e) {
             log.error("[LocalStorage] Failed to delete {}", key, e);
+        }
+    }
+
+    public int deleteByPrefix(String prefix) {
+        if (prefix == null || prefix.isBlank()) {
+            return 0;
+        }
+        try {
+            Path base = Path.of(basePath).toAbsolutePath().normalize();
+            Path root = resolveAndValidate(prefix);
+            if (!Files.exists(root)) {
+                return 0;
+            }
+
+            final int[] deleted = {0};
+            try (var walk = Files.walk(root)) {
+                walk.sorted(Comparator.reverseOrder())
+                        .filter(path -> !path.equals(base))
+                        .forEach(path -> {
+                            try {
+                                boolean regularFile = Files.isRegularFile(path);
+                                if (Files.deleteIfExists(path) && regularFile) {
+                                    deleted[0]++;
+                                }
+                            } catch (IOException e) {
+                                log.warn("[LocalStorage] Failed to delete {}", path, e);
+                            }
+                        });
+            }
+            return deleted[0];
+        } catch (IOException e) {
+            log.error("[LocalStorage] Failed to delete prefix {}", prefix, e);
+            return 0;
         }
     }
 

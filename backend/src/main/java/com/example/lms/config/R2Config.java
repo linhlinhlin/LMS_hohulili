@@ -31,33 +31,49 @@ public class R2Config {
     @Value("${cloudflare.r2.secret-key}")
     private String secretKey;
 
+    @Value("${cloudflare.r2.endpoint:}")
+    private String endpointOverride;
+
+    @Value("${cloudflare.r2.region:auto}")
+    private String region;
+
+    @Value("${cloudflare.r2.path-style-access:true}")
+    private boolean pathStyleAccess;
+
     @Bean
     public S3Client r2Client() {
-        String endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
-
         return S3Client.builder()
-                .endpointOverride(URI.create(endpoint))
+                .endpointOverride(resolveEndpoint())
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
-                .region(Region.of("auto")) // R2 uses "auto" region
-                .forcePathStyle(true) // Required for R2
+                .region(Region.of(resolveRegion()))
+                .forcePathStyle(pathStyleAccess)
                 .build();
     }
 
     @Bean
     public S3Presigner r2Presigner() {
-        String endpoint = "https://" + accountId + ".r2.cloudflarestorage.com";
-
         return S3Presigner.builder()
-                .endpointOverride(URI.create(endpoint))
+                .endpointOverride(resolveEndpoint())
                 .credentialsProvider(StaticCredentialsProvider.create(
                         AwsBasicCredentials.create(accessKey, secretKey)))
-                .region(Region.of("auto"))
+                .region(Region.of(resolveRegion()))
                 .build();
     }
 
     @Bean
     public URI r2EndpointUri() {
+        return resolveEndpoint();
+    }
+
+    private URI resolveEndpoint() {
+        if (endpointOverride != null && !endpointOverride.isBlank()) {
+            return URI.create(endpointOverride.trim());
+        }
         return URI.create("https://" + accountId + ".r2.cloudflarestorage.com");
+    }
+
+    private String resolveRegion() {
+        return region == null || region.isBlank() ? "auto" : region.trim();
     }
 }

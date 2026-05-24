@@ -27,8 +27,17 @@ export default {
       return new Response("Invalid or expired token", { status: 403 });
     }
 
+    const isRangeRequest = request.headers.has("Range");
+    const cacheKey = new Request(`${url.origin}${url.pathname}`, { method: "GET" });
+    if (!isRangeRequest) {
+      const cached = await caches.default.match(cacheKey);
+      if (cached) {
+        return responseForMethod(cached, request.method, corsHeaders, "HIT");
+      }
+    }
+
     const objectKey = url.pathname.slice(1);
-    const object = await env.MEDIA_BUCKET.get(objectKey);
+    const object = await env.MEDIA_BUCKET.get(objectKey, isRangeRequest ? { range: request.headers } : undefined);
     if (!object) {
       return new Response("Not found", { status: 404 });
     }
@@ -36,17 +45,51 @@ export default {
     const headers = new Headers();
     object.writeHttpMetadata(headers);
     headers.set("etag", object.httpEtag);
+    headers.set("Accept-Ranges", "bytes");
     headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    headers.set("X-Edge-Cache", "MISS");
+    const status = applyBodyLengthHeaders(headers, object, isRangeRequest);
     for (const [key, value] of corsHeaders.entries()) {
       headers.set(key, value);
     }
 
-    return new Response(request.method === "HEAD" ? null : object.body, {
-      status: 200,
+    const response = new Response(request.method === "HEAD" ? null : object.body, {
+      status,
       headers,
     });
+    if (request.method === "GET" && !isRangeRequest) {
+      ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
+    }
+    return response;
   },
 };
+
+function responseForMethod(response, method, corsHeaders, cacheState) {
+  const headers = new Headers(response.headers);
+  headers.set("X-Edge-Cache", cacheState);
+  for (const [key, value] of corsHeaders.entries()) {
+    headers.set(key, value);
+  }
+  return new Response(method === "HEAD" ? null : response.body, {
+    status: response.status,
+    headers,
+  });
+}
+
+function applyBodyLengthHeaders(headers, object, isRangeRequest) {
+  if (!isRangeRequest || !object.range) {
+    headers.set("Content-Length", String(object.size));
+    return 200;
+  }
+
+  const suffix = object.range.suffix ?? 0;
+  const offset = object.range.offset ?? Math.max(object.size - suffix, 0);
+  const length = object.range.length ?? object.size - offset;
+  const end = Math.min(offset + length - 1, object.size - 1);
+  headers.set("Content-Range", `bytes ${offset}-${end}/${object.size}`);
+  headers.set("Content-Length", String(end - offset + 1));
+  return 206;
+}
 
 async function isTimedHmacValid(pathname, verify, secret, expirySecondsRaw) {
   if (!secret) {
@@ -111,7 +154,7 @@ function buildCorsHeaders(allowedOrigin) {
   headers.set("Access-Control-Allow-Origin", allowedOrigin);
   headers.set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Range,Content-Type");
-  headers.set("Access-Control-Expose-Headers", "Accept-Ranges,Content-Length,Content-Type,Content-Range,ETag");
+  headers.set("Access-Control-Expose-Headers", "Accept-Ranges,Content-Length,Content-Type,Content-Range,ETag,X-Edge-Cache");
   headers.set("Vary", "Origin");
   return headers;
 }

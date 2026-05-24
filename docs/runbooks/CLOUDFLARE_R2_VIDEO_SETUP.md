@@ -21,6 +21,10 @@ CLOUDFLARE_R2_PUBLIC_URL=https://cdn.holilihu.online
 VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS=14400
 VIDEO_SEGMENT_PRESIGN_TTL_SECONDS=120
 
+VIDEO_ADAPTIVE_PROFILES=SAVER,STANDARD,HIGH
+VIDEO_OFFLINE_PROFILES=SAVER,STANDARD,HIGH
+VIDEO_RETAIN_SOURCE_AFTER_READY=true
+
 CLOUDFLARE_STREAM_ENABLED=false
 ```
 
@@ -30,9 +34,31 @@ Notes:
 - `CLOUDFLARE_R2_PUBLIC_URL` is for the public/general bucket `lms-cdn`, not for the private video bucket.
 - `CLOUDFLARE_R2_VIDEO_BUCKET` must stay private.
 - Large teacher video uploads should use the presigned upload flow. The current stack now switches larger videos to multipart direct-to-R2 upload, instead of relying on a single-object PUT for every size.
+- `VIDEO_ADAPTIVE_PROFILES` controls the online HLS/DASH ladder. Keep `SAVER,STANDARD,HIGH` unless you intentionally want fewer online renditions.
+- `VIDEO_OFFLINE_PROFILES` controls which downloadable MP4 renditions are generated. Keep `SAVER,STANDARD,HIGH` for current behavior; use `SAVER,STANDARD` to avoid storing a 1080p offline MP4 for new uploads.
+- Keep `VIDEO_RETAIN_SOURCE_AFTER_READY=true` unless you accept that a repackage/retry will require the teacher to re-upload the source video.
 - Keep the legacy direct backend upload path as a smaller fallback only. It is not the primary path for large learner-facing video.
 - The legacy direct `POST /api/v3/files/upload/video` path remains a smaller fallback and should not be treated as the primary path for multi-gigabyte videos.
 - Current production playback scale path also uses `media.holilihu.online` for signed media delivery. See `docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md` for that layer.
+
+## Video storage governance
+
+Admins can inspect retained video storage without reading R2 manually:
+
+```bash
+GET /api/v3/video-assets/storage/report?limit=20
+```
+
+The report separates source bytes, offline rendition bytes, packaged HLS/DASH bytes, duplicate assets, and unreferenced reclaimable storage. Package sizes are tracked for newly processed assets; older assets may show unknown package bytes until they are reprocessed.
+
+Cleanup is intentionally two-step and dry-run by default:
+
+```bash
+POST /api/v3/video-assets/storage/orphan-cleanup?dryRun=true&retentionDays=14&limit=20
+POST /api/v3/video-assets/storage/orphan-cleanup?dryRun=false&retentionDays=14&limit=20
+```
+
+Cleanup only targets video assets that are not referenced by course intro videos, lesson content blocks, or course publication snapshots, and skips canonical assets while duplicate child assets still exist. `dryRun=false` is `ADMIN`-only because it deletes global storage objects; `ORG_ADMIN` can use the preview/report endpoints.
 
 ## 2. Where to get each value
 

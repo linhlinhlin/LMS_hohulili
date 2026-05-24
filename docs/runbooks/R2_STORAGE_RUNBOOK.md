@@ -30,10 +30,15 @@ CLOUDFLARE_R2_ENABLED=true
 CLOUDFLARE_R2_ACCOUNT_ID=a7cec31eaddd4eb5858167c4aa7d0bca
 CLOUDFLARE_R2_ACCESS_KEY=<token id>
 CLOUDFLARE_R2_SECRET_KEY=<sha256 hex of token value>
+CLOUDFLARE_R2_ENDPOINT=
+CLOUDFLARE_R2_REGION=auto
+CLOUDFLARE_R2_PATH_STYLE_ACCESS=true
 CLOUDFLARE_R2_BUCKET=lms-cdn
 CLOUDFLARE_R2_VIDEO_BUCKET=lms-storage
 CLOUDFLARE_R2_PUBLIC_URL=https://cdn.holilihu.online
 ```
+
+Leave `CLOUDFLARE_R2_ENDPOINT` blank for Cloudflare R2. If storage has to move to a paid S3-compatible backend, set this to the provider endpoint and adjust `CLOUDFLARE_R2_REGION` / `CLOUDFLARE_R2_PATH_STYLE_ACCESS` according to that provider. Bucket/key semantics stay the same.
 
 `deploy.sh` blocks the deploy if any of these are missing or `CLOUDFLARE_R2_ENABLED != true`. `LocalStorageService` activates only when `cloudflare.r2.enabled=false` is set explicitly (no `matchIfMissing` fallback) — a missing env on prod fails-fast at backend boot.
 
@@ -141,6 +146,29 @@ docker logs lms-backend-1 2>&1 | grep -iE "storage|r2 |configured" | tail -20
 ### d) Cleanup scheduler still ran and deleted something unexpectedly
 
 Read the audit log lines printed before each delete (Phase 1 hardening) — they list every candidate file with `id`, `file_url`, `category`, `uploadedBy`. Restore from the daily backup or re-upload.
+
+### e) R2 video bucket is filling up
+
+1. Inspect retained video storage:
+   ```bash
+   curl -fsS -H "Authorization: Bearer <admin-token>" \
+     "https://holilihu.online/api/v3/video-assets/storage/report?limit=20"
+   ```
+2. Preview orphan cleanup first:
+   ```bash
+   curl -fsS -X POST -H "Authorization: Bearer <admin-token>" \
+     "https://holilihu.online/api/v3/video-assets/storage/orphan-cleanup?dryRun=true&retentionDays=14&limit=20"
+   ```
+3. Execute only after checking the candidate list:
+   ```bash
+   curl -fsS -X POST -H "Authorization: Bearer <admin-token>" \
+     "https://holilihu.online/api/v3/video-assets/storage/orphan-cleanup?dryRun=false&retentionDays=14&limit=20"
+   ```
+4. For future uploads, reduce offline amplification by setting:
+   ```bash
+   VIDEO_OFFLINE_PROFILES=SAVER,STANDARD
+   ```
+   Keep `VIDEO_ADAPTIVE_PROFILES=SAVER,STANDARD,HIGH` unless you intentionally want to reduce the online HLS/DASH ladder. Keep `VIDEO_RETAIN_SOURCE_AFTER_READY=true` unless you have a separate source backup and accept re-upload on repackage.
 
 ## 7. Disaster recovery — restore from backup
 
