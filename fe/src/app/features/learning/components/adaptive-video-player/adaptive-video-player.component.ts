@@ -42,6 +42,12 @@ import {
   canUseNativeHlsForManifest,
   shouldPreferNativeHlsForManifest,
 } from '../../../../core/utils/video-playback-platform';
+import {
+  isRecoverableAdaptiveStreamError,
+  resolvePlaybackManifestFormat,
+  shouldRefreshAdaptivePlaybackUrl,
+} from '../../../../core/utils/video-stream-recovery';
+import type { VideoPlaybackManifestFormat } from '../../../../core/utils/video-stream-recovery';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -280,6 +286,8 @@ export class AdaptiveVideoPlayerComponent {
   private startupRecorded = false;
   private offlineBlobUrl: string | null = null;
   private attemptedOfflineBlobFallback = false;
+  private activeAdaptiveManifestUrl: string | null = null;
+  private attemptedPlaybackUrlRefresh = false;
   private readonly offlineBlobFallbackLimitBytes = 220 * 1024 * 1024;
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
@@ -449,6 +457,8 @@ export class AdaptiveVideoPlayerComponent {
     this.qualityLabel.set(null);
     this.startupRecorded = false;
     this.attemptedOfflineBlobFallback = false;
+    this.activeAdaptiveManifestUrl = null;
+    this.attemptedPlaybackUrlRefresh = false;
     this.videoDurationSeconds.set(null);
     this.currentTimeSeconds.set(0);
     this.resetInteractiveRuntime();
@@ -568,7 +578,17 @@ export class AdaptiveVideoPlayerComponent {
       return;
     }
 
-    this.qoe.recordError();
+    if (await this.tryRefreshAdaptivePlaybackUrl(video)) {
+      return;
+    }
+
+    this.showVideoPlaybackError();
+  }
+
+  private showVideoPlaybackError(recordError = true): void {
+    if (recordError) {
+      this.qoe.recordError();
+    }
     const hasOfflineSource = !!this.normalizeOfflineVideoUrl(this.offlineVideoUrl());
     this.error.set(
       hasOfflineSource
@@ -576,6 +596,76 @@ export class AdaptiveVideoPlayerComponent {
         : 'Không thể phát video này. Vui lòng thử lại.'
     );
     this.isLoading.set(false);
+  }
+
+  private async handleShakaPlayerError(video: HTMLVideoElement, error: unknown): Promise<void> {
+    this.qoe.recordError();
+    if (await this.tryRefreshAdaptivePlaybackUrl(video, error)) {
+      return;
+    }
+
+    if (this.shouldShowPlaybackErrorAfterRefreshExhausted(error)) {
+      this.showVideoPlaybackError(false);
+    }
+  }
+
+  private shouldShowPlaybackErrorAfterRefreshExhausted(error: unknown): boolean {
+    return !!this.activeAdaptiveManifestUrl
+      && this.attemptedPlaybackUrlRefresh
+      && !this.normalizeOfflineVideoUrl(this.offlineVideoUrl())
+      && isRecoverableAdaptiveStreamError(error);
+  }
+
+  private canRefreshAdaptivePlaybackUrl(error?: unknown): boolean {
+    return shouldRefreshAdaptivePlaybackUrl({
+      activeAdaptiveManifestUrl: this.activeAdaptiveManifestUrl,
+      attemptedRefresh: this.attemptedPlaybackUrlRefresh,
+      hasOfflineSource: !!this.normalizeOfflineVideoUrl(this.offlineVideoUrl()),
+      error,
+    });
+  }
+
+  private async tryRefreshAdaptivePlaybackUrl(
+    video: HTMLVideoElement | null,
+    error?: unknown,
+  ): Promise<boolean> {
+    if (!video || !this.canRefreshAdaptivePlaybackUrl(error)) {
+      return false;
+    }
+
+    const manifestUrl = this.activeAdaptiveManifestUrl;
+    if (!manifestUrl) {
+      return false;
+    }
+
+    this.attemptedPlaybackUrlRefresh = true;
+    const refreshToken = this.sourceLoadToken();
+    const format: VideoPlaybackManifestFormat = resolvePlaybackManifestFormat(manifestUrl);
+    const resumeAtSeconds = Number.isFinite(video.currentTime) && video.currentTime > 0
+      ? video.currentTime
+      : 0;
+
+    try {
+      const refreshedUrl = await this.resolveAdaptivePlayUrl(format);
+      if (refreshToken !== this.sourceLoadToken()) {
+        return true;
+      }
+      if (!refreshedUrl) {
+        return false;
+      }
+
+      this.error.set(null);
+      this.isLoading.set(true);
+      await this.destroyShakaPlayer();
+      if (refreshToken !== this.sourceLoadToken()) {
+        return true;
+      }
+
+      await this.initializeShaka(video, refreshedUrl, resumeAtSeconds);
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   private async tryOfflineBlobFallback(video: HTMLVideoElement | null): Promise<boolean> {
@@ -673,9 +763,15 @@ export class AdaptiveVideoPlayerComponent {
     return this.resolveAdaptivePlayUrl('hls');
   }
 
-  private async initializeShaka(videoElement: HTMLVideoElement, manifestUrl: string): Promise<void> {
+  private async initializeShaka(
+    videoElement: HTMLVideoElement,
+    manifestUrl: string,
+    startTimeSeconds = 0,
+  ): Promise<void> {
+    this.activeAdaptiveManifestUrl = manifestUrl;
+
     if (canUseNativeHlsForManifest(manifestUrl, videoElement)) {
-      this.loadNativeHls(videoElement, manifestUrl);
+      this.loadNativeHls(videoElement, manifestUrl, startTimeSeconds);
       return;
     }
 
@@ -684,9 +780,7 @@ export class AdaptiveVideoPlayerComponent {
     shaka.polyfill.installAll();
 
     if (!shaka.Player.isBrowserSupported()) {
-      videoElement.src = manifestUrl;
-      videoElement.load();
-      this.isLoading.set(false);
+      this.loadNativeHls(videoElement, manifestUrl, startTimeSeconds);
       return;
     }
 
@@ -730,18 +824,24 @@ export class AdaptiveVideoPlayerComponent {
       }
     });
 
-    player.addEventListener('error', () => {
-      this.qoe.recordError();
+    player.addEventListener('error', (event: any) => {
+      if (this.shakaPlayer !== player) {
+        this.qoe.recordError();
+        return;
+      }
+      void this.handleShakaPlayerError(videoElement, event?.detail ?? event);
     });
 
     try {
-      await player.load(manifestUrl);
+      await player.load(manifestUrl, startTimeSeconds > 0 ? startTimeSeconds : undefined);
+      this.activeAdaptiveManifestUrl = manifestUrl;
     } catch {
       // HLS failed — try DASH fallback
       const dashUrl = await this.resolveAdaptivePlayUrl('dash');
       if (dashUrl && dashUrl !== manifestUrl) {
         try {
-          await player.load(dashUrl);
+          await player.load(dashUrl, startTimeSeconds > 0 ? startTimeSeconds : undefined);
+          this.activeAdaptiveManifestUrl = dashUrl;
         } catch {
           this.error.set('Không thể phát video thích ứng. Vui lòng thử lại.');
           this.isLoading.set(false);
@@ -758,11 +858,26 @@ export class AdaptiveVideoPlayerComponent {
     this.isLoading.set(false);
   }
 
-  private loadNativeHls(videoElement: HTMLVideoElement, manifestUrl: string): void {
+  private loadNativeHls(
+    videoElement: HTMLVideoElement,
+    manifestUrl: string,
+    startTimeSeconds = 0,
+  ): void {
     this.shakaPlayer = null;
+    this.activeAdaptiveManifestUrl = manifestUrl;
     this.availableQualities.set([]);
     this.isAutoQuality.set(true);
     this.qualityLabel.set(null);
+    if (startTimeSeconds > 0) {
+      videoElement.addEventListener('loadedmetadata', () => {
+        try {
+          videoElement.currentTime = startTimeSeconds;
+          this.currentTimeSeconds.set(startTimeSeconds);
+        } catch {
+          // Browser may reject seeks before its native HLS timeline is ready.
+        }
+      }, { once: true });
+    }
     videoElement.src = manifestUrl;
     videoElement.load();
     this.isLoading.set(false);
