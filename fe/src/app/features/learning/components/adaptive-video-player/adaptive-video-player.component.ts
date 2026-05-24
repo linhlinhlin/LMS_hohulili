@@ -43,6 +43,7 @@ import {
   shouldPreferNativeHlsForManifest,
 } from '../../../../core/utils/video-playback-platform';
 import {
+  isRecoverableAdaptiveStreamError,
   resolvePlaybackManifestFormat,
   shouldRefreshAdaptivePlaybackUrl,
 } from '../../../../core/utils/video-stream-recovery';
@@ -599,13 +600,20 @@ export class AdaptiveVideoPlayerComponent {
 
   private async handleShakaPlayerError(video: HTMLVideoElement, error: unknown): Promise<void> {
     this.qoe.recordError();
-    if (!this.canRefreshAdaptivePlaybackUrl(error)) {
+    if (await this.tryRefreshAdaptivePlaybackUrl(video, error)) {
       return;
     }
 
-    if (!(await this.tryRefreshAdaptivePlaybackUrl(video, error))) {
+    if (this.shouldShowPlaybackErrorAfterRefreshExhausted(error)) {
       this.showVideoPlaybackError(false);
     }
+  }
+
+  private shouldShowPlaybackErrorAfterRefreshExhausted(error: unknown): boolean {
+    return !!this.activeAdaptiveManifestUrl
+      && this.attemptedPlaybackUrlRefresh
+      && !this.normalizeOfflineVideoUrl(this.offlineVideoUrl())
+      && isRecoverableAdaptiveStreamError(error);
   }
 
   private canRefreshAdaptivePlaybackUrl(error?: unknown): boolean {
