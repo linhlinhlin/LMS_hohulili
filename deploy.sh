@@ -54,6 +54,19 @@ env_or_default() {
   fi
 }
 
+normalize_edge_auth_mode() {
+  local mode
+  mode="$(printf '%s' "$1" | tr '[:upper:]' '[:lower:]' | tr '-' '_')"
+  case "$mode" in
+    media_hmac_query|query_hmac|hmac_query|waf_hmac_query|worker_hmac_query)
+      printf '%s' "media_hmac_query"
+      ;;
+    *)
+      printf '%s' "disabled"
+      ;;
+  esac
+}
+
 POSTGRES_USER_VALUE="$(env_or_default POSTGRES_USER lms)"
 POSTGRES_PASSWORD_VALUE="$(read_env_value POSTGRES_PASSWORD)"
 POSTGRES_DB_VALUE="$(env_or_default POSTGRES_DB lms)"
@@ -71,6 +84,10 @@ CLOUDFLARE_R2_SECRET_KEY_VALUE="$(read_env_value CLOUDFLARE_R2_SECRET_KEY)"
 CLOUDFLARE_R2_BUCKET_VALUE="$(read_env_value CLOUDFLARE_R2_BUCKET)"
 CLOUDFLARE_R2_VIDEO_BUCKET_VALUE="$(read_env_value CLOUDFLARE_R2_VIDEO_BUCKET)"
 CLOUDFLARE_R2_PUBLIC_URL_VALUE="$(read_env_value CLOUDFLARE_R2_PUBLIC_URL)"
+VIDEO_CDN_REQUIRED_VALUE="$(env_or_default VIDEO_CDN_REQUIRED false)"
+VIDEO_MEDIA_DOMAIN_VALUE="$(read_env_value VIDEO_MEDIA_DOMAIN)"
+VIDEO_EDGE_AUTH_MODE_VALUE="$(env_or_default VIDEO_EDGE_AUTH_MODE disabled)"
+VIDEO_EDGE_HMAC_SECRET_VALUE="$(read_env_value VIDEO_EDGE_HMAC_SECRET)"
 WIII_WEBHOOK_ENABLED_VALUE="$(env_or_default WIII_WEBHOOK_ENABLED false)"
 WIII_WEBHOOK_URL_VALUE="$(read_env_value WIII_WEBHOOK_URL)"
 WIII_WEBHOOK_SECRET_VALUE="$(read_env_value WIII_WEBHOOK_SECRET)"
@@ -116,6 +133,15 @@ if [ -z "$CLOUDFLARE_R2_BUCKET_VALUE" ] || [ -z "$CLOUDFLARE_R2_VIDEO_BUCKET_VAL
   echo "ERROR: R2 buckets / public URL not configured."
   echo "  Required: CLOUDFLARE_R2_BUCKET, CLOUDFLARE_R2_VIDEO_BUCKET, CLOUDFLARE_R2_PUBLIC_URL."
   exit 1
+fi
+if [ "$VIDEO_CDN_REQUIRED_VALUE" = "true" ]; then
+  NORMALIZED_VIDEO_EDGE_AUTH_MODE="$(normalize_edge_auth_mode "$VIDEO_EDGE_AUTH_MODE_VALUE")"
+  if [ -z "$VIDEO_MEDIA_DOMAIN_VALUE" ] || [ "$NORMALIZED_VIDEO_EDGE_AUTH_MODE" != "media_hmac_query" ] || [ -z "$VIDEO_EDGE_HMAC_SECRET_VALUE" ] || [ "$VIDEO_EDGE_HMAC_SECRET_VALUE" = "CHANGE_ME_MEDIA_EDGE_HMAC_SECRET" ]; then
+    echo "ERROR: VIDEO_CDN_REQUIRED=true but media-domain edge auth is not configured."
+    echo "  Required: VIDEO_MEDIA_DOMAIN, VIDEO_EDGE_AUTH_MODE=media_hmac_query, VIDEO_EDGE_HMAC_SECRET."
+    echo "  See docs/runbooks/CLOUDFLARE_MEDIA_DOMAIN_EDGE_AUTH_RUNBOOK.md and docs/runbooks/VIDEO_CDN_READINESS_CHECKLIST.md."
+    exit 1
+  fi
 fi
 
 if [ "$WIII_WEBHOOK_ENABLED_VALUE" = "true" ]; then

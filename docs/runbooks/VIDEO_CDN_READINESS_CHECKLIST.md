@@ -29,6 +29,7 @@ Before treating media-domain delivery as production-ready, confirm:
 - `/actuator/health` reports `mediaDomainConfigured=true`.
 - `/actuator/health` reports `edgeAuthConfigured=true`.
 - `/actuator/health` reports `cdnSegmentDeliveryReady=true`.
+- `.env.prod` has `VIDEO_CDN_REQUIRED=true` after the media Worker/custom domain is provisioned.
 - Manifest URLs still require LMS auth.
 - Segment URLs use the media custom domain when `app.video.edge-auth-mode=media_hmac_query`.
 - Unsigned segment requests return `403`.

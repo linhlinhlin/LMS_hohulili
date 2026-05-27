@@ -21,6 +21,7 @@ class VideoPipelineHealthIndicatorTest {
         Environment environment = mock(Environment.class);
         when(environment.getActiveProfiles()).thenReturn(new String[]{"prod"});
         when(environment.getProperty("cloudflare.r2.enabled", "false")).thenReturn("true");
+        when(environment.getProperty("app.video.cdn-required", "false")).thenReturn("true");
         when(environment.getProperty("app.video.media-domain", "")).thenReturn("https://media.holilihu.online");
         when(environment.getProperty("app.video.edge-auth-mode", "disabled")).thenReturn("media_hmac_query");
         when(environment.getProperty("app.video.edge-hmac-secret", "")).thenReturn("secret");
@@ -46,6 +47,7 @@ class VideoPipelineHealthIndicatorTest {
         assertThat(health.getDetails())
                 .containsEntry("profile", "prod")
                 .containsEntry("targetStackReady", true)
+                .containsEntry("cdnRequired", true)
                 .containsEntry("cdnSegmentDeliveryReady", true)
                 .containsEntry("cdnDeliveryMode", "Custom media domain + edge HMAC segment delivery")
                 .containsEntry("onlinePlayback", "R2 + Shaka adaptive playback")
@@ -58,6 +60,7 @@ class VideoPipelineHealthIndicatorTest {
         Environment environment = mock(Environment.class);
         when(environment.getActiveProfiles()).thenReturn(new String[]{"prod"});
         when(environment.getProperty("cloudflare.r2.enabled", "false")).thenReturn("false");
+        when(environment.getProperty("app.video.cdn-required", "false")).thenReturn("false");
         when(environment.getProperty("app.video.media-domain", "")).thenReturn("");
         when(environment.getProperty("app.video.edge-auth-mode", "disabled")).thenReturn("disabled");
         when(environment.getProperty("app.video.edge-hmac-secret", "")).thenReturn("");
@@ -83,5 +86,37 @@ class VideoPipelineHealthIndicatorTest {
                 .containsEntry("onlinePlayback", "R2 + Shaka adaptive playback")
                 .containsEntry("binaryStorage", "Local filesystem fallback")
                 .containsEntry("localFallbackAvailable", true);
+    }
+
+    @Test
+    @DisplayName("health is down when CDN segment delivery is required but edge auth is missing")
+    void healthDownWhenRequiredCdnIsMissing() {
+        Environment environment = mock(Environment.class);
+        when(environment.getActiveProfiles()).thenReturn(new String[]{"prod"});
+        when(environment.getProperty("cloudflare.r2.enabled", "false")).thenReturn("true");
+        when(environment.getProperty("app.video.cdn-required", "false")).thenReturn("true");
+        when(environment.getProperty("app.video.media-domain", "")).thenReturn("");
+        when(environment.getProperty("app.video.edge-auth-mode", "disabled")).thenReturn("disabled");
+        when(environment.getProperty("app.video.edge-hmac-secret", "")).thenReturn("");
+
+        VideoPipelineHealthIndicator indicator = new VideoPipelineHealthIndicator(
+                environment,
+                Optional.of(mock(R2VideoStorageService.class)),
+                Optional.empty()
+        ) {
+            @Override
+            boolean isShakaPackagerAvailable() {
+                return true;
+            }
+        };
+
+        Health health = indicator.health();
+
+        assertThat(health.getStatus().getCode()).isEqualTo("DOWN");
+        assertThat(health.getDetails())
+                .containsEntry("targetStackReady", true)
+                .containsEntry("cdnRequired", true)
+                .containsEntry("cdnSegmentDeliveryReady", false)
+                .containsEntry("cdnDeliveryMode", "Backend-mediated tokenized manifest/object path");
     }
 }

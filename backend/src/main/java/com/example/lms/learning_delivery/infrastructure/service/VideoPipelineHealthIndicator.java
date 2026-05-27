@@ -29,11 +29,13 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
         boolean localFallbackAvailable = localStorageService.isPresent();
         boolean shakaAvailable = isShakaPackagerAvailable();
         boolean targetStackReady = r2Enabled && privateVideoStorageReady && shakaAvailable;
+        boolean cdnRequired = Boolean.parseBoolean(environment.getProperty("app.video.cdn-required", "false"));
         boolean mediaDomainConfigured = hasText(environment.getProperty("app.video.media-domain", ""));
         boolean edgeAuthConfigured = isEdgeAuthConfigured();
         boolean cdnSegmentDeliveryReady = mediaDomainConfigured && edgeAuthConfigured;
+        boolean requiredCdnReady = !cdnRequired || cdnSegmentDeliveryReady;
 
-        Health.Builder builder = (privateVideoStorageReady || localFallbackAvailable) && shakaAvailable
+        Health.Builder builder = (privateVideoStorageReady || localFallbackAvailable) && shakaAvailable && requiredCdnReady
                 ? Health.up()
                 : Health.down();
 
@@ -45,6 +47,7 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
                 .withDetail("cdnDeliveryMode", cdnSegmentDeliveryReady
                         ? "Custom media domain + edge HMAC segment delivery"
                         : "Backend-mediated tokenized manifest/object path")
+                .withDetail("cdnRequired", cdnRequired)
                 .withDetail("cdnSegmentDeliveryReady", cdnSegmentDeliveryReady)
                 .withDetail("mediaDomainConfigured", mediaDomainConfigured)
                 .withDetail("edgeAuthConfigured", edgeAuthConfigured)

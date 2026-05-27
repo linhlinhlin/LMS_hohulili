@@ -22,6 +22,8 @@ test("rejects unsigned media object requests before touching R2", async () => {
   const response = await worker.fetch(new Request(`https://media.example.com${OBJECT_PATH}`), env(), ctx);
 
   assert.equal(response.status, 403);
+  assert.equal(response.headers.get("Access-Control-Allow-Origin"), "https://lms.example.com");
+  assert.equal(response.headers.get("Cache-Control"), "no-store");
   assert.equal(bucket.getCalls.length, 0);
   assert.equal(cache.matchCalls.length, 0);
 });
@@ -95,6 +97,22 @@ test("bypasses Worker cache for range requests and returns partial content heade
   assert.equal(cache.putCalls.length, 0);
 });
 
+test("does not cache signed package manifests if a manifest path is requested directly", async () => {
+  const manifestPath = "/video-packages/asset-1/hls/master.m3u8";
+  const signedUrl = await signedObjectUrl(Math.floor(Date.now() / 1000), manifestPath);
+
+  const first = await worker.fetch(new Request(signedUrl), env(), ctx);
+  await ctx.flush();
+  const second = await worker.fetch(new Request(signedUrl), env(), ctx);
+
+  assert.equal(first.status, 200);
+  assert.equal(second.status, 200);
+  assert.equal(first.headers.get("Cache-Control"), "private, no-store");
+  assert.equal(second.headers.get("X-Edge-Cache"), "MISS");
+  assert.equal(bucket.getCalls.length, 2);
+  assert.equal(cache.putCalls.length, 0);
+});
+
 function env() {
   return {
     MEDIA_ALLOWED_ORIGIN: "https://lms.example.com",
@@ -104,9 +122,9 @@ function env() {
   };
 }
 
-async function signedObjectUrl(issuedAt = Math.floor(Date.now() / 1000)) {
-  const verify = await mintToken(OBJECT_PATH, issuedAt);
-  return `https://media.example.com${OBJECT_PATH}?verify=${encodeURIComponent(verify)}`;
+async function signedObjectUrl(issuedAt = Math.floor(Date.now() / 1000), pathname = OBJECT_PATH) {
+  const verify = await mintToken(pathname, issuedAt);
+  return `https://media.example.com${pathname}?verify=${encodeURIComponent(verify)}`;
 }
 
 async function mintToken(pathname, issuedAt) {
@@ -127,6 +145,16 @@ function createR2Bucket() {
     getCalls: [],
     async get(key, options) {
       this.getCalls.push({ key, options });
+      if (key === "video-packages/asset-1/hls/master.m3u8") {
+        return {
+          body: "#EXTM3U\n",
+          httpEtag: '"manifest-etag"',
+          size: 8,
+          writeHttpMetadata(headers) {
+            headers.set("Content-Type", "application/vnd.apple.mpegurl");
+          },
+        };
+      }
       if (key !== OBJECT_KEY) {
         return null;
       }
