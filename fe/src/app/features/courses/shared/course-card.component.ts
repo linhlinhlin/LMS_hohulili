@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, input, signal } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
 import { StudentEnrollmentService } from '../../../features/student/services/enrollment.service';
@@ -13,15 +13,15 @@ import { CourseLevel, ExtendedCourse, LEVEL_LABELS } from '../../../shared/types
       <!-- Thumbnail -->
       <a [routerLink]="['/courses', course().id]" class="block">
         <div class="relative h-44 overflow-hidden">
-          @if (course().thumbnail && course().thumbnail.length > 1 && !course().thumbnail.includes('placeholder') && !course().thumbnail.includes('assets/')) {
+          @if (hasUsableThumbnail()) {
             <img
               [src]="course().thumbnail"
               [alt]="course().title"
-              (error)="$any($event.target).style.display='none'"
-              class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
+              (error)="markThumbnailFailed()"
+              class="relative z-10 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105">
           }
           <!-- Maritime gradient fallback -->
-          <div class="absolute inset-0 -z-10" [class]="getCategoryGradient(course().category)">
+          <div class="absolute inset-0" [class]="getCategoryGradient(course().category)">
             <svg class="absolute bottom-3 right-3 h-14 w-14 opacity-10" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="0.8">
               <circle cx="12" cy="12" r="10" />
               <path d="M12 2a14.5 14.5 0 000 20 14.5 14.5 0 000-20" />
@@ -29,12 +29,12 @@ import { CourseLevel, ExtendedCourse, LEVEL_LABELS } from '../../../shared/types
             </svg>
           </div>
           <!-- Category badge -->
-          <span class="absolute left-3 top-3 rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-medium text-gray-700 backdrop-blur-sm">
+          <span class="absolute left-3 top-3 z-20 rounded-md bg-white/90 px-2 py-0.5 text-[11px] font-medium text-gray-700 backdrop-blur-sm">
             {{ getCategoryName(course().category) }}
           </span>
           <!-- Price badge -->
           <span
-            class="absolute right-3 top-3 rounded-md px-2 py-0.5 text-[11px] font-bold backdrop-blur-sm"
+            class="absolute right-3 top-3 z-20 rounded-md px-2 py-0.5 text-[11px] font-bold backdrop-blur-sm"
             [class]="course().price === 0 ? 'bg-green-500/90 text-white' : 'bg-white/90 text-gray-900'">
             {{ course().price === 0 ? 'Miễn phí' : formatPrice(course().price) }}
           </span>
@@ -85,6 +85,7 @@ export class CourseCardComponent {
   readonly course = input.required<ExtendedCourse>();
   protected readonly authService = inject(AuthService);
   protected readonly enrollmentService = inject(StudentEnrollmentService);
+  private readonly failedThumbnailUrl = signal<string | null>(null);
 
   levelLabelSafe(level?: CourseLevel): string {
     if (!level) return '';
@@ -113,6 +114,19 @@ export class CourseCardComponent {
       cargo: 'bg-gradient-to-br from-teal-100 to-teal-50',
     };
     return map[category] || 'bg-gradient-to-br from-[#0056D2]/15 to-[#0056D2]/5';
+  }
+
+  hasUsableThumbnail(): boolean {
+    const thumbnail = this.course().thumbnail;
+    return !!thumbnail
+      && thumbnail.length > 1
+      && !thumbnail.includes('placeholder')
+      && !thumbnail.includes('assets/')
+      && this.failedThumbnailUrl() !== thumbnail;
+  }
+
+  markThumbnailFailed(): void {
+    this.failedThumbnailUrl.set(this.course().thumbnail || null);
   }
 
   formatPrice(price?: number): string {
