@@ -210,6 +210,64 @@ class AdaptiveVideoPlaybackServiceTest {
     }
 
     @Test
+    @DisplayName("createPlaybackSession marks media-domain edge segment delivery when enabled")
+    void createPlaybackSessionMarksMediaDomainEdgeDeliveryWhenEnabled() {
+        UUID assetId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String manifestKey = "video-packages/" + assetId + "/hls/master.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey(manifestKey)
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "media.holilihu.online/");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.normalizeFormat("hls")).thenReturn("hls");
+        when(videoPlaybackTokenService.mintToken(assetId, userId, "hls")).thenReturn("play-token");
+        when(videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled()).thenReturn(true);
+
+        Optional<AdaptiveVideoPlaybackService.PlaybackSession> session =
+                service.createPlaybackSession(assetId, userId, "hls");
+
+        assertThat(session).hasValueSatisfying(value -> {
+            assertThat(value.playUrl()).isEqualTo("/api/v3/video-assets/" + assetId + "/adaptive/play-token/hls/master.m3u8");
+            assertThat(value.cdnDeliveryMode()).isEqualTo("MEDIA_DOMAIN_EDGE");
+            assertThat(value.mediaDomainSegmentDeliveryEnabled()).isTrue();
+        });
+    }
+
+    @Test
+    @DisplayName("createPlaybackSession marks backend object proxy delivery when media domain is not enabled")
+    void createPlaybackSessionMarksBackendObjectProxyDeliveryWhenMediaDomainIsNotEnabled() {
+        UUID assetId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String manifestKey = "video-packages/" + assetId + "/dash/manifest.mpd";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .dashManifestStorageKey(manifestKey)
+                .build();
+
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.normalizeFormat("dash")).thenReturn("dash");
+        when(videoPlaybackTokenService.mintToken(assetId, userId, "dash")).thenReturn("play-token");
+
+        Optional<AdaptiveVideoPlaybackService.PlaybackSession> session =
+                service.createPlaybackSession(assetId, userId, "dash");
+
+        assertThat(session).hasValueSatisfying(value -> {
+            assertThat(value.playUrl()).isEqualTo("/api/v3/video-assets/" + assetId + "/adaptive/play-token/dash/manifest.mpd");
+            assertThat(value.cdnDeliveryMode()).isEqualTo("BACKEND_OBJECT_PROXY");
+            assertThat(value.mediaDomainSegmentDeliveryEnabled()).isFalse();
+        });
+    }
+
+    @Test
     @DisplayName("resolveObjectRedirect returns a short-lived signed storage URL")
     void resolveObjectRedirectUsesVideoStorageReadUrl() {
         UUID assetId = UUID.randomUUID();

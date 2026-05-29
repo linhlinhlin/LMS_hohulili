@@ -30,6 +30,8 @@ export class SectionApi {
       videoAssetId: string;
       videoSourceKind: string;
       format: 'hls' | 'dash';
+      cdnDeliveryMode?: string;
+      mediaDomainSegmentDeliveryEnabled?: boolean;
       sectionId: string;
     }>(SECTION_ENDPOINTS.GET_STREAM_PLAY_URL(sectionId), {
       params: { format },

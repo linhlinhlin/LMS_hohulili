@@ -27,6 +27,7 @@ import {
   canUseNativeHlsForManifest,
   shouldPreferNativeHlsForManifest,
 } from '../../../core/utils/video-playback-platform';
+import { extractAdaptivePlaybackHttpStatus } from '../../../core/utils/video-stream-recovery';
 import type {
   InteractiveVideoChoice,
   InteractiveVideoInteraction,
@@ -36,6 +37,15 @@ import type {
 type ResolvedSource =
   | { kind: 'native'; url: string }
   | { kind: 'adaptive'; url: string };
+
+interface PlaybackSessionMetadata {
+  playUrl: string;
+  videoAssetId?: string | null;
+  videoSourceKind?: string | null;
+  format?: string | null;
+  cdnDeliveryMode?: string | null;
+  mediaDomainSegmentDeliveryEnabled?: boolean | null;
+}
 
 /**
  * Lightweight Shaka Player wrapper for quiz video blocks.
@@ -190,6 +200,9 @@ export class QuizVideoPlayerComponent {
 
   private shakaPlayer: any = null;
   private loadToken = 0;
+  private activeAdaptiveManifestUrl: string | null = null;
+  private activeCdnDeliveryMode: string | null = null;
+  private activeMediaDomainSegmentDeliveryEnabled: boolean | null = null;
   private readonly shownInteractionIds = new Set<string>();
   private readonly completedInteractionIds = new Set<string>();
   private watchedRanges: InteractiveVideoWatchedRange[] = [];
@@ -393,6 +406,9 @@ export class QuizVideoPlayerComponent {
     this.isProcessing.set(false);
     this.isLoading.set(true);
     this.qualityLabel.set(null);
+    this.activeAdaptiveManifestUrl = null;
+    this.activeCdnDeliveryMode = null;
+    this.activeMediaDomainSegmentDeliveryEnabled = null;
     this.videoDurationSeconds.set(null);
     this.currentTimeSeconds.set(0);
 
@@ -437,8 +453,10 @@ export class QuizVideoPlayerComponent {
         if (asset?.status === 'READY') {
           const res: any = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId, 'hls'));
           const data = res?.data ?? res;
-          if (data?.playUrl) {
-            return { kind: 'adaptive', url: data.playUrl };
+          const session = this.readPlaybackSession(data, 'hls');
+          if (session) {
+            this.rememberPlaybackSession(session, 'asset-hls');
+            return { kind: 'adaptive', url: session.playUrl };
           }
         }
         // Asset exists but not READY → return null, caller sets isProcessing UI.
@@ -460,7 +478,78 @@ export class QuizVideoPlayerComponent {
     return null;
   }
 
+  private readPlaybackSession(data: any, requestedFormat: 'hls' | 'dash'): PlaybackSessionMetadata | null {
+    if (!data || typeof data.playUrl !== 'string' || !data.playUrl.trim()) {
+      return null;
+    }
+
+    return {
+      playUrl: data.playUrl,
+      videoAssetId: this.readPlaybackString(data.videoAssetId),
+      videoSourceKind: this.readPlaybackString(data.videoSourceKind),
+      format: this.readPlaybackString(data.format) ?? requestedFormat,
+      cdnDeliveryMode: this.readPlaybackString(data.cdnDeliveryMode),
+      mediaDomainSegmentDeliveryEnabled: typeof data.mediaDomainSegmentDeliveryEnabled === 'boolean'
+        ? data.mediaDomainSegmentDeliveryEnabled
+        : null,
+    };
+  }
+
+  private rememberPlaybackSession(session: PlaybackSessionMetadata, source: string): void {
+    this.activeCdnDeliveryMode = session.cdnDeliveryMode ?? null;
+    this.activeMediaDomainSegmentDeliveryEnabled = session.mediaDomainSegmentDeliveryEnabled ?? null;
+    this.logCdnPlaybackDiagnostic('session-resolved', {
+      source,
+      format: session.format,
+      videoAssetId: session.videoAssetId,
+      videoSourceKind: session.videoSourceKind,
+    });
+  }
+
+  private readPlaybackString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private logCdnPlaybackDiagnostic(event: string, details: Record<string, unknown> = {}): void {
+    if (typeof console === 'undefined') {
+      return;
+    }
+
+    console.debug('[QuizVideoPlayer] CDN playback', {
+      event,
+      cdnDeliveryMode: this.activeCdnDeliveryMode,
+      mediaDomainSegmentDeliveryEnabled: this.activeMediaDomainSegmentDeliveryEnabled,
+      manifestUrl: this.redactAdaptiveManifestUrl(this.activeAdaptiveManifestUrl),
+      ...details,
+    });
+  }
+
+  private warnCdnPlaybackIssue(reason: string, error?: unknown): void {
+    if (typeof console === 'undefined') {
+      return;
+    }
+
+    console.warn('[QuizVideoPlayer] CDN playback issue', {
+      reason,
+      status: extractAdaptivePlaybackHttpStatus(error),
+      cdnDeliveryMode: this.activeCdnDeliveryMode,
+      mediaDomainSegmentDeliveryEnabled: this.activeMediaDomainSegmentDeliveryEnabled,
+      manifestUrl: this.redactAdaptiveManifestUrl(this.activeAdaptiveManifestUrl),
+    });
+  }
+
+  private redactAdaptiveManifestUrl(manifestUrl: string | null): string | null {
+    if (!manifestUrl) {
+      return null;
+    }
+
+    return manifestUrl
+      .replace(/\/adaptive\/[^/]+/i, '/adaptive/<redacted>')
+      .replace(/([?&](?:token|verify)=)[^&]+/gi, '$1<redacted>');
+  }
+
   private async initializeShaka(videoElement: HTMLVideoElement, manifestUrl: string): Promise<void> {
+    this.activeAdaptiveManifestUrl = manifestUrl;
     if (canUseNativeHlsForManifest(manifestUrl, videoElement)) {
       this.loadNativeHls(videoElement, manifestUrl);
       return;
@@ -472,6 +561,7 @@ export class QuizVideoPlayerComponent {
 
     if (!shaka.Player.isBrowserSupported()) {
       // Fallback to native
+      this.activeAdaptiveManifestUrl = manifestUrl;
       videoElement.src = manifestUrl;
       videoElement.load();
       this.isLoading.set(false);
@@ -513,13 +603,15 @@ export class QuizVideoPlayerComponent {
       this.syncQuality(player);
     });
 
-    player.addEventListener('error', () => {
+    player.addEventListener('error', (event: any) => {
+      this.warnCdnPlaybackIssue('shaka-player-error', event?.detail ?? event);
       this.error.set('Luồng phát thích ứng hiện không phản hồi.');
       this.isLoading.set(false);
     });
 
     try {
       await player.load(manifestUrl);
+      this.activeAdaptiveManifestUrl = manifestUrl;
     } catch (hlsError) {
       // Shaka HLS support occasionally trips on multivariant manifests with
       // I-frame playlists; DASH is the canonical fallback from the same
@@ -527,9 +619,14 @@ export class QuizVideoPlayerComponent {
       const assetId = this.videoAssetId();
       if (!assetId) throw hlsError;
       const dashRes: any = await firstValueFrom(this.videoAssetApi.getPlayUrl(assetId, 'dash'));
-      const dashUrl = (dashRes?.data ?? dashRes)?.playUrl;
+      const dashSession = this.readPlaybackSession(dashRes?.data ?? dashRes, 'dash');
+      if (dashSession) {
+        this.rememberPlaybackSession(dashSession, 'asset-dash-fallback');
+      }
+      const dashUrl = dashSession?.playUrl;
       if (!dashUrl || dashUrl === manifestUrl) throw hlsError;
       await player.load(dashUrl);
+      this.activeAdaptiveManifestUrl = dashUrl;
     }
     this.shakaPlayer = player;
     this.syncQuality(player);
@@ -538,6 +635,7 @@ export class QuizVideoPlayerComponent {
 
   private loadNativeHls(videoElement: HTMLVideoElement, manifestUrl: string): void {
     this.shakaPlayer = null;
+    this.activeAdaptiveManifestUrl = manifestUrl;
     this.availableQualities.set([]);
     this.isAutoQuality.set(true);
     this.qualityLabel.set(null);

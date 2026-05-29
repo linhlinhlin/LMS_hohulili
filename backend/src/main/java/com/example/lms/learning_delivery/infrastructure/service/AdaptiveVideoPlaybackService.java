@@ -51,11 +51,14 @@ public class AdaptiveVideoPlaybackService {
         }
 
         String token = videoPlaybackTokenService.mintToken(assetId, userId, format);
+        CdnDeliveryMode cdnDeliveryMode = resolveCdnDeliveryMode();
         return Optional.of(new PlaybackSession(
                 buildManifestUrl(assetId, token, format, manifestKey),
                 assetId,
                 "ADAPTIVE_R2",
-                format
+                format,
+                cdnDeliveryMode.name(),
+                cdnDeliveryMode.mediaDomainSegmentDeliveryEnabled()
         ));
     }
 
@@ -248,6 +251,12 @@ public class AdaptiveVideoPlaybackService {
         return normalizedMediaDomain() != null && videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled();
     }
 
+    private CdnDeliveryMode resolveCdnDeliveryMode() {
+        return isMediaDomainObjectDeliveryEnabled()
+                ? CdnDeliveryMode.MEDIA_DOMAIN_EDGE
+                : CdnDeliveryMode.BACKEND_OBJECT_PROXY;
+    }
+
     private String buildMediaObjectUrl(String storageKey) {
         String requestPath = "/" + storageKey;
         String verifyToken = videoPlaybackTokenService.mintEdgeObjectToken(requestPath);
@@ -351,6 +360,23 @@ public class AdaptiveVideoPlaybackService {
             String playUrl,
             UUID videoAssetId,
             String videoSourceKind,
-            String format
+            String format,
+            String cdnDeliveryMode,
+            boolean mediaDomainSegmentDeliveryEnabled
     ) {}
+
+    private enum CdnDeliveryMode {
+        MEDIA_DOMAIN_EDGE(true),
+        BACKEND_OBJECT_PROXY(false);
+
+        private final boolean mediaDomainSegmentDeliveryEnabled;
+
+        CdnDeliveryMode(boolean mediaDomainSegmentDeliveryEnabled) {
+            this.mediaDomainSegmentDeliveryEnabled = mediaDomainSegmentDeliveryEnabled;
+        }
+
+        boolean mediaDomainSegmentDeliveryEnabled() {
+            return mediaDomainSegmentDeliveryEnabled;
+        }
+    }
 }

@@ -43,6 +43,7 @@ import {
   shouldPreferNativeHlsForManifest,
 } from '../../../../core/utils/video-playback-platform';
 import {
+  extractAdaptivePlaybackHttpStatus,
   isRecoverableAdaptiveStreamError,
   resolvePlaybackManifestFormat,
   shouldRefreshAdaptivePlaybackUrl,
@@ -58,6 +59,15 @@ import type {
 type ResolvedVideoSource =
   | { kind: 'native'; url: string }
   | { kind: 'adaptive'; url: string };
+
+interface AdaptivePlaybackSession {
+  playUrl: string;
+  videoAssetId?: string | null;
+  videoSourceKind?: string | null;
+  format?: string | null;
+  cdnDeliveryMode?: string | null;
+  mediaDomainSegmentDeliveryEnabled?: boolean | null;
+}
 
 export interface MediaNetworkHintState {
   online: boolean;
@@ -287,6 +297,8 @@ export class AdaptiveVideoPlayerComponent {
   private offlineBlobUrl: string | null = null;
   private attemptedOfflineBlobFallback = false;
   private activeAdaptiveManifestUrl: string | null = null;
+  private activeCdnDeliveryMode: string | null = null;
+  private activeMediaDomainSegmentDeliveryEnabled: boolean | null = null;
   private attemptedPlaybackUrlRefresh = false;
   private readonly offlineBlobFallbackLimitBytes = 220 * 1024 * 1024;
   private readonly shownInteractionIds = new Set<string>();
@@ -458,6 +470,8 @@ export class AdaptiveVideoPlayerComponent {
     this.startupRecorded = false;
     this.attemptedOfflineBlobFallback = false;
     this.activeAdaptiveManifestUrl = null;
+    this.activeCdnDeliveryMode = null;
+    this.activeMediaDomainSegmentDeliveryEnabled = null;
     this.attemptedPlaybackUrlRefresh = false;
     this.videoDurationSeconds.set(null);
     this.currentTimeSeconds.set(0);
@@ -513,16 +527,16 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     if (this.shouldUseAdaptivePlayback()) {
-      const playUrl = await this.resolveAdaptivePlayUrl();
-      if (playUrl) {
-        return { kind: 'adaptive', url: playUrl };
+      const session = await this.resolveAdaptivePlaybackSession();
+      if (session) {
+        return { kind: 'adaptive', url: session.playUrl };
       }
     }
 
     if (this.streamVideoUid()) {
-      const playUrl = await this.resolveLegacyStreamPlaybackUrl();
-      if (playUrl) {
-        return { kind: 'adaptive', url: playUrl };
+      const session = await this.resolveAdaptivePlaybackSession('hls');
+      if (session) {
+        return { kind: 'adaptive', url: session.playUrl };
       }
     }
 
@@ -605,6 +619,7 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     if (this.shouldShowPlaybackErrorAfterRefreshExhausted(error)) {
+      this.warnAdaptivePlaybackRecovery('playback-url-refresh-exhausted', error);
       this.showVideoPlaybackError(false);
     }
   }
@@ -639,6 +654,7 @@ export class AdaptiveVideoPlayerComponent {
     }
 
     this.attemptedPlaybackUrlRefresh = true;
+    this.warnAdaptivePlaybackRecovery('refreshing-playback-url', error);
     const refreshToken = this.sourceLoadToken();
     const format: VideoPlaybackManifestFormat = resolvePlaybackManifestFormat(manifestUrl);
     const resumeAtSeconds = Number.isFinite(video.currentTime) && video.currentTime > 0
@@ -736,12 +752,16 @@ export class AdaptiveVideoPlayerComponent {
     this.offlineBlobUrl = null;
   }
 
-  private async resolveAdaptivePlayUrl(format: 'hls' | 'dash' = 'hls'): Promise<string | null> {
+  private async resolveAdaptivePlaybackSession(format: 'hls' | 'dash' = 'hls'): Promise<AdaptivePlaybackSession | null> {
     const sectionId = this.sectionId();
     if (sectionId) {
       try {
         const response: any = await firstValueFrom(this.sectionApi.getVideoPlayUrl(sectionId, format));
-        return response?.playUrl ?? response?.data?.playUrl ?? null;
+        const session = this.readAdaptivePlaybackSession(response, format);
+        if (session) {
+          this.rememberAdaptivePlaybackSession(session, 'section');
+          return session;
+        }
       } catch {
         // Fall back to lesson endpoint below.
       }
@@ -753,14 +773,92 @@ export class AdaptiveVideoPlayerComponent {
           params: { format },
         })
       );
-      return response?.playUrl ?? response?.data?.playUrl ?? null;
+      const session = this.readAdaptivePlaybackSession(response, format);
+      if (session) {
+        this.rememberAdaptivePlaybackSession(session, 'lesson');
+      }
+      return session;
     } catch {
       return null;
     }
   }
 
-  private async resolveLegacyStreamPlaybackUrl(): Promise<string | null> {
-    return this.resolveAdaptivePlayUrl('hls');
+  private async resolveAdaptivePlayUrl(format: 'hls' | 'dash' = 'hls'): Promise<string | null> {
+    return (await this.resolveAdaptivePlaybackSession(format))?.playUrl ?? null;
+  }
+
+  private readAdaptivePlaybackSession(
+    response: any,
+    requestedFormat: 'hls' | 'dash',
+  ): AdaptivePlaybackSession | null {
+    const data = response?.data ?? response;
+    if (!data || typeof data.playUrl !== 'string' || !data.playUrl.trim()) {
+      return null;
+    }
+
+    return {
+      playUrl: data.playUrl,
+      videoAssetId: this.readPlaybackString(data.videoAssetId),
+      videoSourceKind: this.readPlaybackString(data.videoSourceKind),
+      format: this.readPlaybackString(data.format) ?? requestedFormat,
+      cdnDeliveryMode: this.readPlaybackString(data.cdnDeliveryMode),
+      mediaDomainSegmentDeliveryEnabled: typeof data.mediaDomainSegmentDeliveryEnabled === 'boolean'
+        ? data.mediaDomainSegmentDeliveryEnabled
+        : null,
+    };
+  }
+
+  private rememberAdaptivePlaybackSession(session: AdaptivePlaybackSession, source: 'section' | 'lesson'): void {
+    this.activeCdnDeliveryMode = session.cdnDeliveryMode ?? null;
+    this.activeMediaDomainSegmentDeliveryEnabled = session.mediaDomainSegmentDeliveryEnabled ?? null;
+    this.logAdaptivePlaybackDiagnostic('session-resolved', {
+      source,
+      format: session.format,
+      videoAssetId: session.videoAssetId,
+      videoSourceKind: session.videoSourceKind,
+    });
+  }
+
+  private readPlaybackString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim() ? value.trim() : null;
+  }
+
+  private logAdaptivePlaybackDiagnostic(event: string, details: Record<string, unknown> = {}): void {
+    if (typeof console === 'undefined') {
+      return;
+    }
+
+    console.debug('[AdaptiveVideoPlayer] CDN playback', {
+      event,
+      cdnDeliveryMode: this.activeCdnDeliveryMode,
+      mediaDomainSegmentDeliveryEnabled: this.activeMediaDomainSegmentDeliveryEnabled,
+      manifestUrl: this.redactAdaptiveManifestUrl(this.activeAdaptiveManifestUrl),
+      ...details,
+    });
+  }
+
+  private warnAdaptivePlaybackRecovery(reason: string, error?: unknown): void {
+    if (typeof console === 'undefined') {
+      return;
+    }
+
+    console.warn('[AdaptiveVideoPlayer] CDN playback recovery', {
+      reason,
+      status: extractAdaptivePlaybackHttpStatus(error),
+      cdnDeliveryMode: this.activeCdnDeliveryMode,
+      mediaDomainSegmentDeliveryEnabled: this.activeMediaDomainSegmentDeliveryEnabled,
+      manifestUrl: this.redactAdaptiveManifestUrl(this.activeAdaptiveManifestUrl),
+    });
+  }
+
+  private redactAdaptiveManifestUrl(manifestUrl: string | null): string | null {
+    if (!manifestUrl) {
+      return null;
+    }
+
+    return manifestUrl
+      .replace(/\/adaptive\/[^/]+/i, '/adaptive/<redacted>')
+      .replace(/([?&](?:token|verify)=)[^&]+/gi, '$1<redacted>');
   }
 
   private async initializeShaka(

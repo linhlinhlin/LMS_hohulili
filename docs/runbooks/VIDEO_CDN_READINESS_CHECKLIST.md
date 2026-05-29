@@ -32,6 +32,7 @@ Before treating media-domain delivery as production-ready, confirm:
 - `.env.prod` has `VIDEO_CDN_REQUIRED=true` after the media Worker/custom domain is provisioned.
 - Manifest URLs still require LMS auth.
 - Segment URLs use the media custom domain when `app.video.edge-auth-mode=media_hmac_query`.
+- Playback session APIs expose `cdnDeliveryMode=MEDIA_DOMAIN_EDGE` and `mediaDomainSegmentDeliveryEnabled=true`.
 - Unsigned segment requests return `403`.
 - Signed segment requests return `200`.
 - Repeated signed full-object requests expose `X-Edge-Cache: MISS` then `X-Edge-Cache: HIT`.
@@ -44,14 +45,17 @@ curl -I "https://media.example.com/video-packages/{assetId}/segments/standard/in
 curl -I "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
 curl -I "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
 curl -I -H "Range: bytes=0-1023" "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
+curl -s -H "Authorization: Bearer {lms-token}" "https://app.example.com/api/v3/video-assets/{assetId}/play?format=hls"
 ```
 
 Expected results:
 
+- playback session: `playUrl` is a backend manifest URL, `cdnDeliveryMode` is `MEDIA_DOMAIN_EDGE`, and `mediaDomainSegmentDeliveryEnabled` is `true`
 - no token: `403`
 - first signed full-object request: `200`, `Cache-Control: public, max-age=31536000, immutable`, `X-Edge-Cache: MISS`
 - second signed full-object request: `200`, `X-Edge-Cache: HIT`
 - signed range request: `206`, `Content-Range`, `X-Edge-Cache: MISS`
+- browser DevTools: lesson and quiz players emit `[AdaptiveVideoPlayer] CDN playback` or `[QuizVideoPlayer] CDN playback` diagnostics with the same `cdnDeliveryMode`
 
 Local Worker regression test:
 
