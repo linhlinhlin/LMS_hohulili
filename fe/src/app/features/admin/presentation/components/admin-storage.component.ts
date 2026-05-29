@@ -1,8 +1,8 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { AdminStorageApi, PendingReviewItem, StorageHealth } from '../../../../api/client/admin-storage.api';
+import { AdminStorageApi, PendingReviewItem, StorageHealth, VideoCdnHealth } from '../../../../api/client/admin-storage.api';
 import { ToastService } from '../../../../core/services/toast.service';
-import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
+import { KpiCardComponent, type KpiVariant } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 
 /**
  * Admin Storage Console — `/admin/storage`.
@@ -37,6 +37,8 @@ export class AdminStorageComponent implements OnInit {
     const h = this.health();
     return !!h && h.publicBucket.reachable && h.videoBucket.reachable;
   });
+
+  readonly videoCdnReady = computed(() => this.health()?.videoCdn?.cdnSegmentDeliveryReady === true);
 
   ngOnInit(): void {
     this.refresh();
@@ -106,5 +108,32 @@ export class AdminStorageComponent implements OnInit {
   formatDate(iso: string | null | undefined): string {
     if (!iso) return '—';
     return new Date(iso).toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' });
+  }
+
+  cdnStatusLabel(cdn: VideoCdnHealth | null | undefined): string {
+    if (!cdn) return 'CHƯA CÓ DỮ LIỆU';
+    if (cdn.cdnSegmentDeliveryReady) return 'CDN EDGE';
+    return cdn.cdnRequired ? 'CẦN CẤU HÌNH' : 'FALLBACK';
+  }
+
+  cdnStatusVariant(cdn: VideoCdnHealth | null | undefined): KpiVariant {
+    if (!cdn) return 'default';
+    if (cdn.cdnSegmentDeliveryReady) return 'success';
+    return cdn.cdnRequired ? 'error' : 'warning';
+  }
+
+  cdnStatusSub(cdn: VideoCdnHealth | null | undefined): string {
+    if (!cdn) return 'Chưa nhận được trạng thái CDN';
+    if (cdn.cdnSegmentDeliveryReady) {
+      return `${cdn.mediaDomain || 'media domain'} - token ${cdn.edgeTokenExpirySeconds}s`;
+    }
+    if (cdn.requiredActions?.length) {
+      return cdn.requiredActions.slice(0, 2).join(' - ');
+    }
+    return cdn.cdnRequired ? 'CDN bắt buộc nhưng chưa sẵn sàng' : 'Đang phát qua backend proxy';
+  }
+
+  cdnRequiredActions(cdn: VideoCdnHealth | null | undefined): string[] {
+    return cdn?.requiredActions ?? [];
   }
 }
