@@ -35,6 +35,9 @@ public class VideoPipelineStartupValidator {
     @Value("${app.video.edge-token-expiry-seconds:300}")
     private long edgeTokenExpirySeconds;
 
+    @Value("${app.video.manifest-cache-seconds:60}")
+    private long manifestCacheSeconds;
+
     public VideoPipelineStartupValidator(Environment environment) {
         this.environment = environment;
     }
@@ -50,7 +53,8 @@ public class VideoPipelineStartupValidator {
         if (videoCdnRequired && !cdnReady) {
             throw new IllegalStateException(
                     "VIDEO_CDN_REQUIRED=true but media-domain edge auth is not ready. " +
-                            "Set VIDEO_MEDIA_DOMAIN, VIDEO_EDGE_AUTH_MODE=media_hmac_query, and VIDEO_EDGE_HMAC_SECRET."
+                            "Set VIDEO_MEDIA_DOMAIN, VIDEO_EDGE_AUTH_MODE=media_hmac_query, VIDEO_EDGE_HMAC_SECRET, " +
+                            "and keep VIDEO_EDGE_TOKEN_EXPIRY_SECONDS greater than VIDEO_MANIFEST_CACHE_SECONDS."
             );
         }
 
@@ -88,7 +92,11 @@ public class VideoPipelineStartupValidator {
         return hasText(mediaDomain)
                 && "media_hmac_query".equals(normalizeEdgeAuthMode(edgeAuthMode))
                 && hasText(edgeHmacSecret)
-                && edgeTokenExpirySeconds > 0;
+                && edgeTokenExpirySeconds > effectiveManifestCacheSeconds();
+    }
+
+    private long effectiveManifestCacheSeconds() {
+        return Math.max(10L, manifestCacheSeconds);
     }
 
     private String normalizeEdgeAuthMode(String mode) {

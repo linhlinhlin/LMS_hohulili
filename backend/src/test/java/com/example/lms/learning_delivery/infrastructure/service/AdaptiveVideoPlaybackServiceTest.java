@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -171,6 +173,69 @@ class AdaptiveVideoPlaybackServiceTest {
                 .contains("https://media.holilihu.online/video-packages/" + assetId + "/segments/audio/init.mp4?verify=")
                 .contains("https://media.holilihu.online/video-packages/" + assetId + "/segments/audio/$Number$.m4s?verify=")
                 .doesNotContain("/object?key=");
+    }
+
+    @Test
+    @DisplayName("renderHlsManifest rejects playlist references outside the video package")
+    void renderHlsManifestRejectsReferencesOutsidePackage() {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/hls/standard.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey("video-packages/" + assetId + "/hls/master.m3u8")
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "https://media.holilihu.online");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                #EXTM3U
+                #EXT-X-MAP:URI="../../other-package/segments/init.mp4"
+                #EXTINF:6.0,
+                ../../other-package/segments/segment1.m4s
+                """);
+
+        assertThatThrownBy(() -> service.renderHlsManifest(assetId, token, manifestKey))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("outside of the video package");
+        verify(videoPlaybackTokenService, never()).mintEdgeObjectToken(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("renderDashManifest rejects media references outside the video package")
+    void renderDashManifestRejectsReferencesOutsidePackage() {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/dash/manifest.mpd";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .dashManifestStorageKey(manifestKey)
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "https://media.holilihu.online");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "dash")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                <MPD>
+                  <Representation initialization="../../other-package/init.mp4" media="../../other-package/$Number$.m4s" />
+                </MPD>
+                """);
+
+        assertThatThrownBy(() -> service.renderDashManifest(assetId, token))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("outside of the video package");
+        verify(videoPlaybackTokenService, never()).mintEdgeObjectToken(org.mockito.ArgumentMatchers.anyString());
     }
 
     @Test

@@ -28,6 +28,7 @@ Before treating media-domain delivery as production-ready, confirm:
 - `/actuator/health` reports `targetStackReady=true`.
 - `/actuator/health` reports `mediaDomainConfigured=true`.
 - `/actuator/health` reports `edgeAuthConfigured=true`.
+- `/actuator/health` reports `edgeTokenFreshEnough=true`.
 - `/actuator/health` reports `cdnSegmentDeliveryReady=true`.
 - `.env.prod` has `VIDEO_CDN_REQUIRED=true` after the media Worker/custom domain is provisioned.
 - Manifest URLs still require LMS auth.
@@ -35,6 +36,8 @@ Before treating media-domain delivery as production-ready, confirm:
 - Playback session APIs expose `cdnDeliveryMode=MEDIA_DOMAIN_EDGE` and `mediaDomainSegmentDeliveryEnabled=true`.
 - Unsigned segment requests return `403`.
 - Signed segment requests return `200`.
+- Manifest references that resolve outside `video-packages/{assetId}/` are rejected instead of being signed for media-domain delivery.
+- `VIDEO_EDGE_TOKEN_EXPIRY_SECONDS` is greater than `VIDEO_MANIFEST_CACHE_SECONDS`, so cached manifests do not outlive their signed segment URLs.
 - Repeated signed full-object requests expose `X-Edge-Cache: MISS` then `X-Edge-Cache: HIT`.
 - `Range` requests return `206` and `Content-Range`; these should bypass Worker Cache API to avoid poisoning the full-object cache.
 - DASH SegmentTemplate requests still work after the player substitutes `$Number$` or `$Time$` into the media URL.

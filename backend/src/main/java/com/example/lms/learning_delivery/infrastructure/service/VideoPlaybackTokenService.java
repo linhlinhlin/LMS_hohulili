@@ -38,6 +38,9 @@ public class VideoPlaybackTokenService {
     @Value("${app.video.edge-token-expiry-seconds:300}")
     private long edgeTokenExpirySeconds;
 
+    @Value("${app.video.manifest-cache-seconds:60}")
+    private long manifestCacheSeconds;
+
     public String mintToken(UUID assetId, UUID userId, String format) {
         long now = System.currentTimeMillis();
         return Jwts.builder()
@@ -78,9 +81,13 @@ public class VideoPlaybackTokenService {
 
     public boolean isMediaDomainEdgeAuthEnabled() {
         return "media_hmac_query".equals(normalizeEdgeAuthMode(edgeAuthMode))
-                && edgeTokenExpirySeconds > 0
+                && edgeTokenExpirySeconds > effectiveManifestCacheSeconds()
                 && edgeHmacSecret != null
                 && !edgeHmacSecret.isBlank();
+    }
+
+    private long effectiveManifestCacheSeconds() {
+        return Math.max(10L, manifestCacheSeconds);
     }
 
     public String normalizeEdgeAuthMode(String mode) {

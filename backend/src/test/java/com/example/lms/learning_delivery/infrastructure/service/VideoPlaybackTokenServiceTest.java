@@ -27,11 +27,27 @@ class VideoPlaybackTokenServiceTest {
         ReflectionTestUtils.setField(service, "edgeAuthMode", "media_hmac_query");
         ReflectionTestUtils.setField(service, "edgeHmacSecret", "mysecrettoken");
         ReflectionTestUtils.setField(service, "edgeTokenExpirySeconds", 300L);
+        ReflectionTestUtils.setField(service, "manifestCacheSeconds", 60L);
 
         String token = service.mintEdgeObjectToken("/video-packages/asset-1/hls/segment1.m4s", 1_700_000_000L);
 
         assertThat(token).startsWith("1700000000-");
         String mac = token.substring(token.indexOf('-') + 1);
         assertThat(Base64.getDecoder().decode(mac)).isNotEmpty();
+    }
+
+    @Test
+    @DisplayName("media-domain edge auth is disabled when edge tokens do not outlive cached manifests")
+    void mediaDomainEdgeAuthRequiresTokenTtlLongerThanManifestCache() {
+        ReflectionTestUtils.setField(service, "edgeAuthMode", "media_hmac_query");
+        ReflectionTestUtils.setField(service, "edgeHmacSecret", "mysecrettoken");
+        ReflectionTestUtils.setField(service, "edgeTokenExpirySeconds", 60L);
+        ReflectionTestUtils.setField(service, "manifestCacheSeconds", 60L);
+
+        assertThat(service.isMediaDomainEdgeAuthEnabled()).isFalse();
+
+        ReflectionTestUtils.setField(service, "edgeTokenExpirySeconds", 61L);
+
+        assertThat(service.isMediaDomainEdgeAuthEnabled()).isTrue();
     }
 }

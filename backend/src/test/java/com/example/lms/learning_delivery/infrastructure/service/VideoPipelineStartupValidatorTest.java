@@ -13,7 +13,7 @@ class VideoPipelineStartupValidatorTest {
     @Test
     @DisplayName("prod startup fails fast when CDN is required but media edge auth is missing")
     void prodStartupFailsWhenRequiredCdnIsMissing() {
-        VideoPipelineStartupValidator validator = validator(true, "", "disabled", "", 300);
+        VideoPipelineStartupValidator validator = validator(true, "", "disabled", "", 300, 60);
 
         assertThatThrownBy(validator::validateProductionVideoPipeline)
                 .isInstanceOf(IllegalStateException.class)
@@ -28,10 +28,28 @@ class VideoPipelineStartupValidatorTest {
                 "https://media.holilihu.online",
                 "media_hmac_query",
                 "secret",
-                300
+                300,
+                60
         );
 
         assertThatCode(validator::validateProductionVideoPipeline).doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("prod startup fails fast when edge token TTL does not outlive cached manifests")
+    void prodStartupFailsWhenEdgeTokenTtlDoesNotOutliveManifestCache() {
+        VideoPipelineStartupValidator validator = validator(
+                true,
+                "https://media.holilihu.online",
+                "media_hmac_query",
+                "secret",
+                60,
+                60
+        );
+
+        assertThatThrownBy(validator::validateProductionVideoPipeline)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("VIDEO_EDGE_TOKEN_EXPIRY_SECONDS");
     }
 
     private VideoPipelineStartupValidator validator(
@@ -39,7 +57,8 @@ class VideoPipelineStartupValidatorTest {
             String mediaDomain,
             String edgeAuthMode,
             String edgeHmacSecret,
-            long edgeTokenExpirySeconds
+            long edgeTokenExpirySeconds,
+            long manifestCacheSeconds
     ) {
         MockEnvironment environment = new MockEnvironment();
         environment.setActiveProfiles("prod");
@@ -55,6 +74,7 @@ class VideoPipelineStartupValidatorTest {
         ReflectionTestUtils.setField(validator, "edgeAuthMode", edgeAuthMode);
         ReflectionTestUtils.setField(validator, "edgeHmacSecret", edgeHmacSecret);
         ReflectionTestUtils.setField(validator, "edgeTokenExpirySeconds", edgeTokenExpirySeconds);
+        ReflectionTestUtils.setField(validator, "manifestCacheSeconds", manifestCacheSeconds);
         return validator;
     }
 }

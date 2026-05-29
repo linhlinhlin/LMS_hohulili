@@ -29,7 +29,8 @@ class AdminStorageControllerV3Test {
                 "https://media.holilihu.online/",
                 "media_hmac_query",
                 "secret-value",
-                "300"
+                "300",
+                "60"
         );
         when(fileRepository.count()).thenReturn(7L);
         when(fileRepository.findOrphanedBefore(any(Instant.class))).thenReturn(List.of());
@@ -46,6 +47,8 @@ class AdminStorageControllerV3Test {
                 .containsEntry("edgeAuthMode", "media_hmac_query")
                 .containsEntry("edgeAuthConfigured", true)
                 .containsEntry("edgeTokenExpirySeconds", 300L)
+                .containsEntry("manifestCacheSeconds", 60L)
+                .containsEntry("edgeTokenFreshEnough", true)
                 .containsEntry("status", "READY");
         assertThat(videoCdn).doesNotContainKey("edgeHmacSecret");
         assertThat(videoCdn.get("requiredActions")).isEqualTo(List.of());
@@ -59,7 +62,8 @@ class AdminStorageControllerV3Test {
                 "",
                 "disabled",
                 "",
-                "300"
+                "300",
+                "60"
         );
         when(fileRepository.count()).thenReturn(7L);
         when(fileRepository.findOrphanedBefore(any(Instant.class))).thenReturn(List.of());
@@ -80,12 +84,38 @@ class AdminStorageControllerV3Test {
                 );
     }
 
+    @Test
+    @DisplayName("health marks CDN misconfigured when edge tokens expire before cached manifests")
+    void healthMarksCdnMisconfiguredWhenEdgeTokenTtlIsTooShort() {
+        AdminStorageControllerV3 controller = newController(
+                true,
+                "https://media.holilihu.online/",
+                "media_hmac_query",
+                "secret-value",
+                "60",
+                "60"
+        );
+        when(fileRepository.count()).thenReturn(7L);
+        when(fileRepository.findOrphanedBefore(any(Instant.class))).thenReturn(List.of());
+
+        Map<String, Object> videoCdn = nestedMap(controller.health().getBody().getData(), "videoCdn");
+
+        assertThat(videoCdn)
+                .containsEntry("cdnSegmentDeliveryReady", false)
+                .containsEntry("edgeAuthConfigured", true)
+                .containsEntry("edgeTokenFreshEnough", false)
+                .containsEntry("status", "MISCONFIGURED");
+        assertThat(stringList(videoCdn, "requiredActions"))
+                .contains("Set VIDEO_EDGE_TOKEN_EXPIRY_SECONDS greater than VIDEO_MANIFEST_CACHE_SECONDS");
+    }
+
     private AdminStorageControllerV3 newController(
             boolean cdnRequired,
             String mediaDomain,
             String edgeAuthMode,
             String edgeHmacSecret,
-            String edgeTokenTtlSeconds
+            String edgeTokenTtlSeconds,
+            String manifestCacheSeconds
     ) {
         return new AdminStorageControllerV3(
                 fileRepository,
@@ -97,7 +127,8 @@ class AdminStorageControllerV3Test {
                 mediaDomain,
                 edgeAuthMode,
                 edgeHmacSecret,
-                edgeTokenTtlSeconds
+                edgeTokenTtlSeconds,
+                manifestCacheSeconds
         );
     }
 

@@ -39,6 +39,7 @@ public class AdminStorageControllerV3 {
     private final String videoEdgeAuthMode;
     private final String videoEdgeHmacSecret;
     private final String videoEdgeTokenExpirySeconds;
+    private final String videoManifestCacheSeconds;
 
     @Autowired
     public AdminStorageControllerV3(
@@ -51,7 +52,8 @@ public class AdminStorageControllerV3 {
             @Value("${app.video.media-domain:}") String videoMediaDomain,
             @Value("${app.video.edge-auth-mode:disabled}") String videoEdgeAuthMode,
             @Value("${app.video.edge-hmac-secret:}") String videoEdgeHmacSecret,
-            @Value("${app.video.edge-token-expiry-seconds:300}") String videoEdgeTokenExpirySeconds) {
+            @Value("${app.video.edge-token-expiry-seconds:300}") String videoEdgeTokenExpirySeconds,
+            @Value("${app.video.manifest-cache-seconds:60}") String videoManifestCacheSeconds) {
         this.fileRepository = fileRepository;
         this.r2Client = Optional.ofNullable(r2Client);
         this.publicBucket = publicBucket;
@@ -62,6 +64,7 @@ public class AdminStorageControllerV3 {
         this.videoEdgeAuthMode = videoEdgeAuthMode;
         this.videoEdgeHmacSecret = videoEdgeHmacSecret;
         this.videoEdgeTokenExpirySeconds = videoEdgeTokenExpirySeconds;
+        this.videoManifestCacheSeconds = videoManifestCacheSeconds;
     }
 
     @GetMapping("/health")
@@ -161,10 +164,13 @@ public class AdminStorageControllerV3 {
         boolean mediaDomainConfigured = hasText(videoMediaDomain);
         String edgeAuthMode = normalizeEdgeAuthMode(videoEdgeAuthMode);
         long tokenTtlSeconds = parsePositiveLong(videoEdgeTokenExpirySeconds, 300L);
+        long manifestCacheSeconds = parsePositiveLong(videoManifestCacheSeconds, 60L);
+        long effectiveManifestCacheSeconds = Math.max(10L, manifestCacheSeconds);
         boolean edgeAuthConfigured = "media_hmac_query".equals(edgeAuthMode)
                 && hasText(videoEdgeHmacSecret)
                 && tokenTtlSeconds > 0;
-        boolean cdnSegmentDeliveryReady = mediaDomainConfigured && edgeAuthConfigured;
+        boolean edgeTokenFreshEnough = tokenTtlSeconds > effectiveManifestCacheSeconds;
+        boolean cdnSegmentDeliveryReady = mediaDomainConfigured && edgeAuthConfigured && edgeTokenFreshEnough;
 
         List<String> requiredActions = new ArrayList<>();
         if (!mediaDomainConfigured) {
@@ -179,6 +185,9 @@ public class AdminStorageControllerV3 {
         if (tokenTtlSeconds <= 0) {
             requiredActions.add("Set VIDEO_EDGE_TOKEN_EXPIRY_SECONDS to a positive value");
         }
+        if (tokenTtlSeconds > 0 && !edgeTokenFreshEnough) {
+            requiredActions.add("Set VIDEO_EDGE_TOKEN_EXPIRY_SECONDS greater than VIDEO_MANIFEST_CACHE_SECONDS");
+        }
 
         Map<String, Object> status = new LinkedHashMap<>();
         status.put("cdnRequired", videoCdnRequired);
@@ -189,6 +198,8 @@ public class AdminStorageControllerV3 {
         status.put("edgeAuthMode", edgeAuthMode);
         status.put("edgeAuthConfigured", edgeAuthConfigured);
         status.put("edgeTokenExpirySeconds", tokenTtlSeconds);
+        status.put("manifestCacheSeconds", manifestCacheSeconds);
+        status.put("edgeTokenFreshEnough", edgeTokenFreshEnough);
         status.put("requiredActions", requiredActions);
         status.put("status", cdnSegmentDeliveryReady
                 ? "READY"

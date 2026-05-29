@@ -34,6 +34,8 @@ export interface VideoCdnHealth {
   edgeAuthMode: string;
   edgeAuthConfigured: boolean;
   edgeTokenExpirySeconds: number;
+  manifestCacheSeconds?: number;
+  edgeTokenFreshEnough?: boolean;
   requiredActions: string[];
   status: 'READY' | 'MISCONFIGURED' | 'FALLBACK' | string;
 }

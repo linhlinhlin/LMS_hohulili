@@ -125,7 +125,8 @@ export class AdminStorageComponent implements OnInit {
   cdnStatusSub(cdn: VideoCdnHealth | null | undefined): string {
     if (!cdn) return 'Chưa nhận được trạng thái CDN';
     if (cdn.cdnSegmentDeliveryReady) {
-      return `${cdn.mediaDomain || 'media domain'} - token ${cdn.edgeTokenExpirySeconds}s`;
+      const manifestTtl = cdn.manifestCacheSeconds ? ` - manifest ${cdn.manifestCacheSeconds}s` : '';
+      return `${cdn.mediaDomain || 'media domain'} - token ${cdn.edgeTokenExpirySeconds}s${manifestTtl}`;
     }
     if (cdn.requiredActions?.length) {
       return cdn.requiredActions.slice(0, 2).join(' - ');
