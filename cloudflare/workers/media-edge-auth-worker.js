@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const corsHeaders = buildCorsHeaders(env.MEDIA_ALLOWED_ORIGIN || "*");
+    const corsHeaders = buildCorsHeaders(env.MEDIA_ALLOWED_ORIGIN || "*", request.headers.get("Origin"));
 
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -140,8 +140,49 @@ async function isTimedHmacValid(pathname, verify, secret, expirySecondsRaw) {
     return false;
   }
 
-  const expectedMac = await hmacBase64(secret, `${pathname}${issuedAt}`);
-  return timingSafeEqual(expectedMac, macRaw);
+  for (const candidatePath of hmacPathCandidates(pathname)) {
+    const expectedMac = await hmacBase64(secret, `${candidatePath}${issuedAt}`);
+    if (timingSafeEqual(expectedMac, macRaw)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hmacPathCandidates(pathname) {
+  const candidates = [pathname];
+  for (const candidate of dashTemplatePathCandidates(pathname)) {
+    if (!candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+  return candidates;
+}
+
+function dashTemplatePathCandidates(pathname) {
+  const lowerPath = pathname.toLowerCase();
+  if (
+    !lowerPath.startsWith("/video-packages/")
+    || !lowerPath.includes("/segments/")
+    || !lowerPath.endsWith(".m4s")
+  ) {
+    return [];
+  }
+
+  const parts = pathname.split("/");
+  const fileName = parts[parts.length - 1];
+  const match = /^(.*?)(\d+)(\.[^/.]+)$/.exec(fileName);
+  if (!match) {
+    return [];
+  }
+
+  const prefix = match[1];
+  const extension = match[3];
+  return ["$Number$", "$Time$"].map((templateVariable) => {
+    const candidateParts = [...parts];
+    candidateParts[candidateParts.length - 1] = `${prefix}${templateVariable}${extension}`;
+    return candidateParts.join("/");
+  });
 }
 
 function hmacBase64(secret, message) {
@@ -174,12 +215,33 @@ function timingSafeEqual(left, right) {
   return result === 0;
 }
 
-function buildCorsHeaders(allowedOrigin) {
+function buildCorsHeaders(allowedOrigin, requestOrigin) {
   const headers = new Headers();
-  headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  const resolvedOrigin = resolveAllowedOrigin(allowedOrigin, requestOrigin);
+  if (resolvedOrigin) {
+    headers.set("Access-Control-Allow-Origin", resolvedOrigin);
+  }
   headers.set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Range,Content-Type");
   headers.set("Access-Control-Expose-Headers", "Accept-Ranges,Content-Length,Content-Type,Content-Range,ETag,X-Edge-Cache");
   headers.set("Vary", "Origin");
   return headers;
+}
+
+function resolveAllowedOrigin(allowedOrigin, requestOrigin) {
+  const allowedOrigins = String(allowedOrigin || "*")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (allowedOrigins.length === 0 || allowedOrigins.includes("*")) {
+    return "*";
+  }
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  if (!requestOrigin) {
+    return allowedOrigins[0];
+  }
+  return null;
 }

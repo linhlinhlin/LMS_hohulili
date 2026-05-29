@@ -12,7 +12,9 @@ binding = "MEDIA_BUCKET"
 bucket_name = "lms-storage"
 
 [vars]
-MEDIA_ALLOWED_ORIGIN = "https://holilihu.online"
+# Comma-separated allowlist is supported, for example:
+# "https://holilihu.online,https://www.holilihu.online"
+MEDIA_ALLOWED_ORIGIN = "https://holilihu.online,https://www.holilihu.online"
 MEDIA_EDGE_TOKEN_EXPIRY_SECONDS = "300"
 
 # Secrets:

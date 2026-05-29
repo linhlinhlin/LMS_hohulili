@@ -37,6 +37,8 @@ Before treating media-domain delivery as production-ready, confirm:
 - Signed segment requests return `200`.
 - Repeated signed full-object requests expose `X-Edge-Cache: MISS` then `X-Edge-Cache: HIT`.
 - `Range` requests return `206` and `Content-Range`; these should bypass Worker Cache API to avoid poisoning the full-object cache.
+- DASH SegmentTemplate requests still work after the player substitutes `$Number$` or `$Time$` into the media URL.
+- Browser requests from allowed LMS origins receive `Access-Control-Allow-Origin`; unlisted browser origins should not.
 
 Useful smoke commands:
 
@@ -45,6 +47,8 @@ curl -I "https://media.example.com/video-packages/{assetId}/segments/standard/in
 curl -I "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
 curl -I "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
 curl -I -H "Range: bytes=0-1023" "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
+curl -I -H "Origin: https://holilihu.online" "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
+curl -I -H "Origin: https://unexpected.example" "https://media.example.com/video-packages/{assetId}/segments/standard/init.mp4?verify={token}"
 curl -s -H "Authorization: Bearer {lms-token}" "https://app.example.com/api/v3/video-assets/{assetId}/play?format=hls"
 ```
 
@@ -55,6 +59,8 @@ Expected results:
 - first signed full-object request: `200`, `Cache-Control: public, max-age=31536000, immutable`, `X-Edge-Cache: MISS`
 - second signed full-object request: `200`, `X-Edge-Cache: HIT`
 - signed range request: `206`, `Content-Range`, `X-Edge-Cache: MISS`
+- allowed browser origin: `Access-Control-Allow-Origin: https://holilihu.online`
+- unlisted browser origin: no `Access-Control-Allow-Origin` header
 - browser DevTools: lesson and quiz players emit `[AdaptiveVideoPlayer] CDN playback` or `[QuizVideoPlayer] CDN playback` diagnostics with the same `cdnDeliveryMode`
 
 Local Worker regression test:
@@ -63,7 +69,7 @@ Local Worker regression test:
 node --test cloudflare/workers/media-edge-auth-worker.test.mjs
 ```
 
-This covers the token-before-cache rule, cache sharing across valid signed URLs, HEAD reads from cache, and ranged reads bypassing Worker Cache API.
+This covers the token-before-cache rule, cache sharing across valid signed URLs, HEAD reads from cache, ranged reads bypassing Worker Cache API, DASH SegmentTemplate token validation after `$Number$` substitution, and comma-separated CORS allowlists.
 
 ## 3. Cache policy
 
