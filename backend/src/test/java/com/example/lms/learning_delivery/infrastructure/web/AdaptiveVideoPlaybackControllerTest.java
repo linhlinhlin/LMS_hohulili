@@ -46,7 +46,11 @@ class AdaptiveVideoPlaybackControllerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(206);
         assertThat(response.getHeaders().getFirst(HttpHeaders.LOCATION)).isNull();
         assertThat(response.getHeaders().getFirst(HttpHeaders.ACCEPT_RANGES)).isEqualTo("bytes");
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL))
+                .isEqualTo("private, max-age=30, s-maxage=0, must-revalidate");
         assertThat(response.getHeaders().getFirst(HttpHeaders.CONTENT_RANGE)).isEqualTo("bytes 0-2/10");
+        assertThat(response.getHeaders().getFirst(HttpHeaders.VARY)).isEqualTo("Authorization, Cookie");
+        assertThat(response.getHeaders().getFirst("X-Content-Type-Options")).isEqualTo("nosniff");
         assertThat(response.getHeaders().getContentLength()).isEqualTo(bytes.length);
         assertThat(response.getHeaders().getContentType().toString()).isEqualTo("video/iso.segment");
         assertThat(response.getBody()).containsExactly(bytes);
@@ -70,6 +74,8 @@ class AdaptiveVideoPlaybackControllerTest {
         var response = controller.getObject(assetId, token, key, null);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL))
+                .isEqualTo("private, max-age=30, s-maxage=0, must-revalidate");
         assertThat(response.getHeaders().getContentType().toString()).isEqualTo("video/iso.segment");
     }
 
@@ -89,6 +95,9 @@ class AdaptiveVideoPlaybackControllerTest {
         var response = controller.headObject(assetId, token, key);
 
         assertThat(response.getStatusCode().value()).isEqualTo(200);
+        assertThat(response.getHeaders().getFirst(HttpHeaders.CACHE_CONTROL))
+                .isEqualTo("private, max-age=30, s-maxage=0, must-revalidate");
+        assertThat(response.getHeaders().getFirst("X-Content-Type-Options")).isEqualTo("nosniff");
         assertThat(response.getHeaders().getContentType().toString()).isEqualTo("video/mp4");
     }
 }

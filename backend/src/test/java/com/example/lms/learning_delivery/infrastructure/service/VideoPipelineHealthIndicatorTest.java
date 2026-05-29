@@ -27,6 +27,7 @@ class VideoPipelineHealthIndicatorTest {
         when(environment.getProperty("app.video.edge-token-expiry-seconds")).thenReturn("300");
         when(environment.getProperty("app.video.manifest-cache-seconds")).thenReturn("60");
         when(environment.getProperty("app.video.object-redirect-cache-seconds")).thenReturn("30");
+        when(environment.getProperty("app.video.segment-presign-ttl-seconds")).thenReturn("120");
         when(environment.getProperty("app.video.adaptive-segment-duration-seconds")).thenReturn("6");
 
         VideoPipelineHealthIndicator indicator = new VideoPipelineHealthIndicator(
@@ -48,6 +49,9 @@ class VideoPipelineHealthIndicatorTest {
                 .containsEntry("targetStackReady", true)
                 .containsEntry("cdnSegmentDeliveryReady", true)
                 .containsEntry("cdnDeliveryMode", "Custom media domain + edge HMAC segment delivery")
+                .containsEntry("edgeTokenExpirySeconds", 300L)
+                .containsEntry("effectiveManifestCacheSeconds", 60L)
+                .containsEntry("effectiveObjectRedirectCacheSeconds", 30L)
                 .containsEntry("onlinePlayback", "R2 + Shaka adaptive playback")
                 .containsEntry("binaryStorage", "R2 private video bucket");
     }

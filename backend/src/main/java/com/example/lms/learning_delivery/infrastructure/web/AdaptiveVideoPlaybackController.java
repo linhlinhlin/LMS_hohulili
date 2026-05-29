@@ -1,7 +1,9 @@
 package com.example.lms.learning_delivery.infrastructure.web;
 
 import com.example.lms.learning_delivery.infrastructure.service.AdaptiveVideoPlaybackService;
+import com.example.lms.learning_delivery.infrastructure.service.VideoPlaybackDeliveryPolicy;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,6 +25,12 @@ import java.util.UUID;
 public class AdaptiveVideoPlaybackController {
 
     private final AdaptiveVideoPlaybackService adaptiveVideoPlaybackService;
+
+    @Value("${app.video.object-redirect-cache-seconds:30}")
+    private long backendObjectCacheSeconds = 30L;
+
+    @Value("${app.video.segment-presign-ttl-seconds:120}")
+    private long segmentPresignTtlSeconds = 120L;
 
     @GetMapping(value = "/{assetId}/adaptive/{token}/hls/master.m3u8", produces = "application/vnd.apple.mpegurl")
     public ResponseEntity<String> getHlsMasterManifest(
@@ -67,7 +75,9 @@ public class AdaptiveVideoPlaybackController {
         ResponseEntity.BodyBuilder builder = ResponseEntity.status(status)
                 .contentLength(object.contentLength())
                 .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=30");
+                .header(HttpHeaders.CACHE_CONTROL, backendObjectCacheControl())
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.VARY, "Authorization, Cookie");
 
         if (object.contentRange() != null && !object.contentRange().isBlank()) {
             builder.header(HttpHeaders.CONTENT_RANGE, object.contentRange());
@@ -100,12 +110,22 @@ public class AdaptiveVideoPlaybackController {
         ResponseEntity.BodyBuilder builder = ResponseEntity.ok()
                 .contentLength(meta.size())
                 .header(HttpHeaders.ACCEPT_RANGES, "bytes")
-                .header(HttpHeaders.CACHE_CONTROL, "private, max-age=30");
+                .header(HttpHeaders.CACHE_CONTROL, backendObjectCacheControl())
+                .header("X-Content-Type-Options", "nosniff")
+                .header(HttpHeaders.VARY, "Authorization, Cookie");
         MediaType contentType = normalizePlaybackContentType(meta.contentType());
         if (contentType != null) {
             builder.contentType(contentType);
         }
         return builder.build();
+    }
+
+    private String backendObjectCacheControl() {
+        long effectiveSeconds = VideoPlaybackDeliveryPolicy.effectiveObjectRedirectCacheSeconds(
+                backendObjectCacheSeconds,
+                segmentPresignTtlSeconds
+        );
+        return VideoPlaybackDeliveryPolicy.privatePlaybackCacheControl(effectiveSeconds);
     }
 
     private MediaType normalizePlaybackContentType(String rawContentType) {
