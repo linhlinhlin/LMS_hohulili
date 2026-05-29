@@ -67,7 +67,14 @@ public class VideoAssetControllerV3 {
     ) {
         return adaptiveVideoPlaybackService.createPlaybackSession(assetId, user.getId(), format)
                 .map(session -> ResponseEntity.ok(ApiResponse.success(
-                        new PlaybackResponse(session.playUrl(), session.videoAssetId(), session.videoSourceKind(), session.format()),
+                        new PlaybackResponse(
+                                session.playUrl(),
+                                session.videoAssetId(),
+                                session.videoSourceKind(),
+                                session.format(),
+                                session.cdnDeliveryMode(),
+                                session.mediaDomainSegmentDeliveryEnabled()
+                        ),
                         "Playback URL"
                 )))
                 .orElse(ResponseEntity.ok(ApiResponse.success(null, "Video chua san sang de phat")));
@@ -197,7 +204,9 @@ public class VideoAssetControllerV3 {
             String playUrl,
             UUID videoAssetId,
             String videoSourceKind,
-            String format
+            String format,
+            String cdnDeliveryMode,
+            boolean mediaDomainSegmentDeliveryEnabled
     ) {}
 
     public record CreateVideoAssetFromUploadRequest(UUID attachmentId, String displayName) {}

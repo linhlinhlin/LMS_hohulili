@@ -33,6 +33,12 @@
         [variant]="h.videoBucket.reachable ? 'default' : 'error'" />
 
       <app-kpi-card
+        label="CDN video"
+        [value]="cdnStatusLabel(h.videoCdn)"
+        [sub]="cdnStatusSub(h.videoCdn)"
+        [variant]="cdnStatusVariant(h.videoCdn)" />
+
+      <app-kpi-card
         label="File chờ review"
         [value]="(h.db.currentOrphans ?? 0) | number"
         [sub]="(h.db.totalAttachments | number) + ' tổng file'"
@@ -44,6 +50,24 @@
         <strong>Có lỗi kết nối R2:</strong>
         @if (h.publicBucket.error) { <div>· {{ h.publicBucket.name }}: {{ h.publicBucket.error }}</div> }
         @if (h.videoBucket.error) { <div>· {{ h.videoBucket.name }}: {{ h.videoBucket.error }}</div> }
+      </div>
+    }
+
+    @if (h.videoCdn && !h.videoCdn.cdnSegmentDeliveryReady) {
+      <div
+        class="alert"
+        [class.alert-warning]="!h.videoCdn.cdnRequired"
+        [class.alert-error]="h.videoCdn.cdnRequired"
+        role="alert">
+        <strong>CDN video chưa sẵn sàng:</strong>
+        @if (h.videoCdn.cdnRequired) {
+          <span> production đang yêu cầu CDN segment delivery.</span>
+        } @else {
+          <span> player sẽ fallback qua backend object proxy.</span>
+        }
+        @for (action of cdnRequiredActions(h.videoCdn); track action) {
+          <div>· {{ action }}</div>
+        }
       </div>
     }
   }

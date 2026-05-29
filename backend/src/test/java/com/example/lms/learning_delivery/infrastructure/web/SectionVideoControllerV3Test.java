@@ -102,7 +102,9 @@ class SectionVideoControllerV3Test {
                         "/api/v3/video-assets/" + videoAssetId + "/adaptive/token/dash/manifest.mpd",
                         videoAssetId,
                         "ADAPTIVE_R2",
-                        "dash"
+                        "dash",
+                        "MEDIA_DOMAIN_EDGE",
+                        true
                 )));
 
         ResponseEntity<Map<String, Object>> response = controller.getPlayUrl(sectionId, "dash", student);
@@ -112,6 +114,8 @@ class SectionVideoControllerV3Test {
                 .containsEntry("videoAssetId", videoAssetId.toString())
                 .containsEntry("videoSourceKind", "ADAPTIVE_R2")
                 .containsEntry("format", "dash")
+                .containsEntry("cdnDeliveryMode", "MEDIA_DOMAIN_EDGE")
+                .containsEntry("mediaDomainSegmentDeliveryEnabled", true)
                 .containsEntry("sectionId", sectionId)
                 .containsEntry("playUrl", "/api/v3/video-assets/" + videoAssetId + "/adaptive/token/dash/manifest.mpd");
     }

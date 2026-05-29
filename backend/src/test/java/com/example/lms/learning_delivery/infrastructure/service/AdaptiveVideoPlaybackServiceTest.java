@@ -14,6 +14,8 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -174,6 +176,69 @@ class AdaptiveVideoPlaybackServiceTest {
     }
 
     @Test
+    @DisplayName("renderHlsManifest rejects playlist references outside the video package")
+    void renderHlsManifestRejectsReferencesOutsidePackage() {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/hls/standard.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey("video-packages/" + assetId + "/hls/master.m3u8")
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "https://media.holilihu.online");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "hls")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                #EXTM3U
+                #EXT-X-MAP:URI="../../other-package/segments/init.mp4"
+                #EXTINF:6.0,
+                ../../other-package/segments/segment1.m4s
+                """);
+
+        assertThatThrownBy(() -> service.renderHlsManifest(assetId, token, manifestKey))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("outside of the video package");
+        verify(videoPlaybackTokenService, never()).mintEdgeObjectToken(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
+    @DisplayName("renderDashManifest rejects media references outside the video package")
+    void renderDashManifestRejectsReferencesOutsidePackage() {
+        UUID assetId = UUID.randomUUID();
+        String token = "play-token";
+        String manifestKey = "video-packages/" + assetId + "/dash/manifest.mpd";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .dashManifestStorageKey(manifestKey)
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "https://media.holilihu.online");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.parseAndValidate(token)).thenReturn(
+                new VideoPlaybackTokenService.PlaybackClaims(assetId, UUID.randomUUID(), "dash")
+        );
+        when(adaptiveVideoPlaybackCacheService.readManifest(manifestKey)).thenReturn("""
+                <MPD>
+                  <Representation initialization="../../other-package/init.mp4" media="../../other-package/$Number$.m4s" />
+                </MPD>
+                """);
+
+        assertThatThrownBy(() -> service.renderDashManifest(assetId, token))
+                .isInstanceOf(org.springframework.security.access.AccessDeniedException.class)
+                .hasMessageContaining("outside of the video package");
+        verify(videoPlaybackTokenService, never()).mintEdgeObjectToken(org.mockito.ArgumentMatchers.anyString());
+    }
+
+    @Test
     @DisplayName("renderDashManifest preserves $Number$ template in /object?key= so player can substitute")
     void renderDashManifestPreservesTemplateVariablesInObjectQuery() throws Exception {
         // Regression: production bug 2026-04-30. `urlEncode` encoded $Number$ → %24Number%24
@@ -207,6 +272,64 @@ class AdaptiveVideoPlaybackServiceTest {
                 .contains("/object?key=")
                 .contains("$Number$.m4s")
                 .doesNotContain("%24Number%24");
+    }
+
+    @Test
+    @DisplayName("createPlaybackSession marks media-domain edge segment delivery when enabled")
+    void createPlaybackSessionMarksMediaDomainEdgeDeliveryWhenEnabled() {
+        UUID assetId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String manifestKey = "video-packages/" + assetId + "/hls/master.m3u8";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .hlsManifestStorageKey(manifestKey)
+                .build();
+
+        ReflectionTestUtils.setField(service, "mediaDomain", "media.holilihu.online/");
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.normalizeFormat("hls")).thenReturn("hls");
+        when(videoPlaybackTokenService.mintToken(assetId, userId, "hls")).thenReturn("play-token");
+        when(videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled()).thenReturn(true);
+
+        Optional<AdaptiveVideoPlaybackService.PlaybackSession> session =
+                service.createPlaybackSession(assetId, userId, "hls");
+
+        assertThat(session).hasValueSatisfying(value -> {
+            assertThat(value.playUrl()).isEqualTo("/api/v3/video-assets/" + assetId + "/adaptive/play-token/hls/master.m3u8");
+            assertThat(value.cdnDeliveryMode()).isEqualTo("MEDIA_DOMAIN_EDGE");
+            assertThat(value.mediaDomainSegmentDeliveryEnabled()).isTrue();
+        });
+    }
+
+    @Test
+    @DisplayName("createPlaybackSession marks backend object proxy delivery when media domain is not enabled")
+    void createPlaybackSessionMarksBackendObjectProxyDeliveryWhenMediaDomainIsNotEnabled() {
+        UUID assetId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        String manifestKey = "video-packages/" + assetId + "/dash/manifest.mpd";
+
+        VideoAssetJpaEntity asset = VideoAssetJpaEntity.builder()
+                .id(assetId)
+                .status("READY")
+                .adaptivePackagingStatus("READY")
+                .dashManifestStorageKey(manifestKey)
+                .build();
+
+        when(videoAssetRepository.findById(assetId)).thenReturn(Optional.of(asset));
+        when(videoPlaybackTokenService.normalizeFormat("dash")).thenReturn("dash");
+        when(videoPlaybackTokenService.mintToken(assetId, userId, "dash")).thenReturn("play-token");
+
+        Optional<AdaptiveVideoPlaybackService.PlaybackSession> session =
+                service.createPlaybackSession(assetId, userId, "dash");
+
+        assertThat(session).hasValueSatisfying(value -> {
+            assertThat(value.playUrl()).isEqualTo("/api/v3/video-assets/" + assetId + "/adaptive/play-token/dash/manifest.mpd");
+            assertThat(value.cdnDeliveryMode()).isEqualTo("BACKEND_OBJECT_PROXY");
+            assertThat(value.mediaDomainSegmentDeliveryEnabled()).isFalse();
+        });
     }
 
     @Test

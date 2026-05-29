@@ -29,11 +29,17 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
         boolean localFallbackAvailable = localStorageService.isPresent();
         boolean shakaAvailable = isShakaPackagerAvailable();
         boolean targetStackReady = r2Enabled && privateVideoStorageReady && shakaAvailable;
+        boolean cdnRequired = Boolean.parseBoolean(environment.getProperty("app.video.cdn-required", "false"));
         boolean mediaDomainConfigured = hasText(environment.getProperty("app.video.media-domain", ""));
         boolean edgeAuthConfigured = isEdgeAuthConfigured();
-        boolean cdnSegmentDeliveryReady = mediaDomainConfigured && edgeAuthConfigured;
+        long manifestCacheSeconds = longProperty("app.video.manifest-cache-seconds", 60L);
+        long objectRedirectCacheSeconds = longProperty("app.video.object-redirect-cache-seconds", 30L);
+        long edgeTokenExpirySeconds = edgeTokenExpirySeconds();
+        boolean edgeTokenFreshEnough = edgeTokenExpirySeconds > effectiveManifestCacheSeconds(manifestCacheSeconds);
+        boolean cdnSegmentDeliveryReady = mediaDomainConfigured && edgeAuthConfigured && edgeTokenFreshEnough;
+        boolean requiredCdnReady = !cdnRequired || cdnSegmentDeliveryReady;
 
-        Health.Builder builder = (privateVideoStorageReady || localFallbackAvailable) && shakaAvailable
+        Health.Builder builder = (privateVideoStorageReady || localFallbackAvailable) && shakaAvailable && requiredCdnReady
                 ? Health.up()
                 : Health.down();
 
@@ -45,11 +51,14 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
                 .withDetail("cdnDeliveryMode", cdnSegmentDeliveryReady
                         ? "Custom media domain + edge HMAC segment delivery"
                         : "Backend-mediated tokenized manifest/object path")
+                .withDetail("cdnRequired", cdnRequired)
                 .withDetail("cdnSegmentDeliveryReady", cdnSegmentDeliveryReady)
                 .withDetail("mediaDomainConfigured", mediaDomainConfigured)
                 .withDetail("edgeAuthConfigured", edgeAuthConfigured)
-                .withDetail("manifestCacheSeconds", longProperty("app.video.manifest-cache-seconds", 60L))
-                .withDetail("objectRedirectCacheSeconds", longProperty("app.video.object-redirect-cache-seconds", 30L))
+                .withDetail("edgeTokenFreshEnough", edgeTokenFreshEnough)
+                .withDetail("edgeTokenExpirySeconds", edgeTokenExpirySeconds)
+                .withDetail("manifestCacheSeconds", manifestCacheSeconds)
+                .withDetail("objectRedirectCacheSeconds", objectRedirectCacheSeconds)
                 .withDetail("adaptiveSegmentDurationSeconds", longProperty("app.video.adaptive-segment-duration-seconds", 6L))
                 .withDetail("binaryStorage", privateVideoStorageReady
                         ? "R2 private video bucket"
@@ -66,8 +75,16 @@ public class VideoPipelineHealthIndicator implements HealthIndicator {
     private boolean isEdgeAuthConfigured() {
         String mode = environment.getProperty("app.video.edge-auth-mode", "disabled");
         String secret = environment.getProperty("app.video.edge-hmac-secret", "");
-        long ttl = longProperty("app.video.edge-token-expiry-seconds", 300L);
+        long ttl = edgeTokenExpirySeconds();
         return "media_hmac_query".equals(normalizeEdgeAuthMode(mode)) && hasText(secret) && ttl > 0;
+    }
+
+    private long edgeTokenExpirySeconds() {
+        return longProperty("app.video.edge-token-expiry-seconds", 300L);
+    }
+
+    private long effectiveManifestCacheSeconds(long rawManifestCacheSeconds) {
+        return Math.max(10L, rawManifestCacheSeconds);
     }
 
     private String normalizeEdgeAuthMode(String mode) {

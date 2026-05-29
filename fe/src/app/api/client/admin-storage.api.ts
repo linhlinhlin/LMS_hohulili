@@ -17,10 +17,27 @@ export interface StorageHealth {
   checkedAt: string;
   publicBucket: BucketStats;
   videoBucket: BucketStats;
+  simulationBucket?: BucketStats;
+  videoCdn?: VideoCdnHealth;
   db: {
     totalAttachments: number;
     currentOrphans: number;
   };
+}
+
+export interface VideoCdnHealth {
+  cdnRequired: boolean;
+  cdnSegmentDeliveryReady: boolean;
+  cdnDeliveryMode: 'MEDIA_DOMAIN_EDGE' | 'BACKEND_OBJECT_PROXY' | string;
+  mediaDomain: string | null;
+  mediaDomainConfigured: boolean;
+  edgeAuthMode: string;
+  edgeAuthConfigured: boolean;
+  edgeTokenExpirySeconds: number;
+  manifestCacheSeconds?: number;
+  edgeTokenFreshEnough?: boolean;
+  requiredActions: string[];
+  status: 'READY' | 'MISCONFIGURED' | 'FALLBACK' | string;
 }
 
 export interface PendingReviewItem {

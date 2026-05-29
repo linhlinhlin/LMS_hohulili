@@ -1,7 +1,7 @@
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    const corsHeaders = buildCorsHeaders(env.MEDIA_ALLOWED_ORIGIN || "*");
+    const corsHeaders = buildCorsHeaders(env.MEDIA_ALLOWED_ORIGIN || "*", request.headers.get("Origin"));
 
     if (request.method === "OPTIONS") {
       return new Response(null, {
@@ -11,25 +11,28 @@ export default {
     }
 
     if (request.method !== "GET" && request.method !== "HEAD") {
-      return new Response("Method not allowed", { status: 405 });
+      return textResponse("Method not allowed", 405, corsHeaders, {
+        Allow: "GET, HEAD, OPTIONS",
+      });
     }
 
     if (!url.pathname.startsWith("/video-packages/")) {
-      return new Response("Not found", { status: 404 });
+      return textResponse("Not found", 404, corsHeaders);
     }
 
     const verify = url.searchParams.get("verify");
     if (!verify) {
-      return new Response("Missing verify token", { status: 403 });
+      return textResponse("Missing verify token", 403, corsHeaders);
     }
 
     if (!(await isTimedHmacValid(url.pathname, verify, env.MEDIA_EDGE_HMAC_SECRET, env.MEDIA_EDGE_TOKEN_EXPIRY_SECONDS))) {
-      return new Response("Invalid or expired token", { status: 403 });
+      return textResponse("Invalid or expired token", 403, corsHeaders);
     }
 
     const isRangeRequest = request.headers.has("Range");
+    const cacheableObject = isImmutableVideoObject(url.pathname);
     const cacheKey = new Request(`${url.origin}${url.pathname}`, { method: "GET" });
-    if (!isRangeRequest) {
+    if (cacheableObject && !isRangeRequest) {
       const cached = await caches.default.match(cacheKey);
       if (cached) {
         return responseForMethod(cached, request.method, corsHeaders, "HIT");
@@ -39,14 +42,16 @@ export default {
     const objectKey = url.pathname.slice(1);
     const object = await env.MEDIA_BUCKET.get(objectKey, isRangeRequest ? { range: request.headers } : undefined);
     if (!object) {
-      return new Response("Not found", { status: 404 });
+      return textResponse("Not found", 404, corsHeaders);
     }
 
     const headers = new Headers();
     object.writeHttpMetadata(headers);
     headers.set("etag", object.httpEtag);
     headers.set("Accept-Ranges", "bytes");
-    headers.set("Cache-Control", "public, max-age=31536000, immutable");
+    headers.set("Cache-Control", cacheableObject
+      ? "public, max-age=31536000, immutable"
+      : "private, no-store");
     headers.set("X-Edge-Cache", "MISS");
     const status = applyBodyLengthHeaders(headers, object, isRangeRequest);
     for (const [key, value] of corsHeaders.entries()) {
@@ -57,12 +62,22 @@ export default {
       status,
       headers,
     });
-    if (request.method === "GET" && !isRangeRequest) {
+    if (cacheableObject && request.method === "GET" && !isRangeRequest) {
       ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
     }
     return response;
   },
 };
+
+function textResponse(body, status, corsHeaders, extraHeaders = {}) {
+  const headers = new Headers(corsHeaders);
+  headers.set("Cache-Control", "no-store");
+  headers.set("Content-Type", "text/plain; charset=utf-8");
+  for (const [key, value] of Object.entries(extraHeaders)) {
+    headers.set(key, value);
+  }
+  return new Response(body, { status, headers });
+}
 
 function responseForMethod(response, method, corsHeaders, cacheState) {
   const headers = new Headers(response.headers);
@@ -91,6 +106,16 @@ function applyBodyLengthHeaders(headers, object, isRangeRequest) {
   return 206;
 }
 
+function isImmutableVideoObject(pathname) {
+  const lowerPath = pathname.toLowerCase();
+  return lowerPath.endsWith(".mp4")
+    || lowerPath.endsWith(".m4s")
+    || lowerPath.endsWith(".ts")
+    || lowerPath.endsWith(".m4a")
+    || lowerPath.endsWith(".aac")
+    || lowerPath.endsWith(".webm");
+}
+
 async function isTimedHmacValid(pathname, verify, secret, expirySecondsRaw) {
   if (!secret) {
     return false;
@@ -115,8 +140,49 @@ async function isTimedHmacValid(pathname, verify, secret, expirySecondsRaw) {
     return false;
   }
 
-  const expectedMac = await hmacBase64(secret, `${pathname}${issuedAt}`);
-  return timingSafeEqual(expectedMac, macRaw);
+  for (const candidatePath of hmacPathCandidates(pathname)) {
+    const expectedMac = await hmacBase64(secret, `${candidatePath}${issuedAt}`);
+    if (timingSafeEqual(expectedMac, macRaw)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function hmacPathCandidates(pathname) {
+  const candidates = [pathname];
+  for (const candidate of dashTemplatePathCandidates(pathname)) {
+    if (!candidates.includes(candidate)) {
+      candidates.push(candidate);
+    }
+  }
+  return candidates;
+}
+
+function dashTemplatePathCandidates(pathname) {
+  const lowerPath = pathname.toLowerCase();
+  if (
+    !lowerPath.startsWith("/video-packages/")
+    || !lowerPath.includes("/segments/")
+    || !lowerPath.endsWith(".m4s")
+  ) {
+    return [];
+  }
+
+  const parts = pathname.split("/");
+  const fileName = parts[parts.length - 1];
+  const match = /^(.*?)(\d+)(\.[^/.]+)$/.exec(fileName);
+  if (!match) {
+    return [];
+  }
+
+  const prefix = match[1];
+  const extension = match[3];
+  return ["$Number$", "$Time$"].map((templateVariable) => {
+    const candidateParts = [...parts];
+    candidateParts[candidateParts.length - 1] = `${prefix}${templateVariable}${extension}`;
+    return candidateParts.join("/");
+  });
 }
 
 function hmacBase64(secret, message) {
@@ -149,12 +215,33 @@ function timingSafeEqual(left, right) {
   return result === 0;
 }
 
-function buildCorsHeaders(allowedOrigin) {
+function buildCorsHeaders(allowedOrigin, requestOrigin) {
   const headers = new Headers();
-  headers.set("Access-Control-Allow-Origin", allowedOrigin);
+  const resolvedOrigin = resolveAllowedOrigin(allowedOrigin, requestOrigin);
+  if (resolvedOrigin) {
+    headers.set("Access-Control-Allow-Origin", resolvedOrigin);
+  }
   headers.set("Access-Control-Allow-Methods", "GET,HEAD,OPTIONS");
   headers.set("Access-Control-Allow-Headers", "Range,Content-Type");
   headers.set("Access-Control-Expose-Headers", "Accept-Ranges,Content-Length,Content-Type,Content-Range,ETag,X-Edge-Cache");
   headers.set("Vary", "Origin");
   return headers;
+}
+
+function resolveAllowedOrigin(allowedOrigin, requestOrigin) {
+  const allowedOrigins = String(allowedOrigin || "*")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
+  if (allowedOrigins.length === 0 || allowedOrigins.includes("*")) {
+    return "*";
+  }
+  if (requestOrigin && allowedOrigins.includes(requestOrigin)) {
+    return requestOrigin;
+  }
+  if (!requestOrigin) {
+    return allowedOrigins[0];
+  }
+  return null;
 }

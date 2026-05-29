@@ -109,6 +109,7 @@ app:
   video:
     playback-token-expiry-seconds: 14400
     segment-presign-ttl-seconds: 120
+    cdn-required: ${VIDEO_CDN_REQUIRED:false}
     media-domain: ${VIDEO_MEDIA_DOMAIN:}
     edge-auth-mode: ${VIDEO_EDGE_AUTH_MODE:disabled}
     edge-hmac-secret: ${VIDEO_EDGE_HMAC_SECRET:}

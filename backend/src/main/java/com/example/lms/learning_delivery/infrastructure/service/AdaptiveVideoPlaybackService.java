@@ -51,11 +51,14 @@ public class AdaptiveVideoPlaybackService {
         }
 
         String token = videoPlaybackTokenService.mintToken(assetId, userId, format);
+        CdnDeliveryMode cdnDeliveryMode = resolveCdnDeliveryMode();
         return Optional.of(new PlaybackSession(
                 buildManifestUrl(assetId, token, format, manifestKey),
                 assetId,
                 "ADAPTIVE_R2",
-                format
+                format,
+                cdnDeliveryMode.name(),
+                cdnDeliveryMode.mediaDomainSegmentDeliveryEnabled()
         ));
     }
 
@@ -66,23 +69,25 @@ public class AdaptiveVideoPlaybackService {
                 ? asset.getHlsManifestStorageKey()
                 : requestedStorageKey;
 
-        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
+        UUID packageAssetId = packageAssetId(asset);
+        ensureStorageKeyAllowed(packageAssetId, storageKey);
         if (!storageKey.endsWith(".m3u8")) {
             throw new AccessDeniedException("Invalid HLS manifest key");
         }
 
         String manifest = readManifest(storageKey);
-        return rewriteHlsManifest(assetId, token, storageKey, manifest);
+        return rewriteHlsManifest(assetId, packageAssetId, token, storageKey, manifest);
     }
 
     public String renderDashManifest(UUID assetId, String token) throws IOException {
         VideoAssetJpaEntity asset = requirePlayableAsset(assetId);
         validateClaims(token, assetId, "dash");
         String storageKey = asset.getDashManifestStorageKey();
-        ensureStorageKeyAllowed(packageAssetId(asset), storageKey);
+        UUID packageAssetId = packageAssetId(asset);
+        ensureStorageKeyAllowed(packageAssetId, storageKey);
 
         String manifest = readManifest(storageKey);
-        return rewriteDashManifest(assetId, token, storageKey, manifest);
+        return rewriteDashManifest(assetId, packageAssetId, token, storageKey, manifest);
     }
 
     public String resolveObjectRedirect(UUID assetId, String token, String storageKey) {
@@ -164,6 +169,7 @@ public class AdaptiveVideoPlaybackService {
 
     private String rewriteHlsManifest(
             UUID assetId,
+            UUID packageAssetId,
             String token,
             String manifestStorageKey,
             String manifest
@@ -176,9 +182,10 @@ public class AdaptiveVideoPlaybackService {
             String rewritten = line;
 
             if (line.startsWith("#")) {
-                rewritten = rewriteUriAttributeLine(assetId, token, manifestStorageKey, line);
+                rewritten = rewriteUriAttributeLine(assetId, packageAssetId, token, manifestStorageKey, line);
             } else if (!line.isBlank()) {
                 String targetKey = resolveRelativeKey(manifestStorageKey, line.trim());
+                ensureStorageKeyAllowed(packageAssetId, targetKey);
                 rewritten = targetKey.endsWith(".m3u8")
                         ? buildPlaylistUrl(assetId, token, targetKey)
                         : buildObjectUrl(assetId, token, targetKey);
@@ -195,6 +202,7 @@ public class AdaptiveVideoPlaybackService {
 
     private String rewriteDashManifest(
             UUID assetId,
+            UUID packageAssetId,
             String token,
             String manifestStorageKey,
             String manifest
@@ -203,6 +211,7 @@ public class AdaptiveVideoPlaybackService {
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
             String key = resolveRelativeKey(manifestStorageKey, matcher.group(2));
+            ensureStorageKeyAllowed(packageAssetId, key);
             String replacement = matcher.group(1) + "=\"" + buildObjectUrl(assetId, token, key) + "\"";
             matcher.appendReplacement(buffer, Matcher.quoteReplacement(replacement));
         }
@@ -212,6 +221,7 @@ public class AdaptiveVideoPlaybackService {
 
     private String rewriteUriAttributeLine(
             UUID assetId,
+            UUID packageAssetId,
             String token,
             String manifestStorageKey,
             String line
@@ -220,6 +230,7 @@ public class AdaptiveVideoPlaybackService {
         StringBuffer buffer = new StringBuffer();
         while (matcher.find()) {
             String key = resolveRelativeKey(manifestStorageKey, matcher.group(1));
+            ensureStorageKeyAllowed(packageAssetId, key);
             String replacementValue = key.endsWith(".m3u8")
                     ? buildPlaylistUrl(assetId, token, key)
                     : buildObjectUrl(assetId, token, key);
@@ -246,6 +257,12 @@ public class AdaptiveVideoPlaybackService {
 
     private boolean isMediaDomainObjectDeliveryEnabled() {
         return normalizedMediaDomain() != null && videoPlaybackTokenService.isMediaDomainEdgeAuthEnabled();
+    }
+
+    private CdnDeliveryMode resolveCdnDeliveryMode() {
+        return isMediaDomainObjectDeliveryEnabled()
+                ? CdnDeliveryMode.MEDIA_DOMAIN_EDGE
+                : CdnDeliveryMode.BACKEND_OBJECT_PROXY;
     }
 
     private String buildMediaObjectUrl(String storageKey) {
@@ -351,6 +368,23 @@ public class AdaptiveVideoPlaybackService {
             String playUrl,
             UUID videoAssetId,
             String videoSourceKind,
-            String format
+            String format,
+            String cdnDeliveryMode,
+            boolean mediaDomainSegmentDeliveryEnabled
     ) {}
+
+    private enum CdnDeliveryMode {
+        MEDIA_DOMAIN_EDGE(true),
+        BACKEND_OBJECT_PROXY(false);
+
+        private final boolean mediaDomainSegmentDeliveryEnabled;
+
+        CdnDeliveryMode(boolean mediaDomainSegmentDeliveryEnabled) {
+            this.mediaDomainSegmentDeliveryEnabled = mediaDomainSegmentDeliveryEnabled;
+        }
+
+        boolean mediaDomainSegmentDeliveryEnabled() {
+            return mediaDomainSegmentDeliveryEnabled;
+        }
+    }
 }

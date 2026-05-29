@@ -26,6 +26,8 @@ export interface PlaybackResponse {
   videoAssetId: string;
   videoSourceKind: string;
   format: string;
+  cdnDeliveryMode?: string;
+  mediaDomainSegmentDeliveryEnabled?: boolean;
 }
 
 @Injectable({ providedIn: 'root' })

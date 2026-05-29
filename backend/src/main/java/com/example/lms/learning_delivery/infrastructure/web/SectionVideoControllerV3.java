@@ -83,6 +83,8 @@ public class SectionVideoControllerV3 {
                         "videoAssetId", session.videoAssetId().toString(),
                         "videoSourceKind", session.videoSourceKind(),
                         "format", session.format(),
+                        "cdnDeliveryMode", session.cdnDeliveryMode(),
+                        "mediaDomainSegmentDeliveryEnabled", session.mediaDomainSegmentDeliveryEnabled(),
                         "sectionId", sectionId
                 )))
                 .orElseGet(() -> ResponseEntity.noContent().build());

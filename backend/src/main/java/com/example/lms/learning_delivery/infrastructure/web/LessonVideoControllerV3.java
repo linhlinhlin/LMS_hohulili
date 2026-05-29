@@ -78,6 +78,8 @@ public class LessonVideoControllerV3 {
                         "videoAssetId", session.videoAssetId().toString(),
                         "videoSourceKind", session.videoSourceKind(),
                         "format", session.format(),
+                        "cdnDeliveryMode", session.cdnDeliveryMode(),
+                        "mediaDomainSegmentDeliveryEnabled", session.mediaDomainSegmentDeliveryEnabled(),
                         "lessonId", lessonId.toString()
                 )))
                 .orElseGet(() -> ResponseEntity.noContent().build());
