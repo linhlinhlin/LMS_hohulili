@@ -27,6 +27,7 @@ import com.example.lms.learning_delivery.application.usecase.SelfEnrollUseCase;
 import com.example.lms.learning_delivery.infrastructure.persistence.CertificateJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -71,6 +72,7 @@ public class StudentEnrollmentControllerV3 {
     private final QuizAttemptJpaRepository quizAttemptJpaRepository;
     private final com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository paymentTransactionJpaRepository;
     private final CoursePublicationService coursePublicationService;
+    private final PublicAssetUrlService publicAssetUrlService;
 
     @Operation(summary = "Get student's enrolled courses")
     @GetMapping("/courses/enrolled")
@@ -809,7 +811,7 @@ public class StudentEnrollmentControllerV3 {
             gradeEntry.put("courseTitle", course.getTitle());
             gradeEntry.put("courseCode", course.getCode());
             gradeEntry.put("deliveryMode", course.getDeliveryMode().name());
-            gradeEntry.put("thumbnailUrl", course.getThumbnailUrl());
+            gradeEntry.put("thumbnailUrl", publicAssetUrlService.resolveCourseThumbnailUrl(course.getThumbnailUrl()));
             // Class fields
             gradeEntry.put("classId", lc.getId().toString());
             gradeEntry.put("className", lc.getName());
@@ -1160,9 +1162,9 @@ private Map<String, Object> buildSectionCompletionResponse(
     private String resolvePublishedThumbnailUrl(CourseJpaEntity course, Map<String, Object> publishedDetail) {
         if (publishedDetail != null && publishedDetail.containsKey("thumbnailUrl")) {
             Object thumbnailUrl = publishedDetail.get("thumbnailUrl");
-            return thumbnailUrl instanceof String value ? value : null;
+            return thumbnailUrl instanceof String value ? publicAssetUrlService.resolveCourseThumbnailUrl(value) : null;
         }
-        return course != null ? course.getThumbnailUrl() : null;
+        return course != null ? publicAssetUrlService.resolveCourseThumbnailUrl(course.getThumbnailUrl()) : null;
     }
 
     private void sortEnrolledCourseResponses(List<EnrolledCourseResponse> courseResponses, String sort, String order) {

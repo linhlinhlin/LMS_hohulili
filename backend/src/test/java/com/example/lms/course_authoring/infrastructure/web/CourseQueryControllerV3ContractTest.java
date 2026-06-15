@@ -21,6 +21,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmen
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -41,6 +42,7 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -62,6 +64,7 @@ class CourseQueryControllerV3ContractTest {
     @Mock private CoursePublicationService coursePublicationService;
     @Mock private VideoAssetPresentationService videoAssetPresentationService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private PublicAssetUrlService publicAssetUrlService;
 
     @InjectMocks
     private CourseQueryControllerV3 controller;
@@ -78,6 +81,8 @@ class CourseQueryControllerV3ContractTest {
         approvedPaidCourse.updateTags(Set.of("law"));
         approvedPaidCourse.submitForApproval();
         approvedPaidCourse.approve(UUID.randomUUID(), "approved");
+        lenient().when(publicAssetUrlService.resolveCourseThumbnailUrl(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
     }
 
     @Test
@@ -118,8 +123,10 @@ class CourseQueryControllerV3ContractTest {
     void getPublicCoursesUsesPublishedThumbnailSnapshot() {
         approvedPaidCourse.updateThumbnail("https://cdn.example.com/draft-cover.jpg");
         Map<String, Object> publishedDetail = Map.of(
-                "thumbnailUrl", "https://cdn.example.com/published-cover.jpg"
+                "thumbnailUrl", "course-thumbnails/published-cover.jpg"
         );
+        when(publicAssetUrlService.resolveCourseThumbnailUrl("course-thumbnails/published-cover.jpg"))
+                .thenReturn("https://cdn.example.com/course-thumbnails/published-cover.jpg");
 
         when(courseRepository.findByStatusAndFilters(eq(Course.CourseStatus.APPROVED), any(), any(), any(), any()))
                 .thenReturn(new PageImpl<>(List.of(approvedPaidCourse)));
@@ -137,7 +144,7 @@ class CourseQueryControllerV3ContractTest {
                 response.getBody().getData();
 
         assertThat(page.getContent().getFirst().getThumbnailUrl())
-                .isEqualTo("https://cdn.example.com/published-cover.jpg");
+                .isEqualTo("https://cdn.example.com/course-thumbnails/published-cover.jpg");
     }
 
     @Test

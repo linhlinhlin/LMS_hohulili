@@ -105,7 +105,18 @@ public class R2StorageService {
     }
 
     public String resolvePublicUrl(String key) {
-        return publicUrl + "/" + key;
+        return trimTrailingSlash(publicUrl) + "/" + key;
+    }
+
+    private String trimTrailingSlash(String value) {
+        if (value == null || value.isBlank()) {
+            return "";
+        }
+        String result = value.trim();
+        while (result.endsWith("/")) {
+            result = result.substring(0, result.length() - 1);
+        }
+        return result;
     }
 
     private String buildKey(String folder, String fileId, String extension) {
