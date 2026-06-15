@@ -129,7 +129,7 @@ cloudflare:
     simulation-bucket: ${CLOUDFLARE_R2_SIMULATION_BUCKET:lms-storage}
     simulation-public-url: ${CLOUDFLARE_R2_SIMULATION_PUBLIC_URL:/simulations}
     simulation-prefix: ${CLOUDFLARE_R2_SIMULATION_PREFIX:simulations}
-    public-url: ${CLOUDFLARE_R2_PUBLIC_URL:}
+    public-url: ${CLOUDFLARE_R2_PUBLIC_URL:https://cdn.holilihu.online}
   # Stream remains optional/legacy only. Production video playback targets R2 + Shaka.
   stream:
     enabled: ${CLOUDFLARE_STREAM_ENABLED:false}

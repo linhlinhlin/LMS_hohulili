@@ -12,6 +12,7 @@ import com.example.lms.course_authoring.infrastructure.persistence.repository.Le
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -43,6 +44,7 @@ class CoursePublicationServiceTest {
     @Mock private QuestionJpaRepository questionJpaRepository;
     @Mock private CoursePublicationJpaRepository publicationRepository;
     @Mock private VideoAssetPresentationService videoAssetPresentationService;
+    @Mock private PublicAssetUrlService publicAssetUrlService;
 
     @InjectMocks
     private CoursePublicationService service;

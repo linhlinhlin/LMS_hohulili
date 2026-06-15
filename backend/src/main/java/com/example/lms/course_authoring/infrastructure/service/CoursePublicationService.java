@@ -20,6 +20,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmen
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -42,6 +43,7 @@ public class CoursePublicationService {
     private final QuestionJpaRepository questionJpaRepository;
     private final CoursePublicationJpaRepository publicationRepository;
     private final VideoAssetPresentationService videoAssetPresentationService;
+    private final PublicAssetUrlService publicAssetUrlService;
 
     @Transactional
     public CoursePublicationJpaEntity publish(UUID courseId, UUID publishedById) {
@@ -191,7 +193,7 @@ public class CoursePublicationService {
         detail.put("id", course.getId().toString());
         detail.put("title", course.getTitle());
         detail.put("description", course.getDescription());
-        detail.put("thumbnailUrl", course.getThumbnailUrl());
+        detail.put("thumbnailUrl", publicAssetUrlService.resolveCourseThumbnailUrl(course.getThumbnailUrl()));
         detail.put("status", course.getStatus().name().toLowerCase(Locale.ROOT));
         detail.put("code", course.getCode() != null ? course.getCode().getValue() : null);
         detail.put("teacherId", course.getTeacherId() != null ? course.getTeacherId().toString() : null);
@@ -228,6 +230,10 @@ public class CoursePublicationService {
         }
 
         Map<String, Object> detail = new LinkedHashMap<>(detailSnapshot);
+        Object thumbnailUrl = detail.get("thumbnailUrl");
+        detail.put("thumbnailUrl", thumbnailUrl instanceof String value
+                ? publicAssetUrlService.resolveCourseThumbnailUrl(value)
+                : null);
         applyIntroVideoAssetView(detail, parseVideoAssetId(detail.get("introVideoAssetId")));
         return detail;
     }

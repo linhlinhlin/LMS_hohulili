@@ -23,6 +23,7 @@ import com.example.lms.course_authoring.application.dto.UpdateLessonCommand;
 import com.example.lms.course_authoring.application.dto.ChapterResponse;
 import com.example.lms.course_authoring.application.dto.LessonResponse;
 import com.example.lms.course_authoring.application.dto.UpdateCourseCommand;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -64,6 +65,7 @@ public class CourseAuthoringControllerV3 {
     private final com.example.lms.course_authoring.application.usecase.CourseDraftMutationUseCase courseDraftMutationUseCase;
     private final ObjectMapper objectMapper;
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
+    private final PublicAssetUrlService publicAssetUrlService;
 
     @Operation(summary = "Create a new chapter")
     @PostMapping("/{courseId}/chapters")
@@ -451,7 +453,7 @@ return ResponseEntity.ok(ApiResponse.success(block, "Cập nhật phần học t
             user.getId(),
             request.title(),
             request.description(),
-            request.thumbnailUrl(),
+            publicAssetUrlService.resolveCourseThumbnailUrl(request.thumbnailUrl()),
             request.categoryId(),
             request.tags(),
             request.welcomeMessage(),

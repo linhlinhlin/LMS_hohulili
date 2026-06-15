@@ -18,6 +18,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.entity.Video
 import com.example.lms.shared.domain.model.ContentBlock;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.infrastructure.service.FileManagementService;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.List;
@@ -43,6 +44,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -96,6 +99,8 @@ class CourseAuthoringControllerV3Test {
     private CourseDraftMutationUseCase courseDraftMutationUseCase;
     @Mock
     private com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
+    @Mock
+    private PublicAssetUrlService publicAssetUrlService;
 
     private CourseAuthoringControllerV3 controller;
     private ObjectMapper objectMapper;
@@ -103,6 +108,8 @@ class CourseAuthoringControllerV3Test {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
+        lenient().when(publicAssetUrlService.resolveCourseThumbnailUrl(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
         controller = new CourseAuthoringControllerV3(
                 createChapterUseCase,
                 createLessonUseCase,
@@ -120,7 +127,8 @@ class CourseAuthoringControllerV3Test {
                 courseRepository,
                 courseDraftMutationUseCase,
                 objectMapper,
-                classTeacherJpaRepository
+                classTeacherJpaRepository,
+                publicAssetUrlService
         );
     }
 

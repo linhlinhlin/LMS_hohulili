@@ -215,7 +215,7 @@ public class PresignedUploadUseCase {
 
         String fileUrl = videoFolder && r2VideoStorageService.isPresent()
                 ? r2VideoStorageService.get().resolveInternalUrl(storageKey)
-                : publicUrl + "/" + storageKey;
+                : resolvePublicUrl(storageKey);
         String previewUrl = videoFolder && r2VideoStorageService.isPresent()
                 ? r2VideoStorageService.get().presignGet(storageKey, PRESIGN_TTL)
                 : fileUrl;
@@ -274,6 +274,14 @@ public class PresignedUploadUseCase {
                 .build();
 
         return r2Presigner.get().presignPutObject(presignRequest).url().toString();
+    }
+
+    private String resolvePublicUrl(String storageKey) {
+        String baseUrl = publicUrl == null ? "" : publicUrl.trim();
+        while (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        return baseUrl + "/" + storageKey;
     }
 
     private String sanitizeFolder(String folder) {

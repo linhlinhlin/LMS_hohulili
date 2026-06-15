@@ -19,6 +19,7 @@ import com.example.lms.learning_delivery.domain.repository.LearningClassReposito
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +68,7 @@ public class CourseQueryControllerV3 {
     private final VideoAssetPresentationService videoAssetPresentationService;
     private final ObjectMapper objectMapper;
     private final com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository classTeacherJpaRepository;
+    private final PublicAssetUrlService publicAssetUrlService;
 
     @Operation(summary = "Get all published courses")
     @GetMapping
@@ -581,11 +583,14 @@ public class CourseQueryControllerV3 {
 
     private CourseDetailResponse getPublishedCourseDetail(UUID courseId, UserJpaEntity currentUser) {
         Map<String, Object> publishedDetail = coursePublicationService.getPublishedDetail(courseId, currentUserId(currentUser));
-        if (publishedDetail == null) {
+        if (publishedDetail == null || publishedDetail.isEmpty()) {
             return null;
         }
 
         CourseDetailResponse response = objectMapper.convertValue(publishedDetail, CourseDetailResponse.class);
+        if (response == null) {
+            return null;
+        }
         CoursePublicationService.VersionInfo versionInfo = coursePublicationService.resolveVersionInfo(courseId, currentUserId(currentUser));
         if (versionInfo != null) {
             response.setPublicationId(versionInfo.publicationId() != null ? versionInfo.publicationId().toString() : null);
@@ -593,6 +598,7 @@ public class CourseQueryControllerV3 {
             response.setVersionMode(versionInfo.versionMode());
             response.setUpdateAvailable(versionInfo.updateAvailable());
         }
+        response.setThumbnailUrl(publicAssetUrlService.resolveCourseThumbnailUrl(response.getThumbnailUrl()));
         return response;
     }
 
@@ -819,7 +825,7 @@ public class CourseQueryControllerV3 {
                 .id(course.getId().toString())
                 .title(course.getTitle())
                 .description(course.getDescription())
-                .thumbnailUrl(course.getThumbnailUrl())
+                .thumbnailUrl(publicAssetUrlService.resolveCourseThumbnailUrl(course.getThumbnailUrl()))
                 .status(course.getStatus().name().toLowerCase())
                 .teacherName(teacherName)
                 .createdAt(course.getCreatedAt() != null ? course.getCreatedAt().toString() : null)
@@ -860,9 +866,9 @@ public class CourseQueryControllerV3 {
     private String resolvePublishedThumbnailUrl(Course course, Map<String, Object> publishedDetail) {
         if (publishedDetail != null && publishedDetail.containsKey("thumbnailUrl")) {
             Object thumbnailUrl = publishedDetail.get("thumbnailUrl");
-            return thumbnailUrl instanceof String value ? value : null;
+            return thumbnailUrl instanceof String value ? publicAssetUrlService.resolveCourseThumbnailUrl(value) : null;
         }
-        return course.getThumbnailUrl();
+        return publicAssetUrlService.resolveCourseThumbnailUrl(course.getThumbnailUrl());
     }
 
     private CourseDetailResponse toDetail(Course course) {
@@ -880,7 +886,7 @@ public class CourseQueryControllerV3 {
                 .id(course.getId().toString())
                 .title(course.getTitle())
                 .description(course.getDescription())
-                .thumbnailUrl(course.getThumbnailUrl())
+                .thumbnailUrl(publicAssetUrlService.resolveCourseThumbnailUrl(course.getThumbnailUrl()))
                 .status(course.getStatus().name().toLowerCase())
                 .reviewState(resolveReviewState(course))
                 .draftChangeStatus(resolveDraftChangeStatus(course))

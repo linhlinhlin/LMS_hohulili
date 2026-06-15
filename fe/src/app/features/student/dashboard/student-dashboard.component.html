@@ -133,8 +133,12 @@
             <div class="course-card">
               <div class="course-card-body">
                 <div class="course-thumbnail">
-                  @if (course.thumbnail) {
-                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  @if (hasUsableThumbnail(course)) {
+                    <img
+                      [src]="course.thumbnail"
+                      [alt]="course.title"
+                      class="thumbnail-image"
+                      (error)="markThumbnailFailed(course.id)" />
                   } @else {
                     <div class="thumbnail-placeholder">
                       <app-icon name="academic-cap" size="lg" />
@@ -269,8 +273,12 @@
             <div class="course-card">
               <div class="course-card-body">
                 <div class="course-thumbnail">
-                  @if (course.thumbnail) {
-                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  @if (hasUsableThumbnail(course)) {
+                    <img
+                      [src]="course.thumbnail"
+                      [alt]="course.title"
+                      class="thumbnail-image"
+                      (error)="markThumbnailFailed(course.id)" />
                   } @else {
                     <div class="thumbnail-placeholder">
                       <app-icon name="academic-cap" size="lg" />

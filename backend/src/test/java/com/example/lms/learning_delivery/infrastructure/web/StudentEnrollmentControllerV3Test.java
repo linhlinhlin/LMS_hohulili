@@ -20,6 +20,7 @@ import com.example.lms.learning_delivery.domain.repository.LearningClassReposito
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.CertificateJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.infrastructure.service.PublicAssetUrlService;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -40,6 +41,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -62,9 +64,16 @@ class StudentEnrollmentControllerV3Test {
     @Mock private QuizAttemptJpaRepository quizAttemptJpaRepository;
     @Mock private PaymentTransactionJpaRepository paymentTransactionJpaRepository;
     @Mock private CoursePublicationService coursePublicationService;
+    @Mock private PublicAssetUrlService publicAssetUrlService;
 
     @InjectMocks
     private StudentEnrollmentControllerV3 controller;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setUp() {
+        lenient().when(publicAssetUrlService.resolveCourseThumbnailUrl(any()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+    }
 
     @Test
     @DisplayName("course progress should treat dropped enrollment as not enrolled")
@@ -185,8 +194,10 @@ class StudentEnrollmentControllerV3Test {
         when(coursePublicationService.getPublishedDetails(any(), eq(studentId)))
                 .thenReturn(Map.of(
                         courseId,
-                        Map.of("thumbnailUrl", "https://cdn.example.com/published-cover.jpg")
+                        Map.of("thumbnailUrl", "course-thumbnails/published-cover.jpg")
                 ));
+        when(publicAssetUrlService.resolveCourseThumbnailUrl("course-thumbnails/published-cover.jpg"))
+                .thenReturn("https://cdn.example.com/course-thumbnails/published-cover.jpg");
 
         var response = controller.getEnrolledCourses(
                 student,
@@ -204,7 +215,7 @@ class StudentEnrollmentControllerV3Test {
         assertThat(response.getBody().isSuccess()).isTrue();
         assertThat(response.getBody().getData().getContent())
                 .extracting(StudentEnrollmentControllerV3.EnrolledCourseResponse::getThumbnailUrl)
-                .containsExactly("https://cdn.example.com/published-cover.jpg");
+                .containsExactly("https://cdn.example.com/course-thumbnails/published-cover.jpg");
     }
 
     @Test

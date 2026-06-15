@@ -121,6 +121,7 @@ export class StudentDashboardComponent implements OnInit {
 
   // Track which courses have modules expanded
   private expandedModules = signal<Set<string>>(new Set());
+  private failedThumbnailIds = signal<Set<string>>(new Set());
 
   ngOnInit(): void {
     try {
@@ -394,6 +395,19 @@ export class StudentDashboardComponent implements OnInit {
 
   switchTab(tab: 'in-progress' | 'completed'): void {
     this.activeTab.set(tab);
+  }
+
+  hasUsableThumbnail(course: Pick<Course, 'id' | 'thumbnail'>): boolean {
+    return !!course.thumbnail && !this.failedThumbnailIds().has(course.id);
+  }
+
+  markThumbnailFailed(courseId: string): void {
+    this.failedThumbnailIds.update(ids => {
+      if (ids.has(courseId)) return ids;
+      const next = new Set(ids);
+      next.add(courseId);
+      return next;
+    });
   }
 
   canDownload(course: Course): boolean {

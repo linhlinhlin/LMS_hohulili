@@ -172,8 +172,12 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
               <div class="course-card-wrapper">
                 <!-- Course Thumbnail -->
                 <div class="course-thumbnail">
-                  @if (course.thumbnail) {
-                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  @if (hasUsableThumbnail(course)) {
+                    <img
+                      [src]="course.thumbnail"
+                      [alt]="course.title"
+                      class="thumbnail-image"
+                      (error)="markThumbnailFailed(course.id)" />
                   } @else {
                     <div class="thumbnail-placeholder">
                       <app-icon name="academic-cap" size="lg" />
@@ -1100,6 +1104,7 @@ export class StudentMyCoursesComponent implements OnInit {
   isLoading = this.enrollmentService.isLoading;
   readonly PAGE_SIZE = 12;
   currentPage = signal(1);
+  private failedThumbnailIds = signal<Set<string>>(new Set());
 
   // Search + Filter state
   searchQuery = signal('');
@@ -1331,6 +1336,19 @@ export class StudentMyCoursesComponent implements OnInit {
     if (!course.instructor) return 'LMS Maritime';
     if (typeof course.instructor === 'string') return course.instructor || 'LMS Maritime';
     return course.instructor.name || 'LMS Maritime';
+  }
+
+  hasUsableThumbnail(course: Pick<EnhancedEnrolledCourse, 'id' | 'thumbnail'>): boolean {
+    return !!course.thumbnail && !this.failedThumbnailIds().has(course.id);
+  }
+
+  markThumbnailFailed(courseId: string): void {
+    this.failedThumbnailIds.update(ids => {
+      if (ids.has(courseId)) return ids;
+      const next = new Set(ids);
+      next.add(courseId);
+      return next;
+    });
   }
 
   onSearchChange(query: string): void {
