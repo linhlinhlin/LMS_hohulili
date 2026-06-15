@@ -216,6 +216,15 @@ Doc ket qua dung muc:
 - nhung day van la synthetic distributed test, khong phai many-region real-user benchmark
 - manifest/control plane van cham hon data plane qua `media.holilihu.online`, nen phase tiep theo neu can scale nua se tiep tuc toi uu manifest path
 
+### Manifest/control-plane cache guardrails
+
+Tu phase cache-policy hardening, backend manifest/control-plane khong duoc coi la CDN data-plane:
+
+- HLS/DASH manifest response chi cache private tren client, co `s-maxage=0` de shared cache/proxy khong giu manifest co playback token.
+- Khi `VIDEO_EDGE_AUTH_MODE=media_hmac_query`, effective manifest TTL bi gioi han nho hon `VIDEO_EDGE_TOKEN_EXPIRY_SECONDS` 5 giay. Vi du edge token 300s thi manifest TTL toi da la 295s, du cau hinh `VIDEO_MANIFEST_CACHE_SECONDS` cao hon.
+- Backend `/object` fallback va object redirect cache TTL bi gioi han nho hon `VIDEO_SEGMENT_PRESIGN_TTL_SECONDS` 5 giay.
+- `/actuator/health` group `videoPipeline` expose `effectiveManifestCacheSeconds` va `effectiveObjectRedirectCacheSeconds` de smoke checklist doi chieu config that.
+
 ### Package-path nuance quan trong
 
 Shaka Packager trong repo nay ghi media references theo package root:

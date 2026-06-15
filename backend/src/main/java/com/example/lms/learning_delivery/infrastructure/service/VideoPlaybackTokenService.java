@@ -16,7 +16,6 @@ import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
 import java.util.Base64;
 import java.util.Date;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
@@ -77,19 +76,15 @@ public class VideoPlaybackTokenService {
     }
 
     public boolean isMediaDomainEdgeAuthEnabled() {
-        return "media_hmac_query".equals(normalizeEdgeAuthMode(edgeAuthMode))
-                && edgeTokenExpirySeconds > 0
-                && edgeHmacSecret != null
-                && !edgeHmacSecret.isBlank();
+        return VideoPlaybackDeliveryPolicy.isMediaDomainEdgeAuthEnabled(
+                edgeAuthMode,
+                edgeHmacSecret,
+                edgeTokenExpirySeconds
+        );
     }
 
     public String normalizeEdgeAuthMode(String mode) {
-        String normalized = mode == null ? "" : mode.trim().toLowerCase(Locale.ROOT);
-        return switch (normalized) {
-            case "media_hmac_query", "query_hmac", "hmac_query", "waf_hmac_query", "worker_hmac_query" ->
-                    "media_hmac_query";
-            default -> "disabled";
-        };
+        return VideoPlaybackDeliveryPolicy.normalizeEdgeAuthMode(mode);
     }
 
     public String mintEdgeObjectToken(String requestPath) {
