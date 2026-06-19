@@ -14,7 +14,7 @@ Production-first LMS for maritime training, with adaptive video, offline-first l
 
 </div>
 
-![Maritime LMS repository card](docs/assets/github/repository-card.svg)
+![HoHoLiHu LMS Maritime Learning Platform banner](.github/assets/hoholihu-readme-banner.png)
 
 ---
 
