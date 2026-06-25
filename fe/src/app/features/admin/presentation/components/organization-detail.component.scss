@@ -779,6 +779,10 @@
   font-size: $text-xs;
   color: $text-disabled;
   margin-top: $spacing-1;
+
+  &--error {
+    color: $error;
+  }
 }
 
 /* ===== DERIVED SHARE BOX ===== */

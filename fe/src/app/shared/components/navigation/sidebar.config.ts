@@ -295,10 +295,22 @@ const orgAdminMenuItems: SidebarMenuItem[] = [
     group: 'Quản lý'
   },
   {
+    label: 'Cấu trúc đào tạo',
+    route: '/org-admin/academic',
+    icon: 'book',
+    group: 'Quản lý'
+  },
+  {
     label: 'Phân tích',
     route: '/org-admin/analytics',
     icon: 'bar-chart',
     group: 'Báo cáo'
+  },
+  {
+    label: 'Rút tiền',
+    route: '/org-admin/payouts',
+    icon: 'briefcase',
+    group: 'Tài chính'
   },
   {
     label: 'Tổ chức',

@@ -34,6 +34,14 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
     // Admin queries
     org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByStatus(PaymentTransactionJpaEntity.PaymentStatus status, org.springframework.data.domain.Pageable pageable);
 
+    org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByOrganizationIdOrderByCreatedAtDesc(UUID organizationId, org.springframework.data.domain.Pageable pageable);
+
+    org.springframework.data.domain.Page<PaymentTransactionJpaEntity> findByOrganizationIdAndStatusOrderByCreatedAtDesc(
+            UUID organizationId,
+            PaymentTransactionJpaEntity.PaymentStatus status,
+            org.springframework.data.domain.Pageable pageable
+    );
+
     // Expiry cleanup: find old PENDING payments
     List<PaymentTransactionJpaEntity> findByStatusAndCreatedAtBefore(PaymentTransactionJpaEntity.PaymentStatus status, Instant cutoff);
 
@@ -50,6 +58,9 @@ public interface PaymentTransactionJpaRepository extends JpaRepository<PaymentTr
 
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds AND p.status = 'COMPLETED' AND p.paidAt >= :from AND p.paidAt < :to")
     BigDecimal sumRevenueByCourseIdsAndDateRange(@Param("courseIds") List<UUID> courseIds, @Param("from") Instant from, @Param("to") Instant to);
+
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PaymentTransactionJpaEntity p WHERE p.organizationId = :organizationId AND p.status = 'COMPLETED' AND p.paidAt >= :from AND p.paidAt < :to")
+    BigDecimal sumRevenueByOrganizationIdAndDateRange(@Param("organizationId") UUID organizationId, @Param("from") Instant from, @Param("to") Instant to);
 
     @Query(value = "SELECT p FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds ORDER BY p.createdAt DESC",
            countQuery = "SELECT COUNT(p) FROM PaymentTransactionJpaEntity p WHERE p.courseId IN :courseIds")

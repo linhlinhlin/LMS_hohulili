@@ -26,6 +26,12 @@ public interface PayoutRequestJpaRepository
             Pageable pageable
     );
 
+    Page<PayoutRequestJpaEntity> findByStatusAndOrganizationIdOrderByRequestedAtDesc(
+            String status,
+            UUID organizationId,
+            Pageable pageable
+    );
+
     @Query("SELECT COALESCE(SUM(p.amount), 0) FROM PayoutRequestJpaEntity p WHERE p.teacherId = :teacherId AND p.status = 'COMPLETED'")
     BigDecimal sumCompletedByTeacherId(@Param("teacherId") UUID teacherId);
 

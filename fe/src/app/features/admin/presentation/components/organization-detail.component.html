@@ -614,10 +614,15 @@
                 <!-- Min payout -->
                 <div>
                   <label class="form-label">Số tiền rút tối thiểu (VND)</label>
-                  <input #minPayoutInput type="number" [value]="paymentConfig()?.minPayoutAmount ?? 100000"
+                  <input #minPayoutInput type="number" [value]="configPreviewMinPayout()"
                          min="10000" step="10000"
+                         (input)="configPreviewMinPayout.set(+minPayoutInput.value)"
                          class="form-input">
-                  <p class="form-hint">Giảng viên thuộc tổ chức này cần đủ số dư tối thiểu để yêu cầu rút</p>
+                  @if (minPayoutError()) {
+                    <p class="form-hint form-hint--error">{{ minPayoutError() }}</p>
+                  } @else {
+                    <p class="form-hint">Giảng viên thuộc tổ chức này cần đủ số dư tối thiểu để yêu cầu rút</p>
+                  }
                 </div>
 
                 <!-- Revenue split visual -->
@@ -658,7 +663,7 @@
 
                 <div class="config-actions">
                   <button (click)="savePaymentConfig(feeInput.value, teacherInput.value, minPayoutInput.value)"
-                          [disabled]="isSavingConfig() || !!configError()"
+                          [disabled]="isSavingConfig() || !!configError() || !!minPayoutError()"
                           class="btn-primary">
                     @if (isSavingConfig()) {
                       <svg class="spinner-icon" fill="none" viewBox="0 0 24 24">

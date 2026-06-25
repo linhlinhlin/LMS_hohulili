@@ -19,6 +19,9 @@ public class PaymentTransactionJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "student_id", nullable = false)
     private UUID studentId;
 
@@ -90,6 +93,7 @@ public class PaymentTransactionJpaEntity {
 
     public static class Builder {
         private UUID id;
+        private UUID organizationId;
         private UUID studentId;
         private UUID courseId;
         private BigDecimal amount = BigDecimal.ZERO;
@@ -100,6 +104,7 @@ public class PaymentTransactionJpaEntity {
         private Instant paidAt;
 
         public Builder id(UUID id) { this.id = id; return this; }
+        public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
         public Builder studentId(UUID studentId) { this.studentId = studentId; return this; }
         public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
         public Builder amount(BigDecimal amount) { this.amount = amount; return this; }
@@ -111,7 +116,7 @@ public class PaymentTransactionJpaEntity {
 
         public PaymentTransactionJpaEntity build() {
             PaymentTransactionJpaEntity e = new PaymentTransactionJpaEntity();
-            e.id = id; e.studentId = studentId; e.courseId = courseId; e.amount = amount;
+            e.id = id; e.organizationId = organizationId; e.studentId = studentId; e.courseId = courseId; e.amount = amount;
             e.currency = currency; e.paymentMethod = paymentMethod; e.transactionId = transactionId;
             e.status = status; e.paidAt = paidAt;
             return e;
@@ -120,6 +125,7 @@ public class PaymentTransactionJpaEntity {
 
     // Getters
     public UUID getId() { return id; }
+    public UUID getOrganizationId() { return organizationId; }
     public UUID getStudentId() { return studentId; }
     public UUID getCourseId() { return courseId; }
     public BigDecimal getAmount() { return amount; }
@@ -146,6 +152,7 @@ public class PaymentTransactionJpaEntity {
     public String getRefundAdminNote() { return refundAdminNote; }
 
     // Setters
+    public void setOrganizationId(UUID organizationId) { this.organizationId = organizationId; }
     public void setStatus(PaymentStatus status) { this.status = status; }
     public void setPaidAt(Instant paidAt) { this.paidAt = paidAt; }
     public void setVnpTransactionNo(String vnpTransactionNo) { this.vnpTransactionNo = vnpTransactionNo; }

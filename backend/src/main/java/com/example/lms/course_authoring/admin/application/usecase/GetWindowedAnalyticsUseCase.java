@@ -26,8 +26,8 @@ import java.util.UUID;
  * mean adjacent windows do not double-count the boundary instant.
  *
  * <p>When {@code organizationId} is non-null the use case scopes every count to
- * users in that organization and courses owned by teachers in that
- * organization. When it is null the counts are system-wide.
+ * users, courses, and payments owned by that organization. When it is null the
+ * counts are system-wide.
  */
 @Component
 @RequiredArgsConstructor
@@ -86,20 +86,19 @@ public class GetWindowedAnalyticsUseCase {
     private WindowedAnalyticsResponse buildOrgScoped(
             int days, UUID organizationId, Instant windowStart, Instant windowEnd, Instant prevWindowStart
     ) {
-        Set<UUID> teacherIds = analyticsPort.findTeacherIdsByOrganization(organizationId);
-        List<UUID> courseIds = analyticsPort.findCourseIdsByTeacherIds(teacherIds);
+        List<UUID> courseIds = analyticsPort.findCourseIdsByOrganization(organizationId);
 
         long totalUsers = analyticsPort.countUsersByOrganization(organizationId);
-        long totalCourses = analyticsPort.countCoursesByTeacherIds(teacherIds);
+        long totalCourses = analyticsPort.countCoursesByOrganization(organizationId);
         long totalEnrollments = analyticsPort.countEnrollmentsByCourseIds(courseIds);
 
         long usersThis = analyticsPort.countUsersCreatedBetweenInOrganization(organizationId, windowStart, windowEnd);
         long usersLast = analyticsPort.countUsersCreatedBetweenInOrganization(organizationId, prevWindowStart, windowStart);
-        long coursesThis = analyticsPort.countCoursesCreatedBetweenByTeacherIds(teacherIds, windowStart, windowEnd);
-        long coursesLast = analyticsPort.countCoursesCreatedBetweenByTeacherIds(teacherIds, prevWindowStart, windowStart);
+        long coursesThis = analyticsPort.countCoursesCreatedBetweenInOrganization(organizationId, windowStart, windowEnd);
+        long coursesLast = analyticsPort.countCoursesCreatedBetweenInOrganization(organizationId, prevWindowStart, windowStart);
 
-        BigDecimal revenueThis = analyticsPort.sumRevenueBetweenByCourseIds(courseIds, windowStart, windowEnd);
-        BigDecimal revenueLast = analyticsPort.sumRevenueBetweenByCourseIds(courseIds, prevWindowStart, windowStart);
+        BigDecimal revenueThis = analyticsPort.sumRevenueBetweenInOrganization(organizationId, windowStart, windowEnd);
+        BigDecimal revenueLast = analyticsPort.sumRevenueBetweenInOrganization(organizationId, prevWindowStart, windowStart);
 
         return assemble(
                 days, windowStart, windowEnd,

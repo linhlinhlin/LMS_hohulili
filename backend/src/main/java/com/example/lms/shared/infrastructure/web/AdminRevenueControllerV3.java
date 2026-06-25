@@ -151,12 +151,10 @@ public class AdminRevenueControllerV3 {
         if (!isOrgAdmin(currentUser)) {
             return payoutRepo.findAllByStatus(status, pageable);
         }
-
-        List<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
-        if (orgTeacherIds.isEmpty()) {
+        if (currentUser.getOrganizationId() == null) {
             return Page.empty(pageable);
         }
-        return payoutRepo.findAllByStatusAndTeacherIds(status, orgTeacherIds, pageable);
+        return payoutRepo.findAllByStatusAndOrganizationId(status, currentUser.getOrganizationId(), pageable);
     }
 
     private void verifyPayoutAccess(UUID payoutId, UserJpaEntity admin) {
@@ -166,20 +164,17 @@ public class AdminRevenueControllerV3 {
 
         PayoutRequest payout = payoutRepo.findById(payoutId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Yêu cầu rút tiền không tồn tại"));
+        if (payout.getOrganizationId() != null) {
+            if (!Objects.equals(payout.getOrganizationId(), admin.getOrganizationId())) {
+                throw new AccessDeniedException("Không có quyền truy cập yêu cầu rút tiền của tổ chức khác");
+            }
+            return;
+        }
+
         UserJpaEntity teacher = userRepo.findById(payout.getTeacherId()).orElse(null);
         if (teacher == null || !Objects.equals(teacher.getOrganizationId(), admin.getOrganizationId())) {
             throw new AccessDeniedException("Không có quyền truy cập yêu cầu rút tiền của tổ chức khác");
         }
-    }
-
-    private List<UUID> getOrgTeacherIds(UUID organizationId) {
-        if (organizationId == null) {
-            return List.of();
-        }
-        return userRepo.findByOrganizationId(organizationId).stream()
-                .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
-                .map(UserJpaEntity::getId)
-                .toList();
     }
 
     private boolean isOrgAdmin(UserJpaEntity viewer) {

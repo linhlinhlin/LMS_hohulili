@@ -122,9 +122,9 @@ class GetWindowedAnalyticsUseCaseTest {
             assertThat(r.windowStart()).isEqualTo(windowStart);
 
             // Verify no org-scoped queries were called
-            verify(port, never()).findTeacherIdsByOrganization(any());
+            verify(port, never()).findCourseIdsByOrganization(any());
             verify(port, never()).countUsersByOrganization(any());
-            verify(port, never()).countCoursesByTeacherIds(any());
+            verify(port, never()).countCoursesByOrganization(any());
         }
 
         @Test
@@ -161,25 +161,22 @@ class GetWindowedAnalyticsUseCaseTest {
         @DisplayName("Should scope every count to the organization when orgId is provided")
         void shouldScopeAllCountsToOrganization() {
             UUID orgId = UUID.randomUUID();
-            UUID teacherId = UUID.randomUUID();
-            Set<UUID> teacherIds = Set.of(teacherId);
             UUID courseId = UUID.randomUUID();
             List<UUID> courseIds = List.of(courseId);
 
             Instant windowStart = NOW.minus(7, ChronoUnit.DAYS);
             Instant prevStart = NOW.minus(14, ChronoUnit.DAYS);
 
-            when(port.findTeacherIdsByOrganization(orgId)).thenReturn(teacherIds);
-            when(port.findCourseIdsByTeacherIds(teacherIds)).thenReturn(courseIds);
+            when(port.findCourseIdsByOrganization(orgId)).thenReturn(courseIds);
             when(port.countUsersByOrganization(orgId)).thenReturn(12L);
-            when(port.countCoursesByTeacherIds(teacherIds)).thenReturn(4L);
+            when(port.countCoursesByOrganization(orgId)).thenReturn(4L);
             when(port.countEnrollmentsByCourseIds(courseIds)).thenReturn(20L);
             when(port.countUsersCreatedBetweenInOrganization(orgId, windowStart, NOW)).thenReturn(2L);
             when(port.countUsersCreatedBetweenInOrganization(orgId, prevStart, windowStart)).thenReturn(1L);
-            when(port.countCoursesCreatedBetweenByTeacherIds(teacherIds, windowStart, NOW)).thenReturn(1L);
-            when(port.countCoursesCreatedBetweenByTeacherIds(teacherIds, prevStart, windowStart)).thenReturn(0L);
-            when(port.sumRevenueBetweenByCourseIds(courseIds, windowStart, NOW)).thenReturn(new BigDecimal("250.00"));
-            when(port.sumRevenueBetweenByCourseIds(courseIds, prevStart, windowStart)).thenReturn(new BigDecimal("100.00"));
+            when(port.countCoursesCreatedBetweenInOrganization(orgId, windowStart, NOW)).thenReturn(1L);
+            when(port.countCoursesCreatedBetweenInOrganization(orgId, prevStart, windowStart)).thenReturn(0L);
+            when(port.sumRevenueBetweenInOrganization(orgId, windowStart, NOW)).thenReturn(new BigDecimal("250.00"));
+            when(port.sumRevenueBetweenInOrganization(orgId, prevStart, windowStart)).thenReturn(new BigDecimal("100.00"));
 
             WindowedAnalyticsResponse r = useCase.execute(7, orgId);
 
@@ -213,14 +210,13 @@ class GetWindowedAnalyticsUseCaseTest {
         void orgAdminEmptyTeachersReturnsZeros() {
             UUID orgId = UUID.randomUUID();
 
-            when(port.findTeacherIdsByOrganization(orgId)).thenReturn(Set.of());
-            when(port.findCourseIdsByTeacherIds(Set.of())).thenReturn(List.of());
+            when(port.findCourseIdsByOrganization(orgId)).thenReturn(List.of());
             when(port.countUsersByOrganization(orgId)).thenReturn(1L);
-            when(port.countCoursesByTeacherIds(Set.of())).thenReturn(0L);
+            when(port.countCoursesByOrganization(orgId)).thenReturn(0L);
             when(port.countEnrollmentsByCourseIds(List.of())).thenReturn(0L);
             when(port.countUsersCreatedBetweenInOrganization(eq(orgId), any(), any())).thenReturn(0L);
-            when(port.countCoursesCreatedBetweenByTeacherIds(eq(Set.of()), any(), any())).thenReturn(0L);
-            when(port.sumRevenueBetweenByCourseIds(eq(List.of()), any(), any())).thenReturn(BigDecimal.ZERO);
+            when(port.countCoursesCreatedBetweenInOrganization(eq(orgId), any(), any())).thenReturn(0L);
+            when(port.sumRevenueBetweenInOrganization(eq(orgId), any(), any())).thenReturn(BigDecimal.ZERO);
 
             WindowedAnalyticsResponse r = useCase.execute(7, orgId);
 

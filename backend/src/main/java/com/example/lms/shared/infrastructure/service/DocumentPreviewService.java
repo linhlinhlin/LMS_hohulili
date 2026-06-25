@@ -265,7 +265,13 @@ public class DocumentPreviewService {
 
     private boolean hasOrgScopedCourseAccess(Course course, UserJpaEntity user) {
         if (course == null || user == null || user.getRole() != UserJpaEntity.UserRole.ORG_ADMIN
-                || user.getOrganizationId() == null || course.getTeacherId() == null) {
+                || user.getOrganizationId() == null) {
+            return false;
+        }
+        if (course.getOrganizationId() != null) {
+            return Objects.equals(course.getOrganizationId(), user.getOrganizationId());
+        }
+        if (course.getTeacherId() == null) {
             return false;
         }
         return userRepository.findById(course.getTeacherId())

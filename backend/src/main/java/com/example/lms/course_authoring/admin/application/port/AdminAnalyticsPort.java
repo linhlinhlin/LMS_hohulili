@@ -3,7 +3,6 @@ package com.example.lms.course_authoring.admin.application.port;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -34,7 +33,7 @@ public interface AdminAnalyticsPort {
 
     long countUsersByOrganization(UUID organizationId);
 
-    long countCoursesByTeacherIds(Set<UUID> teacherIds);
+    long countCoursesByOrganization(UUID organizationId);
 
     long countEnrollmentsByCourseIds(List<UUID> courseIds);
 
@@ -42,15 +41,12 @@ public interface AdminAnalyticsPort {
 
     long countUsersCreatedBetweenInOrganization(UUID organizationId, Instant from, Instant to);
 
-    long countCoursesCreatedBetweenByTeacherIds(Set<UUID> teacherIds, Instant from, Instant to);
+    long countCoursesCreatedBetweenInOrganization(UUID organizationId, Instant from, Instant to);
 
-    BigDecimal sumRevenueBetweenByCourseIds(List<UUID> courseIds, Instant from, Instant to);
+    BigDecimal sumRevenueBetweenInOrganization(UUID organizationId, Instant from, Instant to);
 
     // === Org helpers ===
 
-    /** Resolve teacher IDs that belong to the given organization. */
-    Set<UUID> findTeacherIdsByOrganization(UUID organizationId);
-
-    /** Resolve course IDs owned by any teacher in the given set. */
-    List<UUID> findCourseIdsByTeacherIds(Set<UUID> teacherIds);
+    /** Resolve course IDs owned directly by the given organization. */
+    List<UUID> findCourseIdsByOrganization(UUID organizationId);
 }

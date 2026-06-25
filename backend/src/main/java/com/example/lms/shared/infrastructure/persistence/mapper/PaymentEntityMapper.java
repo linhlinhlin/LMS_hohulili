@@ -13,6 +13,7 @@ public class PaymentEntityMapper {
     public PaymentTransaction toDomain(PaymentTransactionJpaEntity entity) {
         return PaymentTransaction.reconstitute(
                 entity.getId(),
+                entity.getOrganizationId(),
                 entity.getStudentId(),
                 entity.getCourseId(),
                 entity.getAmount(),
@@ -39,6 +40,7 @@ public class PaymentEntityMapper {
     public PaymentTransactionJpaEntity toEntity(PaymentTransaction domain) {
         var entity = PaymentTransactionJpaEntity.builder()
                 .id(domain.getId())
+                .organizationId(domain.getOrganizationId())
                 .studentId(domain.getStudentId())
                 .courseId(domain.getCourseId())
                 .amount(domain.getAmount())

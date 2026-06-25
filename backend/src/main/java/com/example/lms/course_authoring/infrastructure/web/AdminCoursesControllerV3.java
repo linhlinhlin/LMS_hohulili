@@ -83,10 +83,10 @@ public class AdminCoursesControllerV3 {
 
         Page<Course> courses;
         if (isOrgAdmin(currentUser)) {
-            Set<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
+            UUID organizationId = currentUser.getOrganizationId();
             courses = hasAdvancedFilters
-                    ? loadAndFilterOrgScopedCourses(orgTeacherIds, status, search, categoryId, fromInstant, toInstant, pageable)
-                    : queryOrgScopedCourses(orgTeacherIds, status, search, pageable);
+                    ? loadAndFilterOrgScopedCourses(organizationId, status, search, categoryId, fromInstant, toInstant, pageable)
+                    : queryOrgScopedCourses(organizationId, status, search, pageable);
         } else {
             courses = queryCourses(status, search, pageable);
             if (hasAdvancedFilters) {
@@ -109,7 +109,7 @@ public class AdminCoursesControllerV3 {
     ) {
         PageRequest pageable = PageRequest.of(page, Math.min(size, 100));
         Page<Course> courses = isOrgAdmin(currentUser)
-                ? courseRepository.findReviewQueueByTeacherIds(getOrgTeacherIds(currentUser.getOrganizationId()), pageable)
+                ? courseRepository.findReviewQueueByOrganizationId(currentUser.getOrganizationId(), pageable)
                 : courseRepository.findReviewQueue(pageable);
 
         Page<CourseAdminResponse> response = enrichCourses(courses);
@@ -179,7 +179,7 @@ public class AdminCoursesControllerV3 {
 
     /**
      * Org-scoped analytics for ORG_ADMIN — only their organization's data.
-     * Counts teachers/students/admins within org, courses by org teachers,
+     * Counts teachers/students/admins within org, organization-owned courses,
      * enrollments and revenue for those courses.
      */
     private CourseAnalyticsResponse buildOrgScopedAnalytics(UserJpaEntity currentUser) {
@@ -198,32 +198,15 @@ public class AdminCoursesControllerV3 {
                 .filter(u -> u.getRole() == UserJpaEntity.UserRole.ADMIN
                         || u.getRole() == UserJpaEntity.UserRole.ORG_ADMIN).count();
 
-        // 2. Org teacher IDs → course counts by status
-        Set<UUID> orgTeacherIds = getOrgTeacherIds(orgId);
-        long totalCourses;
-        long pendingCourses;
-        long approvedCourses;
-        long draftCourses;
-        long rejectedCourses;
+        // 2. Organization-owned courses by status
+        long totalCourses = courseRepository.countByOrganizationId(orgId);
+        long pendingCourses = courseRepository.countReviewQueueByOrganizationId(orgId);
+        long approvedCourses = courseRepository.countByStatusAndOrganizationId(Course.CourseStatus.APPROVED, orgId);
+        long draftCourses = courseRepository.countByStatusAndOrganizationId(Course.CourseStatus.DRAFT, orgId);
+        long rejectedCourses = courseRepository.countByStatusAndOrganizationId(Course.CourseStatus.REJECTED, orgId);
 
-        if (orgTeacherIds.isEmpty()) {
-            totalCourses = 0;
-            pendingCourses = 0;
-            approvedCourses = 0;
-            draftCourses = 0;
-            rejectedCourses = 0;
-        } else {
-            totalCourses = courseRepository.countByTeacherIdIn(orgTeacherIds);
-            pendingCourses = courseRepository.countReviewQueueByTeacherIds(orgTeacherIds);
-            approvedCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.APPROVED, orgTeacherIds);
-            draftCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.DRAFT, orgTeacherIds);
-            rejectedCourses = courseRepository.countByStatusAndTeacherIdIn(Course.CourseStatus.REJECTED, orgTeacherIds);
-        }
-
-        // 3. Org course IDs → enrollment count + revenue
-        List<UUID> orgCourseIds = orgTeacherIds.isEmpty()
-                ? List.of()
-                : courseRepository.findCourseIdsByTeacherIdIn(orgTeacherIds);
+        // 3. Organization-owned course IDs -> enrollment count + revenue
+        List<UUID> orgCourseIds = courseRepository.findCourseIdsByOrganizationId(orgId);
 
         long totalEnrollments = 0;
         double totalRevenue = 0.0;
@@ -562,14 +545,6 @@ public class AdminCoursesControllerV3 {
         return user.getRole() == UserJpaEntity.UserRole.ORG_ADMIN;
     }
 
-    private Set<UUID> getOrgTeacherIds(UUID organizationId) {
-        if (organizationId == null) return Set.of();
-        return userRepository.findByOrganizationId(organizationId).stream()
-                .filter(u -> u.getRole() == UserJpaEntity.UserRole.TEACHER)
-                .map(UserJpaEntity::getId)
-                .collect(Collectors.toSet());
-    }
-
     private Page<Course> queryCourses(String status, String search, PageRequest pageable) {
         // Issue #191 (F-C1): the "Chờ duyệt" KPI on /admin/courses is sourced
         // from `pendingCourses = countReviewQueue()` which includes BOTH
@@ -605,14 +580,14 @@ public class AdminCoursesControllerV3 {
         return courseRepository.findAll(pageable);
     }
 
-    private Page<Course> queryOrgScopedCourses(Set<UUID> teacherIds, String status, String search, PageRequest pageable) {
-        if (teacherIds == null || teacherIds.isEmpty()) {
+    private Page<Course> queryOrgScopedCourses(UUID organizationId, String status, String search, PageRequest pageable) {
+        if (organizationId == null) {
             return Page.empty(pageable);
         }
         // Issue #191 (F-C1): see queryCourses — same alignment for the
         // ORG_ADMIN path so org-scoped KPI and table stay consistent.
         if (isPendingReviewFilter(status)) {
-            Page<Course> reviewQueue = courseRepository.findReviewQueueByTeacherIds(teacherIds, pageable);
+            Page<Course> reviewQueue = courseRepository.findReviewQueueByOrganizationId(organizationId, pageable);
             return search != null && !search.isBlank()
                     ? filterByTitle(reviewQueue, search)
                     : reviewQueue;
@@ -620,23 +595,23 @@ public class AdminCoursesControllerV3 {
         if (status != null && !status.isBlank() && search != null && !search.isBlank()) {
             try {
                 Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
-                return courseRepository.findByTeacherIdsAndStatusAndTitleContaining(teacherIds, courseStatus, search, pageable);
+                return courseRepository.findByOrganizationIdAndStatusAndTitleContaining(organizationId, courseStatus, search, pageable);
             } catch (IllegalArgumentException e) {
-                return courseRepository.findByTeacherIds(teacherIds, pageable);
+                return courseRepository.findByOrganizationId(organizationId, pageable);
             }
         }
         if (status != null && !status.isBlank()) {
             try {
                 Course.CourseStatus courseStatus = Course.CourseStatus.valueOf(status.toUpperCase(Locale.ROOT));
-                return courseRepository.findByTeacherIdsAndStatus(teacherIds, courseStatus, pageable);
+                return courseRepository.findByOrganizationIdAndStatus(organizationId, courseStatus, pageable);
             } catch (IllegalArgumentException e) {
-                return courseRepository.findByTeacherIds(teacherIds, pageable);
+                return courseRepository.findByOrganizationId(organizationId, pageable);
             }
         }
         if (search != null && !search.isBlank()) {
-            return courseRepository.findByTeacherIdsAndTitleContaining(teacherIds, search, pageable);
+            return courseRepository.findByOrganizationIdAndTitleContaining(organizationId, search, pageable);
         }
-        return courseRepository.findByTeacherIds(teacherIds, pageable);
+        return courseRepository.findByOrganizationId(organizationId, pageable);
     }
 
     /**
@@ -666,7 +641,7 @@ public class AdminCoursesControllerV3 {
     }
 
     private Page<Course> loadAndFilterOrgScopedCourses(
-            Set<UUID> teacherIds,
+            UUID organizationId,
             String status,
             String search,
             UUID categoryId,
@@ -679,7 +654,7 @@ public class AdminCoursesControllerV3 {
 
         while (true) {
             PageRequest batchPageable = PageRequest.of(currentPage, 200, pageable.getSort());
-            Page<Course> batch = queryOrgScopedCourses(teacherIds, status, search, batchPageable);
+            Page<Course> batch = queryOrgScopedCourses(organizationId, status, search, batchPageable);
             matchingCourses.addAll(batch.getContent());
             if (!batch.hasNext()) {
                 break;
@@ -824,6 +799,13 @@ public class AdminCoursesControllerV3 {
         if (!isOrgAdmin(admin)) return; // ADMIN has full access
         Course course = courseRepository.findById(courseId)
                 .orElseThrow(() -> new EntityNotFoundException("Khóa học", courseId));
+        if (course.getOrganizationId() != null) {
+            if (!Objects.equals(course.getOrganizationId(), admin.getOrganizationId())) {
+                throw new org.springframework.security.access.AccessDeniedException(
+                        "Không có quyền truy cập khóa học của tổ chức khác");
+            }
+            return;
+        }
         if (course.getTeacherId() == null) {
             throw new org.springframework.security.access.AccessDeniedException(
                     "Không có quyền truy cập khóa học này");

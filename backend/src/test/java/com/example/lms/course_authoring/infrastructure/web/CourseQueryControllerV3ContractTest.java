@@ -16,6 +16,7 @@ import com.example.lms.course_authoring.infrastructure.service.CoursePublication
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
+import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.EnrollmentRepositoryImpl;
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
@@ -30,6 +31,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.security.access.AccessDeniedException;
 
 import java.math.BigDecimal;
 import java.util.Map;
@@ -39,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
@@ -62,6 +65,7 @@ class CourseQueryControllerV3ContractTest {
     @Mock private CoursePublicationService coursePublicationService;
     @Mock private VideoAssetPresentationService videoAssetPresentationService;
     @Mock private ObjectMapper objectMapper;
+    @Mock private ClassTeacherJpaRepository classTeacherJpaRepository;
 
     @InjectMocks
     private CourseQueryControllerV3 controller;
@@ -169,6 +173,7 @@ class CourseQueryControllerV3ContractTest {
         UUID questionId = UUID.randomUUID();
 
         UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getId()).thenReturn(teacherId);
         when(teacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
 
         LessonJpaEntity lesson = LessonJpaEntity.builder()
@@ -256,6 +261,7 @@ class CourseQueryControllerV3ContractTest {
         UUID questionId = UUID.randomUUID();
 
         UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getId()).thenReturn(teacherId);
         when(teacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
 
         LessonJpaEntity lesson = LessonJpaEntity.builder()
@@ -321,6 +327,7 @@ class CourseQueryControllerV3ContractTest {
         UUID lessonId = UUID.randomUUID();
 
         UserJpaEntity teacher = mock(UserJpaEntity.class);
+        when(teacher.getId()).thenReturn(teacherId);
         when(teacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
 
         LessonJpaEntity lesson = LessonJpaEntity.builder()
@@ -362,6 +369,62 @@ class CourseQueryControllerV3ContractTest {
         assertThat(section.getStreamVideoUid()).isEqualTo("legacy-stream-uid");
         assertThat(section.getVideoType()).isEqualTo("CLOUDFLARE");
         assertThat(section.getVideoUrl()).isEqualTo("https://videodelivery.net/legacy-stream-uid/manifest/video.m3u8");
+    }
+
+    @Test
+    @DisplayName("ORG_ADMIN cannot read draft lesson detail for another organization")
+    void getLessonByIdRejectsOtherOrgAdminDraftLesson() {
+        UUID orgAdminId = UUID.randomUUID();
+        UUID orgAdminOrgId = UUID.randomUUID();
+        UUID ownerOrgId = UUID.randomUUID();
+        UUID chapterId = UUID.randomUUID();
+        UUID lessonId = UUID.randomUUID();
+
+        Course otherOrgDraftCourse = Course.create(
+                CourseCode.of("ORG-101"),
+                "Other org draft course",
+                "Unpublished draft",
+                teacherId
+        );
+        UUID courseId = otherOrgDraftCourse.getId();
+
+        UserJpaEntity orgAdmin = mock(UserJpaEntity.class);
+        when(orgAdmin.getId()).thenReturn(orgAdminId);
+        when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+        when(orgAdmin.getOrganizationId()).thenReturn(orgAdminOrgId);
+
+        UserJpaEntity owner = mock(UserJpaEntity.class);
+        when(owner.getOrganizationId()).thenReturn(ownerOrgId);
+
+        LessonJpaEntity lesson = LessonJpaEntity.builder()
+                .id(lessonId)
+                .chapterId(chapterId)
+                .title("Other org draft lesson")
+                .type(LessonJpaEntity.LessonType.LECTURE)
+                .contentBlocks(List.of(
+                        com.example.lms.shared.domain.model.ContentBlock.of(
+                                "text-1",
+                                "TEXT",
+                                Map.of("content", "Sensitive draft content")
+                        )
+                ))
+                .build();
+
+        ChapterJpaEntity chapter = ChapterJpaEntity.builder()
+                .id(chapterId)
+                .courseId(courseId)
+                .title("Draft chapter")
+                .build();
+
+        when(lessonRepository.findById(lessonId)).thenReturn(Optional.of(lesson));
+        when(chapterRepository.findById(chapterId)).thenReturn(Optional.of(chapter));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(otherOrgDraftCourse));
+        when(userJpaRepository.findById(teacherId)).thenReturn(Optional.of(owner));
+        when(courseRepository.findByLessonId(lessonId)).thenReturn(Optional.empty());
+        when(enrollmentJpaRepository.findByStudentIdAndCourseId(orgAdminId, courseId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> controller.getLessonById(lessonId, orgAdmin))
+                .isInstanceOf(AccessDeniedException.class);
     }
 
     @Test

@@ -28,13 +28,14 @@ public class CourseJpaEntity {
     }
     public static Builder builder() { return new Builder(); }
     public static class Builder {
-        private UUID id; private String code; private String title; private String description; private CourseStatus status = CourseStatus.DRAFT; private UUID teacherId; private UUID categoryId; private Set<String> tags = new HashSet<>(); private String welcomeMessage; private String courseInformation; private String benefits; private String introVideoUrl; private UUID introVideoAssetId; private Integer credits; private Visibility visibility = Visibility.PUBLIC; private PriceType priceType = PriceType.FREE; private BigDecimal price; private BigDecimal salePrice; private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED; private boolean allowOfflineDownload = true; private DraftChangeStatus draftChangeStatus = DraftChangeStatus.NONE; private String reviewComment; private Instant reviewedAt; private UUID reviewedById; private Instant createdAt = Instant.now(); private Instant updatedAt;
+        private UUID id; private String code; private String title; private String description; private CourseStatus status = CourseStatus.DRAFT; private UUID teacherId; private UUID organizationId; private UUID categoryId; private Set<String> tags = new HashSet<>(); private String welcomeMessage; private String courseInformation; private String benefits; private String introVideoUrl; private UUID introVideoAssetId; private Integer credits; private Visibility visibility = Visibility.PUBLIC; private PriceType priceType = PriceType.FREE; private BigDecimal price; private BigDecimal salePrice; private DeliveryMode deliveryMode = DeliveryMode.SELF_PACED; private boolean allowOfflineDownload = true; private DraftChangeStatus draftChangeStatus = DraftChangeStatus.NONE; private String reviewComment; private Instant reviewedAt; private UUID reviewedById; private Instant createdAt = Instant.now(); private Instant updatedAt;
         public Builder id(UUID id) { this.id = id; return this; }
         public Builder code(String code) { this.code = code; return this; }
         public Builder title(String title) { this.title = title; return this; }
         public Builder description(String description) { this.description = description; return this; }
         public Builder status(CourseStatus status) { this.status = status; return this; }
         public Builder teacherId(UUID teacherId) { this.teacherId = teacherId; return this; }
+        public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
         public Builder categoryId(UUID categoryId) { this.categoryId = categoryId; return this; }
         public Builder tags(Set<String> tags) { this.tags = tags; return this; }
         public Builder welcomeMessage(String welcomeMessage) { this.welcomeMessage = welcomeMessage; return this; }
@@ -55,7 +56,11 @@ public class CourseJpaEntity {
         public Builder reviewedById(UUID reviewedById) { this.reviewedById = reviewedById; return this; }
         public Builder createdAt(Instant createdAt) { this.createdAt = createdAt; return this; }
         public Builder updatedAt(Instant updatedAt) { this.updatedAt = updatedAt; return this; }
-        public CourseJpaEntity build() { return new CourseJpaEntity(id, code, title, description, status, teacherId, categoryId, tags, welcomeMessage, courseInformation, benefits, introVideoUrl, introVideoAssetId, credits, visibility, priceType, price, salePrice, deliveryMode, allowOfflineDownload, draftChangeStatus, reviewComment, reviewedAt, reviewedById, createdAt, updatedAt); }
+        public CourseJpaEntity build() {
+            CourseJpaEntity entity = new CourseJpaEntity(id, code, title, description, status, teacherId, categoryId, tags, welcomeMessage, courseInformation, benefits, introVideoUrl, introVideoAssetId, credits, visibility, priceType, price, salePrice, deliveryMode, allowOfflineDownload, draftChangeStatus, reviewComment, reviewedAt, reviewedById, createdAt, updatedAt);
+            entity.setOrganizationId(organizationId);
+            return entity;
+        }
     }
 
     @Id
@@ -77,6 +82,9 @@ public class CourseJpaEntity {
 
     @Column(name = "teacher_id", nullable = false)
     private UUID teacherId;
+
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
 
     @Column(name = "category_id")
     private UUID categoryId;
@@ -173,6 +181,8 @@ public class CourseJpaEntity {
     public void setStatus(CourseStatus status) { this.status = status; }
     public UUID getTeacherId() { return teacherId; }
     public void setTeacherId(UUID teacherId) { this.teacherId = teacherId; }
+    public UUID getOrganizationId() { return organizationId; }
+    public void setOrganizationId(UUID organizationId) { this.organizationId = organizationId; }
     public UUID getCategoryId() { return categoryId; }
     public void setCategoryId(UUID categoryId) { this.categoryId = categoryId; }
     public Set<String> getTags() { return tags; }

@@ -25,6 +25,7 @@ public class Course extends AggregateRoot {
     private String description;
     private CourseStatus status = CourseStatus.DRAFT;
     private UUID teacherId;
+    private UUID organizationId;
     private UUID categoryId;
     private Set<String> tags = new HashSet<>();
     private String welcomeMessage;
@@ -187,6 +188,10 @@ public class Course extends AggregateRoot {
         ensureEditable();
         this.categoryId = categoryId;
         markDraftChanged();
+    }
+
+    public void assignOrganization(UUID organizationId) {
+        this.organizationId = organizationId;
     }
 
     /**
@@ -482,6 +487,7 @@ public class Course extends AggregateRoot {
     public String getDescription() { return description; }
     public CourseStatus getStatus() { return status; }
     public UUID getTeacherId() { return teacherId; }
+    public UUID getOrganizationId() { return organizationId; }
     public UUID getCategoryId() { return categoryId; }
     public Set<String> getTags() { return Collections.unmodifiableSet(tags); }
     public String getWelcomeMessage() { return welcomeMessage; }

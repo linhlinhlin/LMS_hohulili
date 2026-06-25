@@ -19,6 +19,7 @@ public class LearningClass {
     private UUID courseVersionId;
     private VersionMode versionMode = VersionMode.PINNED;
     private UUID courseId;
+    private UUID organizationId;
     private UUID teacherId;
     private Instant startDate;
     private Instant endDate;
@@ -118,6 +119,7 @@ public class LearningClass {
     public UUID getCourseVersionId() { return courseVersionId; }
     public VersionMode getVersionMode() { return versionMode; }
     public UUID getCourseId() { return courseId; }
+    public UUID getOrganizationId() { return organizationId; }
     public UUID getTeacherId() { return teacherId; }
     public Instant getStartDate() { return startDate; }
     public Instant getEndDate() { return endDate; }
@@ -139,6 +141,7 @@ public class LearningClass {
         private UUID courseVersionId;
         private VersionMode versionMode = VersionMode.PINNED;
         private UUID courseId;
+        private UUID organizationId;
         private UUID teacherId;
         private Instant startDate;
         private Instant endDate;
@@ -155,6 +158,7 @@ public class LearningClass {
         public Builder courseVersionId(UUID courseVersionId) { this.courseVersionId = courseVersionId; return this; }
         public Builder versionMode(VersionMode versionMode) { this.versionMode = versionMode; return this; }
         public Builder courseId(UUID courseId) { this.courseId = courseId; return this; }
+        public Builder organizationId(UUID organizationId) { this.organizationId = organizationId; return this; }
         public Builder teacherId(UUID teacherId) { this.teacherId = teacherId; return this; }
         public Builder startDate(Instant startDate) { this.startDate = startDate; return this; }
         public Builder endDate(Instant endDate) { this.endDate = endDate; return this; }
@@ -173,6 +177,7 @@ public class LearningClass {
             lc.courseVersionId = this.courseVersionId;
             lc.versionMode = this.versionMode;
             lc.courseId = this.courseId;
+            lc.organizationId = this.organizationId;
             lc.teacherId = this.teacherId;
             lc.startDate = this.startDate;
             lc.endDate = this.endDate;

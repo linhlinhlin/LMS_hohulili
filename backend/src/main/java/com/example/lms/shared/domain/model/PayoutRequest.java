@@ -9,6 +9,7 @@ public class PayoutRequest {
     public enum Status { PENDING, APPROVED, REJECTED, COMPLETED, CANCELLED }
 
     private final UUID       id;
+    private final UUID       organizationId;
     private final UUID       teacherId;
     private final UUID       bankAccountId;
     private final BigDecimal amount;
@@ -19,10 +20,11 @@ public class PayoutRequest {
     private final Instant    requestedAt;
     private       Instant    processedAt;
 
-    private PayoutRequest(UUID id, UUID teacherId, UUID bankAccountId, BigDecimal amount,
+    private PayoutRequest(UUID id, UUID organizationId, UUID teacherId, UUID bankAccountId, BigDecimal amount,
                            Status status, String teacherNote, String adminNote,
                            UUID processedBy, Instant requestedAt, Instant processedAt) {
         this.id            = id;
+        this.organizationId = organizationId;
         this.teacherId     = teacherId;
         this.bankAccountId = bankAccountId;
         this.amount        = amount;
@@ -36,7 +38,13 @@ public class PayoutRequest {
 
     public static PayoutRequest create(UUID teacherId, UUID bankAccountId,
                                         BigDecimal amount, String teacherNote) {
-        return new PayoutRequest(null, teacherId, bankAccountId, amount,
+        return create(teacherId, bankAccountId, amount, teacherNote, null);
+    }
+
+    public static PayoutRequest create(UUID teacherId, UUID bankAccountId,
+                                        BigDecimal amount, String teacherNote,
+                                        UUID organizationId) {
+        return new PayoutRequest(null, organizationId, teacherId, bankAccountId, amount,
                 Status.PENDING, teacherNote, null, null, Instant.now(), null);
     }
 
@@ -45,7 +53,17 @@ public class PayoutRequest {
                                               String teacherNote, String adminNote,
                                               UUID processedBy, Instant requestedAt,
                                               Instant processedAt) {
-        return new PayoutRequest(id, teacherId, bankAccountId, amount, status,
+        return reconstitute(id, null, teacherId, bankAccountId, amount, status,
+                teacherNote, adminNote, processedBy, requestedAt, processedAt);
+    }
+
+    public static PayoutRequest reconstitute(UUID id, UUID organizationId,
+                                              UUID teacherId, UUID bankAccountId,
+                                              BigDecimal amount, Status status,
+                                              String teacherNote, String adminNote,
+                                              UUID processedBy, Instant requestedAt,
+                                              Instant processedAt) {
+        return new PayoutRequest(id, organizationId, teacherId, bankAccountId, amount, status,
                 teacherNote, adminNote, processedBy, requestedAt, processedAt);
     }
 
@@ -81,6 +99,7 @@ public class PayoutRequest {
     }
 
     public UUID       getId()            { return id; }
+    public UUID       getOrganizationId(){ return organizationId; }
     public UUID       getTeacherId()     { return teacherId; }
     public UUID       getBankAccountId() { return bankAccountId; }
     public BigDecimal getAmount()        { return amount; }

@@ -169,7 +169,7 @@ public class TeacherCoursesControllerV3 {
     public ResponseEntity<ApiResponse<Object>> createCourse(
             @Valid @RequestBody CourseDTOs.CreateCourseRequest request,
             @AuthenticationPrincipal UserJpaEntity user) {
-        var result = courseAuthoringUseCase.createCourse(request, user.getId());
+        var result = courseAuthoringUseCase.createCourse(request, user.getId(), user.getOrganizationId());
         return ResponseEntity.ok(ApiResponse.success(result));
     }
 

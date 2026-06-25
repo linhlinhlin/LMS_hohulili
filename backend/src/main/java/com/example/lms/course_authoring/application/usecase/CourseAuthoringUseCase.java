@@ -40,6 +40,11 @@ public class CourseAuthoringUseCase {
 
     @Transactional
     public AuthoringDTOs.CourseDraftDTO createCourse(CourseDTOs.CreateCourseRequest request, UUID teacherId) {
+        return createCourse(request, teacherId, null);
+    }
+
+    @Transactional
+    public AuthoringDTOs.CourseDraftDTO createCourse(CourseDTOs.CreateCourseRequest request, UUID teacherId, UUID organizationId) {
         CourseCategory selectedCategory = courseCategoryRepository.findById(request.getCategoryId())
                 .orElseThrow(() -> new EntityNotFoundException("Danh mục", request.getCategoryId()));
 
@@ -66,6 +71,7 @@ public class CourseAuthoringUseCase {
                 request.getDescription(),
                 teacherId
             );
+            course.assignOrganization(organizationId);
             course.updateCategory(request.getCategoryId());
 
             // Set delivery mode if specified

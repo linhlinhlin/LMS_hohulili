@@ -143,6 +143,22 @@ class LearningClassTest {
     class QueryMethodTests {
 
         @Test
+        @DisplayName("Should keep organization ownership")
+        void shouldKeepOrganizationOwnership() {
+            UUID organizationId = UUID.randomUUID();
+
+            LearningClass learningClass = LearningClass.builder()
+                .id(UUID.randomUUID())
+                .name("Class")
+                .code("CLASS-ORG")
+                .courseId(UUID.randomUUID())
+                .organizationId(organizationId)
+                .build();
+
+            assertThat(learningClass.getOrganizationId()).isEqualTo(organizationId);
+        }
+
+        @Test
         @DisplayName("canEnrollStudents should be true only when OPEN")
         void canEnrollStudentsShouldBeTrueWhenOpen() {
             assertThat(openClass.canEnrollStudents()).isTrue();
