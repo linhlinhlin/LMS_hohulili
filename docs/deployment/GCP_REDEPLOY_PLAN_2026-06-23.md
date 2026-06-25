@@ -696,3 +696,48 @@ curl -fsS https://holilihu.online/api/v3/courses?page=0\&size=1
 - `/org-admin/organization?tab=payment-config` loads config, validates negative percentages and low minimum payout.
 - `/org-admin/payouts` loads payout queue and all status filters return `200`.
 - Course/class/payment API responses remain scoped to the signed-in organization.
+
+## ORG deployment result - 2026-06-26
+
+The ORG branch was merged and deployed to the current review runtime.
+
+| Item | Value |
+|---|---|
+| PR | `#517` |
+| Merge commit | `9e6e09401804e75e472b95da948b860c2bcfd2e9` |
+| Runtime URL | `https://holilihu.online` |
+| VM IP | `34.87.45.168` |
+| VM app dir | `/home/Admin/apps/LMS_hohulili` |
+| GitHub deploy env | `production` |
+
+GitHub Environment `production` was corrected after the first failed deploy attempt:
+
+- `DEPLOY_HOST=34.87.45.168`
+- `DEPLOY_USER=Admin`
+- `DEPLOY_APP_DIR=/home/Admin/apps/LMS_hohulili`
+- `DEPLOY_SSH_PRIVATE_KEY` refreshed from the current VM admin SSH key.
+- `DEPLOY_KNOWN_HOSTS` refreshed from the current VM host key.
+
+Why this matters:
+
+- The first deploy tried the archived VM IP `35.187.245.201` and timed out.
+- Future deploys now target the active review VM and use the app directory created during the 2026-06-23 redeploy.
+
+Post-deploy production smoke:
+
+```text
+VM HEAD: 9e6e09401804e75e472b95da948b860c2bcfd2e9
+Docker: db, gotenberg, backend, frontend, caddy, video-worker healthy
+GET /actuator/health -> UP
+GET /api/v3/courses?page=0&size=3 -> 200, totalElements=174
+HEAD /org-admin/academic -> 200
+ORG_ADMIN login orgadmin@maritime.edu/orgadmin123 -> role ORG_ADMIN
+GET /api/v3/organizations/{orgId}/academic/catalog -> 200
+GET /api/v3/payments/admin/all?page=0&size=1 -> 200
+GET /api/v3/admin/revenue/payouts?page=0&size=1 -> 200
+```
+
+Important demo note:
+
+- Use `orgadmin@maritime.edu / orgadmin123` for ORG_ADMIN smoke and demo.
+- `nguyenlanhuong@maritime.edu` is currently a restored production teacher account, not the ORG_ADMIN demo account.

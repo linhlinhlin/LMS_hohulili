@@ -1037,3 +1037,65 @@ Debt còn lại sau Phase 3.11:
 - Chưa chạy production smoke vì chưa có image mới trên GHCR.
 - Cần tạo payout sample thật cho demo nếu muốn trình bày approve/reject/complete rõ ràng.
 - Curriculum/package/tuition policy vẫn là bước sau, chỉ thêm khi workflow học thuật và gói học được chốt.
+
+## 30. Phase 3.12 merge, deploy, and production smoke - 2026-06-26
+
+Mục tiêu của vòng này là đóng loop từ branch sạch đến runtime thật, thay vì chỉ dừng ở code đã build được.
+
+GitHub flow:
+
+- PR: `#517` - `ORG tenant workflows: academic catalog, scoped ownership, payments`.
+- Merge commit: `9e6e09401804e75e472b95da948b860c2bcfd2e9`.
+- PR CI: backend, frontend, compose, Cloudflare Worker, Docker smoke đều pass.
+- Main `Build & Deploy`: build/push backend + frontend GHCR image pass.
+
+Sự cố deploy đã gặp và cách xử lý:
+
+- Lần deploy đầu fail ở SSH vì GitHub Environment `production` vẫn trỏ VM cũ `35.187.245.201` và app dir cũ `/home/Admin/LMS_hohulili`.
+- Đã cập nhật Environment variables:
+  - `DEPLOY_HOST=34.87.45.168`
+  - `DEPLOY_USER=Admin`
+  - `DEPLOY_APP_DIR=/home/Admin/apps/LMS_hohulili`
+- Đã cập nhật Environment secrets:
+  - `DEPLOY_SSH_PRIVATE_KEY` theo key quản trị VM mới.
+  - `DEPLOY_KNOWN_HOSTS` theo host key của `34.87.45.168`.
+- Rerun `Build & Deploy` thành công.
+
+Production runtime sau deploy:
+
+```text
+VM HEAD: 9e6e09401804e75e472b95da948b860c2bcfd2e9
+containers: db, gotenberg, backend, frontend, caddy, video-worker healthy
+```
+
+Production smoke:
+
+```text
+GET https://holilihu.online/actuator/health -> 200 / UP
+GET https://holilihu.online/api/v3/courses?page=0&size=3 -> 200, totalElements=174
+HEAD https://holilihu.online/org-admin/academic -> 200
+```
+
+ORG_ADMIN smoke:
+
+```text
+login: orgadmin@maritime.edu / orgadmin123
+role: ORG_ADMIN
+organizationId: a0000000-0000-0000-0000-000000000001
+GET /api/v3/organizations/{orgId}/academic/catalog -> 200
+catalog counts: 4 departments, 4 programs, 3 cohorts, 4 class groups, 9 subjects, 9 subject-course links
+GET /api/v3/payments/admin/all?page=0&size=1 -> 200
+GET /api/v3/admin/revenue/payouts?page=0&size=1 -> 200
+```
+
+Kết luận:
+
+- Mục tiêu nền tảng của logic ORG đã vào main và chạy được trên production review runtime.
+- ORG_ADMIN đã có luồng demo thật: đăng nhập, vào route org-admin, đọc catalog học thuật VMU, xem payment/payout theo organization.
+- Chưa chuyển sang microservice; đây là quyết định đúng hiện tại theo `ponytail` và `karpathy-guidelines`: giữ monolith sạch, tenant-scoped, có test và deploy được.
+
+Debt còn lại:
+
+- Cần tạo dữ liệu payout pending/approved/completed có chủ ý nếu muốn demo thao tác duyệt rút tiền end-to-end.
+- Cần smoke UI bằng browser cho các màn `/org-admin/academic`, payment config và payout queue sau khi người dùng mở web.
+- Package/tuition/enrollment policy theo từng ORG vẫn là phase sau, chỉ thiết kế khi rule nghiệp vụ VMU được chốt cụ thể.
