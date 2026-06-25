@@ -17,6 +17,9 @@ public class PayoutRequestJpaEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "teacher_id", nullable = false)
     private UUID teacherId;
 

@@ -1,6 +1,7 @@
 # =============================================================================
 # LMS Maritime - Caddy Reverse Proxy Configuration
-# Auto-HTTPS via Let's Encrypt for holilihu.online
+# Site address is controlled by LMS_SITE_ADDRESS.
+# Default is Auto-HTTPS for holilihu.online; review runtime may use HTTP by IP.
 # =============================================================================
 
 (edge_response_headers) {
@@ -25,7 +26,7 @@
     }
 }
 
-holilihu.online {
+{$LMS_SITE_ADDRESS:holilihu.online} {
     @adaptivePlayback path /api/v3/video-assets/*/adaptive/*
 
     # Defense-in-depth: never let hidden or repo metadata paths fall through to SSR.

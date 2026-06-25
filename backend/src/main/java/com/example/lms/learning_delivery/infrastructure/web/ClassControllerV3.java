@@ -65,7 +65,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "List classes for a course")
     @GetMapping("/by-course/{courseId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<java.util.List<java.util.Map<String, Object>>>> getClassesByCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -78,7 +78,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Search classes for a course (paginated)")
     @GetMapping("/by-course/{courseId}/search")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<java.util.Map<String, Object>>> searchClassesByCourse(
             @PathVariable UUID courseId,
             @AuthenticationPrincipal UserJpaEntity user,
@@ -218,7 +218,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Create a new learning class")
     @PostMapping
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> createClass(
             @jakarta.validation.Valid @RequestBody CreateClassRequest request,
             @AuthenticationPrincipal UserJpaEntity user
@@ -238,8 +238,10 @@ public class ClassControllerV3 {
                     : "CLS-" + shortId;
         }
 
-        // Determine teacher (defaults to creator if not specified)
-        UUID teacherId = user.getId();
+        // Determine teacher (defaults to course owner for admin/org-admin operations).
+        UUID teacherId = (isAdminRole(user) || isOrgAdminRole(user)) && course.getTeacherId() != null
+                ? course.getTeacherId()
+                : user.getId();
 
         Instant startDate = null;
         Instant endDate = null;
@@ -252,6 +254,7 @@ public class ClassControllerV3 {
         } catch (java.time.format.DateTimeParseException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_DATE", "Định dạng ngày không hợp lệ: " + e.getMessage()));
         }
+        ensureTeacherBelongsToCourseOrganization(teacherId, course);
         var command = new CreateLearningClassUseCaseV3.CreateClassCommand(
                 courseId,
                 teacherId,
@@ -271,7 +274,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Update an existing learning class")
     @PutMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> updateClass(
             @PathVariable String classId,
             @Valid @RequestBody UpdateClassRequest request,
@@ -292,6 +295,7 @@ public class ClassControllerV3 {
         } catch (java.time.format.DateTimeParseException e) {
             return ResponseEntity.badRequest().body(ApiResponse.error("INVALID_DATE", "Định dạng ngày không hợp lệ: " + e.getMessage()));
         }
+        ensureTeacherBelongsToCourseOrganization(teacherId, context.course());
         var command = new UpdateLearningClassUseCase.UpdateClassCommand(
                 UUID.fromString(classId),
                 request.getName(),
@@ -312,7 +316,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Delete a learning class")
     @DeleteMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> deleteClass(
             @PathVariable String classId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -326,7 +330,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Get class by ID")
     @GetMapping("/{classId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<LearningClassResponse>> getClassById(
             @PathVariable String classId,
             @AuthenticationPrincipal UserJpaEntity user
@@ -339,7 +343,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Adopt a published course release for this class (or unpin to follow latest)")
     @PostMapping("/{classId}/adopt-publication")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, Object>>> adoptPublication(
             @PathVariable String classId,
             @RequestBody(required = false) AdoptPublicationRequest request,
@@ -410,7 +414,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Enroll student by email")
     @PostMapping("/{classId}/enrollments")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<UUID>> enrollStudent(
             @PathVariable String classId,
             @Valid @RequestBody EnrollStudentRequest request,
@@ -434,7 +438,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Get students in class (enriched roster: name + email + progress)")
     @GetMapping("/{classId}/students")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<PageResponse<com.example.lms.learning_delivery.application.dto.ClassStudentResponse>>> getClassStudents(
             @PathVariable String classId,
             @RequestParam(defaultValue = "0") int page,
@@ -453,7 +457,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Remove student from class")
     @DeleteMapping("/{classId}/enrollments/{studentId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Void>> removeStudent(
             @PathVariable String classId,
             @PathVariable String studentId,
@@ -638,6 +642,10 @@ public class ClassControllerV3 {
         return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ADMIN;
     }
 
+    private boolean isOrgAdminRole(com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        return user.getRole() == com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity.UserRole.ORG_ADMIN;
+    }
+
     // Legacy aliases — delegate to resolveOwnedCourse for consistent co-teacher support
     private com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity getOwnedCourse(
             UUID courseId,
@@ -660,9 +668,7 @@ public class ClassControllerV3 {
             com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         var course = courseJpaRepository.findById(courseId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", courseId));
-        if (!isAdminRole(user)
-                && (course.getTeacherId() == null || !course.getTeacherId().equals(user.getId()))
-                && !classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), courseId)) {
+        if (!canAccessCourse(course, user)) {
             throw new AccessDeniedException("Bạn không có quyền truy cập khóa học này");
         }
         return course;
@@ -673,8 +679,66 @@ public class ClassControllerV3 {
             com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
         var learningClass = classJpaRepository.findById(classId)
                 .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("LearningClass", classId));
-        var course = resolveOwnedCourse(learningClass.getCourseId(), user);
+        var course = courseJpaRepository.findById(learningClass.getCourseId())
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Course", learningClass.getCourseId()));
+        if (!canAccessClass(learningClass, course, user)) {
+            throw new AccessDeniedException("Bạn không có quyền truy cập khóa học này");
+        }
         return new OwnedClassContext(learningClass, course);
+    }
+
+    private boolean canAccessCourse(
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        if (isAdminRole(user)) {
+            return true;
+        }
+        if (isOrgAdminRole(user)) {
+            return sameOrganization(course.getOrganizationId(), user);
+        }
+        return isCourseTeacherOrCoTeacher(course, user);
+    }
+
+    private boolean canAccessClass(
+            LearningClassJpaEntity learningClass,
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        if (isAdminRole(user)) {
+            return true;
+        }
+        if (isOrgAdminRole(user)) {
+            UUID classOrganizationId = learningClass.getOrganizationId() != null
+                    ? learningClass.getOrganizationId()
+                    : course.getOrganizationId();
+            return sameOrganization(classOrganizationId, user);
+        }
+        return isCourseTeacherOrCoTeacher(course, user);
+    }
+
+    private boolean isCourseTeacherOrCoTeacher(
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        return (course.getTeacherId() != null && course.getTeacherId().equals(user.getId()))
+                || classTeacherJpaRepository.existsByTeacherIdAndCourseId(user.getId(), course.getId());
+    }
+
+    private boolean sameOrganization(
+            UUID organizationId,
+            com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity user) {
+        return organizationId != null && Objects.equals(organizationId, user.getOrganizationId());
+    }
+
+    private void ensureTeacherBelongsToCourseOrganization(
+            UUID teacherId,
+            com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity course) {
+        if (teacherId == null || course.getOrganizationId() == null) {
+            return;
+        }
+        var teacher = userJpaRepository.findById(teacherId)
+                .orElseThrow(() -> new com.example.lms.shared.exception.EntityNotFoundException("Teacher", teacherId));
+        if (!Objects.equals(course.getOrganizationId(), teacher.getOrganizationId())) {
+            throw new AccessDeniedException("Giảng viên không thuộc tổ chức của khóa học này");
+        }
     }
 
     private void ensureInstructorLedCourse(
@@ -693,7 +757,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "List teachers for a class")
     @GetMapping("/{classId}/teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<List<ManageClassTeachersUseCase.ClassTeacherDTO>>> getClassTeachers(
             @PathVariable UUID classId,
             @AuthenticationPrincipal UserJpaEntity user) {
@@ -706,12 +770,12 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Add a co-teacher to a class")
     @PostMapping("/{classId}/teachers")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, String>>> addClassTeacher(
             @PathVariable UUID classId,
             @RequestBody Map<String, String> request,
             @AuthenticationPrincipal UserJpaEntity user) {
-        resolveOwnedClassContext(classId, user);
+        var context = resolveOwnedClassContext(classId, user);
 
         String teacherIdStr = request.get("teacherId");
         if (teacherIdStr == null || teacherIdStr.isBlank()) {
@@ -719,7 +783,9 @@ public class ClassControllerV3 {
                     .body(ApiResponse.error("MISSING_TEACHER_ID", "Vui lòng chọn giảng viên"));
         }
 
-        String teacherName = manageClassTeachersUseCase.addCoTeacher(classId, UUID.fromString(teacherIdStr));
+        UUID teacherId = UUID.fromString(teacherIdStr);
+        ensureTeacherBelongsToCourseOrganization(teacherId, context.course());
+        String teacherName = manageClassTeachersUseCase.addCoTeacher(classId, teacherId);
         return ResponseEntity.ok(ApiResponse.success(
                 Map.of("message", "Đã thêm " + teacherName + " làm đồng giảng viên"),
                 "Thêm giảng viên thành công"
@@ -728,7 +794,7 @@ public class ClassControllerV3 {
 
     @Operation(summary = "Remove a co-teacher from a class")
     @DeleteMapping("/{classId}/teachers/{teacherId}")
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN', 'TEACHER')")
     public ResponseEntity<ApiResponse<Map<String, String>>> removeClassTeacher(
             @PathVariable UUID classId,
             @PathVariable UUID teacherId,

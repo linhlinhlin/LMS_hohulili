@@ -44,6 +44,9 @@ public class LearningClassJpaEntity {
     @Column(name = "course_id", nullable = false)
     private UUID courseId;
 
+    @Column(name = "organization_id", nullable = false)
+    private UUID organizationId;
+
     @Column(name = "teacher_id")
     private UUID teacherId;
 

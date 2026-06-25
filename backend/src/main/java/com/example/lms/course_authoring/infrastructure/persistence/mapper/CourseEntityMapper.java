@@ -28,6 +28,7 @@ public class CourseEntityMapper {
         entity.setDescription(domain.getDescription());
         entity.setStatus(mapStatusToEntity(domain.getStatus()));
         entity.setTeacherId(domain.getTeacherId());
+        entity.setOrganizationId(domain.getOrganizationId());
         entity.setCategoryId(domain.getCategoryId());
         entity.setTags(domain.getTags() != null ? domain.getTags() : new java.util.HashSet<>());
         entity.setWelcomeMessage(domain.getWelcomeMessage());
@@ -126,6 +127,7 @@ public class CourseEntityMapper {
             setField(course, "description", entity.getDescription());
             setField(course, "status", mapStatusToDomain(entity.getStatus()));
             setField(course, "teacherId", entity.getTeacherId());
+            setField(course, "organizationId", entity.getOrganizationId());
             setField(course, "categoryId", entity.getCategoryId());
             java.util.Set<String> tags;
             try {

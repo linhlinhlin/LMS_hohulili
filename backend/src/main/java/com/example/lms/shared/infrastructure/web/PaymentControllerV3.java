@@ -33,7 +33,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.env.Environment;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
@@ -822,17 +821,10 @@ public class PaymentControllerV3 {
             return findPaymentsByStatus(status, pageable);
         }
 
-        List<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
-        if (orgTeacherIds.isEmpty()) {
+        if (currentUser.getOrganizationId() == null) {
             return Page.empty(pageable);
         }
-
-        List<UUID> courseIds = courseRepository.findCourseIdsByTeacherIdIn(orgTeacherIds);
-        if (courseIds.isEmpty()) {
-            return Page.empty(pageable);
-        }
-
-        return findPaymentsByCourseIds(courseIds, status, pageable);
+        return findPaymentsByOrganizationId(currentUser.getOrganizationId(), status, pageable);
     }
 
     private Page<PaymentTransactionJpaEntity> findPaymentsByStatus(String status, PageRequest pageable) {
@@ -847,23 +839,21 @@ public class PaymentControllerV3 {
         return paymentJpaRepository.findAll(pageable);
     }
 
-    private Page<PaymentTransactionJpaEntity> findPaymentsByCourseIds(
-            List<UUID> courseIds,
+    private Page<PaymentTransactionJpaEntity> findPaymentsByOrganizationId(
+            UUID organizationId,
             String status,
             PageRequest pageable
     ) {
-        if (courseIds.isEmpty()) {
-            return new PageImpl<>(List.of(), pageable, 0);
-        }
         if (status != null && !status.isBlank()) {
             try {
                 var paymentStatus = PaymentTransactionJpaEntity.PaymentStatus.valueOf(status);
-                return paymentJpaRepository.findByCourseIdInAndStatus(courseIds, paymentStatus, pageable);
+                return paymentJpaRepository.findByOrganizationIdAndStatusOrderByCreatedAtDesc(
+                        organizationId, paymentStatus, pageable);
             } catch (IllegalArgumentException ignored) {
-                return paymentJpaRepository.findByCourseIdIn(courseIds, pageable);
+                return paymentJpaRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId, pageable);
             }
         }
-        return paymentJpaRepository.findByCourseIdIn(courseIds, pageable);
+        return paymentJpaRepository.findByOrganizationIdOrderByCreatedAtDesc(organizationId, pageable);
     }
 
     private void verifyPaymentAccess(UUID paymentId, UserJpaEntity currentUser) {
@@ -875,6 +865,12 @@ public class PaymentControllerV3 {
                 .orElseThrow(() -> new ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND,
                         "Giao dịch không tồn tại"));
+        if (payment.getOrganizationId() != null) {
+            if (!Objects.equals(payment.getOrganizationId(), currentUser.getOrganizationId())) {
+                throw new AccessDeniedException("Không có quyền truy cập giao dịch của tổ chức khác");
+            }
+            return;
+        }
         verifyCourseAccess(payment.getCourseId(), currentUser);
     }
 
@@ -887,6 +883,12 @@ public class PaymentControllerV3 {
                 .orElseThrow(() -> new ResponseStatusException(
                         org.springframework.http.HttpStatus.NOT_FOUND,
                         "Khóa học không tồn tại"));
+        if (course.getOrganizationId() != null) {
+            if (!Objects.equals(course.getOrganizationId(), currentUser.getOrganizationId())) {
+                throw new AccessDeniedException("Không có quyền truy cập giao dịch của tổ chức khác");
+            }
+            return;
+        }
         if (course.getTeacherId() == null) {
             throw new AccessDeniedException("Không có quyền truy cập giao dịch này");
         }
@@ -894,16 +896,6 @@ public class PaymentControllerV3 {
         if (teacher == null || !Objects.equals(teacher.getOrganizationId(), currentUser.getOrganizationId())) {
             throw new AccessDeniedException("Không có quyền truy cập giao dịch của tổ chức khác");
         }
-    }
-
-    private List<UUID> getOrgTeacherIds(UUID organizationId) {
-        if (organizationId == null) {
-            return List.of();
-        }
-        return userRepository.findByOrganizationId(organizationId).stream()
-                .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
-                .map(UserJpaEntity::getId)
-                .toList();
     }
 
     private boolean isOrgAdmin(UserJpaEntity currentUser) {

@@ -1,6 +1,7 @@
 package com.example.lms.shared.domain.model;
 
 import java.math.BigDecimal;
+import java.util.Objects;
 import java.util.UUID;
 
 /**
@@ -23,6 +24,12 @@ public class OrgPaymentConfig {
                               BigDecimal platformFeePct,
                               BigDecimal teacherSharePct,
                               BigDecimal minPayoutAmount) {
+        Objects.requireNonNull(platformFeePct, "platformFeePct is required");
+        Objects.requireNonNull(teacherSharePct, "teacherSharePct is required");
+        Objects.requireNonNull(minPayoutAmount, "minPayoutAmount is required");
+        requireNonNegative(platformFeePct, "platformFeePct");
+        requireNonNegative(teacherSharePct, "teacherSharePct");
+        requireNonNegative(minPayoutAmount, "minPayoutAmount");
         BigDecimal sum = platformFeePct.add(teacherSharePct);
         if (sum.compareTo(BigDecimal.valueOf(100)) > 0) {
             throw new IllegalArgumentException(
@@ -61,4 +68,10 @@ public class OrgPaymentConfig {
     public BigDecimal getTeacherSharePct() { return teacherSharePct; }
     public BigDecimal getOrgSharePct()     { return orgSharePct; }
     public BigDecimal getMinPayoutAmount() { return minPayoutAmount; }
+
+    private static void requireNonNegative(BigDecimal value, String fieldName) {
+        if (value.compareTo(BigDecimal.ZERO) < 0) {
+            throw new IllegalArgumentException(fieldName + " must not be negative");
+        }
+    }
 }

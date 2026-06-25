@@ -5,6 +5,8 @@ import com.example.lms.learning_delivery.domain.repository.LearningClassReposito
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.LearningClassJpaEntity;
 import com.example.lms.learning_delivery.infrastructure.persistence.mapper.LearningClassEntityMapper;
+import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
+import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,12 +26,23 @@ public class LearningClassRepositoryImpl implements LearningClassRepository, Lea
 
     private final JpaLearningClassRepository jpaRepository;
     private final LearningClassEntityMapper mapper;
+    private final JpaCourseRepository courseJpaRepository;
 
     @Override
     public LearningClass save(LearningClass learningClass) {
         LearningClassJpaEntity entity = mapper.toEntity(learningClass);
+        assignOrganizationFromCourseIfMissing(entity);
         LearningClassJpaEntity saved = jpaRepository.save(entity);
         return mapper.toDomain(saved);
+    }
+
+    private void assignOrganizationFromCourseIfMissing(LearningClassJpaEntity entity) {
+        if (entity == null || entity.getOrganizationId() != null || entity.getCourseId() == null) {
+            return;
+        }
+        courseJpaRepository.findById(entity.getCourseId())
+                .map(CourseJpaEntity::getOrganizationId)
+                .ifPresent(entity::setOrganizationId);
     }
 
     @Override

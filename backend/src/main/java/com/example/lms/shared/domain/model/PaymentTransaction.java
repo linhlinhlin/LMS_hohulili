@@ -16,6 +16,7 @@ import java.util.UUID;
 public class PaymentTransaction {
 
     private UUID id;
+    private UUID organizationId;
     private UUID studentId;
     private UUID courseId;
     private BigDecimal amount;
@@ -181,6 +182,7 @@ public class PaymentTransaction {
     // ==================== Getters ====================
 
     public UUID getId() { return id; }
+    public UUID getOrganizationId() { return organizationId; }
     public UUID getStudentId() { return studentId; }
     public UUID getCourseId() { return courseId; }
     public BigDecimal getAmount() { return amount; }
@@ -215,8 +217,25 @@ public class PaymentTransaction {
             String refundReason, String refundAdminNote, Long version,
             String sepayTransactionCode
     ) {
+        return reconstitute(
+                id, null, studentId, courseId, amount, currency, paymentMethod, transactionId,
+                status, paidAt, createdAt, vnpTransactionNo, vnpBankCode, vnpResponseCode,
+                vnpCardType, refundStatus, refundRequestedAt, refundCompletedAt, refundReason,
+                refundAdminNote, version, sepayTransactionCode);
+    }
+
+    public static PaymentTransaction reconstitute(
+            UUID id, UUID organizationId, UUID studentId, UUID courseId, BigDecimal amount, String currency,
+            String paymentMethod, String transactionId, PaymentStatus status,
+            Instant paidAt, Instant createdAt,
+            String vnpTransactionNo, String vnpBankCode, String vnpResponseCode, String vnpCardType,
+            String refundStatus, Instant refundRequestedAt, Instant refundCompletedAt,
+            String refundReason, String refundAdminNote, Long version,
+            String sepayTransactionCode
+    ) {
         var p = new PaymentTransaction();
         p.id = id;
+        p.organizationId = organizationId;
         p.studentId = studentId;
         p.courseId = courseId;
         p.amount = amount;

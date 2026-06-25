@@ -82,6 +82,50 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
             @Param("search") String search,
             Pageable pageable);
 
+    @Query(value = "SELECT c FROM CourseJpaEntity c WHERE c.organizationId = :organizationId",
+           countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.organizationId = :organizationId")
+    Page<CourseJpaEntity> findByOrganizationId(@Param("organizationId") UUID organizationId, Pageable pageable);
+
+    @Query(value = "SELECT c FROM CourseJpaEntity c WHERE c.organizationId = :organizationId AND c.status = :status",
+           countQuery = "SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.organizationId = :organizationId AND c.status = :status")
+    Page<CourseJpaEntity> findByOrganizationIdAndStatus(
+            @Param("organizationId") UUID organizationId,
+            @Param("status") CourseJpaEntity.CourseStatus status,
+            Pageable pageable);
+
+    @Query(value = """
+        SELECT c FROM CourseJpaEntity c
+        WHERE c.organizationId = :organizationId
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """,
+           countQuery = """
+        SELECT COUNT(c) FROM CourseJpaEntity c
+        WHERE c.organizationId = :organizationId
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """)
+    Page<CourseJpaEntity> findByOrganizationIdAndTitleContaining(
+            @Param("organizationId") UUID organizationId,
+            @Param("search") String search,
+            Pageable pageable);
+
+    @Query(value = """
+        SELECT c FROM CourseJpaEntity c
+        WHERE c.organizationId = :organizationId
+          AND c.status = :status
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """,
+           countQuery = """
+        SELECT COUNT(c) FROM CourseJpaEntity c
+        WHERE c.organizationId = :organizationId
+          AND c.status = :status
+          AND LOWER(c.title) LIKE LOWER(CONCAT('%', :search, '%'))
+        """)
+    Page<CourseJpaEntity> findByOrganizationIdAndStatusAndTitleContaining(
+            @Param("organizationId") UUID organizationId,
+            @Param("status") CourseJpaEntity.CourseStatus status,
+            @Param("search") String search,
+            Pageable pageable);
+
     /**
      * Returns courses where user is either the owner OR a co-teacher (via class_teachers).
      * Used for teacher dashboard — Google Classroom pattern: co-teachers see courses in the same list.
@@ -178,6 +222,26 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
            nativeQuery = true)
     Page<CourseJpaEntity> findReviewQueueByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds, Pageable pageable);
 
+    @Query(value = """
+        SELECT * FROM courses c
+        WHERE c.organization_id = :organizationId
+          AND (
+              c.status = 'PENDING'
+              OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+          )
+        ORDER BY c.updated_at DESC, c.created_at DESC
+        """,
+           countQuery = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.organization_id = :organizationId
+          AND (
+              c.status = 'PENDING'
+              OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+          )
+        """,
+           nativeQuery = true)
+    Page<CourseJpaEntity> findReviewQueueByOrganizationId(@Param("organizationId") UUID organizationId, Pageable pageable);
+
     @Query(value = "SELECT * FROM courses c WHERE c.status = :status AND unaccent(LOWER(c.title)) LIKE unaccent(LOWER(CONCAT('%', :search, '%')))", nativeQuery = true)
     Page<CourseJpaEntity> findByStatusAndTitleContaining(
             @Param("status") String status,
@@ -233,6 +297,14 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
     @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.status = :status AND c.teacherId IN :teacherIds")
     long countByStatusAndTeacherIdIn(@Param("status") CourseJpaEntity.CourseStatus status, @Param("teacherIds") Collection<UUID> teacherIds);
 
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.organizationId = :organizationId")
+    long countByOrganizationId(@Param("organizationId") UUID organizationId);
+
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.status = :status AND c.organizationId = :organizationId")
+    long countByStatusAndOrganizationId(
+            @Param("status") CourseJpaEntity.CourseStatus status,
+            @Param("organizationId") UUID organizationId);
+
     @Query(value = """
         SELECT COUNT(*) FROM courses c
         WHERE c.status = 'PENDING'
@@ -250,8 +322,21 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
         """, nativeQuery = true)
     long countReviewQueueByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);
 
+    @Query(value = """
+        SELECT COUNT(*) FROM courses c
+        WHERE c.organization_id = :organizationId
+          AND (
+              c.status = 'PENDING'
+              OR (c.status = 'APPROVED' AND c.draft_change_status = 'PENDING_REVIEW')
+          )
+        """, nativeQuery = true)
+    long countReviewQueueByOrganizationId(@Param("organizationId") UUID organizationId);
+
     @Query("SELECT c.id FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds")
     List<UUID> findCourseIdsByTeacherIdIn(@Param("teacherIds") Collection<UUID> teacherIds);
+
+    @Query("SELECT c.id FROM CourseJpaEntity c WHERE c.organizationId = :organizationId")
+    List<UUID> findCourseIdsByOrganizationId(@Param("organizationId") UUID organizationId);
 
     // === Windowed analytics queries (half-open [from, to)) ===
 
@@ -264,6 +349,13 @@ public interface JpaCourseRepository extends JpaRepository<CourseJpaEntity, UUID
     @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.teacherId IN :teacherIds AND c.createdAt >= :from AND c.createdAt < :to")
     long countByTeacherIdInAndCreatedAtBetween(
             @Param("teacherIds") Collection<UUID> teacherIds,
+            @Param("from") java.time.Instant from,
+            @Param("to") java.time.Instant to
+    );
+
+    @Query("SELECT COUNT(c) FROM CourseJpaEntity c WHERE c.organizationId = :organizationId AND c.createdAt >= :from AND c.createdAt < :to")
+    long countByOrganizationIdAndCreatedAtBetween(
+            @Param("organizationId") UUID organizationId,
             @Param("from") java.time.Instant from,
             @Param("to") java.time.Instant to
     );

@@ -54,6 +54,7 @@ export class OrganizationDetailComponent implements OnInit {
   isSavingConfig = signal(false);
   configPreviewPlatform = signal(20);
   configPreviewTeacher = signal(70);
+  configPreviewMinPayout = signal(100000);
   configPreviewOrgShare = computed(() => {
     const org = 100 - this.configPreviewPlatform() - this.configPreviewTeacher();
     return Math.round(org * 10) / 10;
@@ -62,9 +63,18 @@ export class OrganizationDetailComponent implements OnInit {
   configPreviewTeacherAmount = computed(() => Math.round(1000000 * this.configPreviewTeacher() / 100));
   configPreviewOrgAmount = computed(() => Math.round(1000000 * this.configPreviewOrgShare() / 100));
   configError = computed(() => {
+    if (this.configPreviewPlatform() < 0 || this.configPreviewTeacher() < 0) {
+      return 'Tỷ lệ không thể âm';
+    }
     const sum = this.configPreviewPlatform() + this.configPreviewTeacher();
     if (sum > 100) return `Tổng phí nền tảng + giảng viên = ${sum}% > 100%`;
     if (this.configPreviewOrgShare() < 0) return 'Tỷ lệ tổ chức không thể âm';
+    return '';
+  });
+  minPayoutError = computed(() => {
+    const amount = this.configPreviewMinPayout();
+    if (!Number.isFinite(amount)) return 'Số tiền rút tối thiểu không hợp lệ';
+    if (amount < 10000) return 'Số tiền rút tối thiểu phải ít nhất 10.000 VND';
     return '';
   });
 
@@ -330,6 +340,7 @@ export class OrganizationDetailComponent implements OnInit {
         this.paymentConfig.set(config);
         this.configPreviewPlatform.set(config.platformFeePct);
         this.configPreviewTeacher.set(config.teacherSharePct);
+        this.configPreviewMinPayout.set(config.minPayoutAmount);
         this.isLoadingConfig.set(false);
       },
       error: () => {
@@ -364,6 +375,7 @@ export class OrganizationDetailComponent implements OnInit {
     // Update preview signals
     this.configPreviewPlatform.set(platformFeePct);
     this.configPreviewTeacher.set(teacherSharePct);
+    this.configPreviewMinPayout.set(minPayoutAmount);
 
     this.isSavingConfig.set(true);
     this.orgService.updatePaymentConfig(this.orgId, { platformFeePct, teacherSharePct, minPayoutAmount }).subscribe({

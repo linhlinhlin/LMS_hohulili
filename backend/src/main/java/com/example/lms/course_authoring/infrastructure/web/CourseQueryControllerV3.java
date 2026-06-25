@@ -407,7 +407,7 @@ public class CourseQueryControllerV3 {
             @PathVariable UUID lessonId,
             @AuthenticationPrincipal UserJpaEntity currentUser
     ) {
-        // Authors (teacher owner, ADMIN, ORG_ADMIN) get the live draft so the
+        // Authors (teacher owner/co-teacher, ADMIN, same-org ORG_ADMIN) get the live draft so the
         // /preview surface reflects unsaved-since-publish changes (e.g. new
         // sections added in the editor). Students/learners get the published
         // snapshot below. Without this branch, sidebar reads draft (N sections)
@@ -434,20 +434,29 @@ public class CourseQueryControllerV3 {
         if (currentUser == null) {
             return false;
         }
-        if (isSystemAdminRole(currentUser) || isOrgAdminRole(currentUser)) {
+        if (isSystemAdminRole(currentUser)) {
             return true;
         }
-        if (currentUser.getRole() != UserJpaEntity.UserRole.TEACHER) {
-            return false;
-        }
-        // Teacher only sees draft for courses they own. Avoids leaking another
-        // teacher's unpublished work-in-progress.
+        return findCourseByLessonId(lessonId)
+                .map(course -> {
+                    if (hasOrgScopedCourseAccess(course, currentUser)) {
+                        return true;
+                    }
+                    if (currentUser.getRole() != UserJpaEntity.UserRole.TEACHER) {
+                        return false;
+                    }
+                    if (course.getTeacherId() != null && course.getTeacherId().equals(currentUser.getId())) {
+                        return true;
+                    }
+                    return classTeacherJpaRepository.existsByTeacherIdAndCourseId(currentUser.getId(), course.getId());
+                })
+                .orElse(false);
+    }
+
+    private Optional<Course> findCourseByLessonId(UUID lessonId) {
         return lessonRepository.findById(lessonId)
                 .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId()))
-                .flatMap(chapter -> courseRepository.findById(chapter.getCourseId()))
-                .map(course -> course.getTeacherId() != null
-                        && course.getTeacherId().equals(currentUser.getId()))
-                .orElse(false);
+                .flatMap(chapter -> courseRepository.findById(chapter.getCourseId()));
     }
 
     private ResponseEntity<ApiResponse<LessonDetailResponse>> loadDraftLessonDetail(
@@ -457,6 +466,8 @@ public class CourseQueryControllerV3 {
                 .flatMap(lesson -> chapterRepository.findById(lesson.getChapterId())
                         .flatMap(chapter -> courseRepository.findById(chapter.getCourseId())
                                 .map(course -> {
+                                    verifyCourseAccess(course, currentUser);
+
                                     // Paywall check (use Course overload to avoid redundant fetch)
                                     boolean lessonFree = lesson.getIsFree() != null && lesson.getIsFree();
                                     boolean showContent = isContentUnlocked(course, currentUser) || lessonFree;
@@ -1023,7 +1034,13 @@ public class CourseQueryControllerV3 {
     }
 
     private boolean hasOrgScopedCourseAccess(Course course, UserJpaEntity user) {
-        if (!isOrgAdminRole(user) || user.getOrganizationId() == null || course == null || course.getTeacherId() == null) {
+        if (!isOrgAdminRole(user) || user.getOrganizationId() == null || course == null) {
+            return false;
+        }
+        if (course.getOrganizationId() != null) {
+            return Objects.equals(course.getOrganizationId(), user.getOrganizationId());
+        }
+        if (course.getTeacherId() == null) {
             return false;
         }
 

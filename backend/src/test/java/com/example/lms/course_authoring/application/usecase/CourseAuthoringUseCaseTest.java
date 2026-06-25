@@ -86,6 +86,7 @@ class CourseAuthoringUseCaseTest {
     @Test
     @DisplayName("Should persist initial paid pricing from create request")
     void shouldPersistInitialPaidPricingFromCreateRequest() {
+        UUID organizationId = UUID.randomUUID();
         CourseDTOs.CreateCourseRequest request = CourseDTOs.CreateCourseRequest.builder()
                 .categoryId(categoryId)
                 .title("Paid course")
@@ -109,13 +110,14 @@ class CourseAuthoringUseCaseTest {
         when(courseRepository.save(any(Course.class))).thenAnswer(invocation -> invocation.getArgument(0));
         when(getCourseDraftUseCase.execute(any(UUID.class))).thenReturn(draft);
 
-        AuthoringDTOs.CourseDraftDTO result = useCase.createCourse(request, teacherId);
+        AuthoringDTOs.CourseDraftDTO result = useCase.createCourse(request, teacherId, organizationId);
 
         ArgumentCaptor<Course> courseCaptor = ArgumentCaptor.forClass(Course.class);
         verify(courseRepository).save(courseCaptor.capture());
         Course savedCourse = courseCaptor.getValue();
 
         assertThat(savedCourse.getPriceType()).isEqualTo(Course.PriceType.PAID);
+        assertThat(savedCourse.getOrganizationId()).isEqualTo(organizationId);
         assertThat(savedCourse.getPrice()).isEqualByComparingTo("500000");
         assertThat(savedCourse.getSalePrice()).isEqualByComparingTo("400000");
         assertThat(result.getPriceType()).isEqualTo("PAID");

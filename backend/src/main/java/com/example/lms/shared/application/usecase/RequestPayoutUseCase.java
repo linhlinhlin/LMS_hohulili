@@ -61,7 +61,7 @@ public class RequestPayoutUseCase {
                     "Số tiền rút vượt quá số dư khả dụng (" + available.toPlainString() + "đ)");
         }
 
-        var request = PayoutRequest.create(teacherId, bankAccountId, amount, teacherNote);
+        var request = PayoutRequest.create(teacherId, bankAccountId, amount, teacherNote, orgId);
         return payoutRepo.save(request);
     }
 

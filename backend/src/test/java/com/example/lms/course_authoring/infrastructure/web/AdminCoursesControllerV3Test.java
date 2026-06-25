@@ -23,7 +23,6 @@ import org.springframework.http.ResponseEntity;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.*;
@@ -188,19 +187,12 @@ class AdminCoursesControllerV3Test {
     @DisplayName("Analytics - ORG_ADMIN (Org-scoped)")
     class AnalyticsOrgAdminTests {
 
-        private UUID teacherId1;
-        private UUID teacherId2;
-        private Set<UUID> orgTeacherIds;
         private List<UUID> orgCourseIds;
 
         @BeforeEach
         void setUpOrgData() {
             when(orgAdminUser.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
             when(orgAdminUser.getOrganizationId()).thenReturn(orgId);
-
-            teacherId1 = UUID.randomUUID();
-            teacherId2 = UUID.randomUUID();
-            orgTeacherIds = Set.of(teacherId1, teacherId2);
 
             UUID courseId1 = UUID.randomUUID();
             UUID courseId2 = UUID.randomUUID();
@@ -214,11 +206,9 @@ class AdminCoursesControllerV3Test {
             // Given
             UserJpaEntity teacher1 = mock(UserJpaEntity.class);
             when(teacher1.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
-            when(teacher1.getId()).thenReturn(teacherId1);
 
             UserJpaEntity teacher2 = mock(UserJpaEntity.class);
             when(teacher2.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
-            when(teacher2.getId()).thenReturn(teacherId2);
 
             UserJpaEntity student1 = mock(UserJpaEntity.class);
             when(student1.getRole()).thenReturn(UserJpaEntity.UserRole.STUDENT);
@@ -231,12 +221,12 @@ class AdminCoursesControllerV3Test {
 
             when(userRepository.findByOrganizationId(orgId))
                     .thenReturn(List.of(teacher1, teacher2, student1, student2, orgAdmin));
-            when(courseRepository.countByTeacherIdIn(anySet())).thenReturn(3L);
-            when(courseRepository.countReviewQueueByTeacherIds(anySet())).thenReturn(1L);
-            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.APPROVED), anySet())).thenReturn(1L);
-            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.DRAFT), anySet())).thenReturn(1L);
-            when(courseRepository.countByStatusAndTeacherIdIn(eq(Course.CourseStatus.REJECTED), anySet())).thenReturn(0L);
-            when(courseRepository.findCourseIdsByTeacherIdIn(anySet())).thenReturn(orgCourseIds);
+            when(courseRepository.countByOrganizationId(orgId)).thenReturn(3L);
+            when(courseRepository.countReviewQueueByOrganizationId(orgId)).thenReturn(1L);
+            when(courseRepository.countByStatusAndOrganizationId(Course.CourseStatus.APPROVED, orgId)).thenReturn(1L);
+            when(courseRepository.countByStatusAndOrganizationId(Course.CourseStatus.DRAFT, orgId)).thenReturn(1L);
+            when(courseRepository.countByStatusAndOrganizationId(Course.CourseStatus.REJECTED, orgId)).thenReturn(0L);
+            when(courseRepository.findCourseIdsByOrganizationId(orgId)).thenReturn(orgCourseIds);
 
             when(enrollmentRepository.countTotalByCourseIds(orgCourseIds)).thenReturn(15L);
             when(paymentTransactionRepository.sumRevenueByCourseIds(orgCourseIds)).thenReturn(BigDecimal.valueOf(10000));
@@ -276,15 +266,18 @@ class AdminCoursesControllerV3Test {
             verify(userRepository, never()).countByRole(any());
             verify(enrollmentRepository, never()).count();
             verify(paymentTransactionRepository, never()).sumTotalRevenue();
+            verify(courseRepository, never()).countByTeacherIdIn(anySet());
+            verify(courseRepository, never()).findCourseIdsByTeacherIdIn(anySet());
         }
 
         @Test
-        @DisplayName("ORG_ADMIN with no org teachers should return all zeros for course/enrollment/revenue")
-        void orgAdminNoTeachersShouldReturnZeros() {
-            // Given — override to return no teachers
+        @DisplayName("ORG_ADMIN with no organization-owned courses should return course/enrollment/revenue zeros")
+        void orgAdminNoOrgCoursesShouldReturnZeros() {
+            // Given: org has an admin but no organization-owned courses.
             UserJpaEntity orgAdmin = mock(UserJpaEntity.class);
             when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
             when(userRepository.findByOrganizationId(orgId)).thenReturn(List.of(orgAdmin));
+            when(courseRepository.findCourseIdsByOrganizationId(orgId)).thenReturn(List.of());
 
             // When
             ResponseEntity<?> response = controller.getCourseAnalytics(orgAdminUser);

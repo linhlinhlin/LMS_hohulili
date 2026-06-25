@@ -9,6 +9,7 @@ const ORG_ADMIN_SHARED_SUFFIXES = [
   '/dashboard',
   '/courses',
   '/analytics',
+  '/payouts',
   '/users',
   '/users/teachers',
   '/users/students'

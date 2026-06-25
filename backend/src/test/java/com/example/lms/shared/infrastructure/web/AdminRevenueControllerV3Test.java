@@ -87,11 +87,10 @@ class AdminRevenueControllerV3Test {
             orgAdmin.setOrganizationId(orgId);
             UserJpaEntity teacher = user(UserJpaEntity.UserRole.TEACHER, teacherId, "Teacher Org", "teacher@org.edu");
             teacher.setOrganizationId(orgId);
-            PayoutRequest payout = payout(teacherId, bankId, PayoutRequest.Status.APPROVED);
+            PayoutRequest payout = payoutWithId(UUID.randomUUID(), orgId, teacherId, bankId, PayoutRequest.Status.APPROVED);
             TeacherBankAccount bank = bank(bankId, teacherId, "9876543210");
 
-            when(userRepo.findByOrganizationId(orgId)).thenReturn(List.of(teacher));
-            when(payoutRepo.findAllByStatusAndTeacherIds(eq("APPROVED"), eq(List.of(teacherId)), any(PageRequest.class)))
+            when(payoutRepo.findAllByStatusAndOrganizationId(eq("APPROVED"), eq(orgId), any(PageRequest.class)))
                     .thenReturn(new PageImpl<>(List.of(payout), PageRequest.of(0, 20), 1));
             when(userRepo.findAllById(List.of(teacherId))).thenReturn(List.of(teacher));
             when(bankAccountRepo.findByIds(List.of(bankId))).thenReturn(List.of(bank));
@@ -105,16 +104,13 @@ class AdminRevenueControllerV3Test {
             assertThat(page.getContent().get(0).accountNumber()).isEqualTo("****3210");
 
             verify(payoutRepo, never()).findAllByStatus(any(), any());
+            verify(payoutRepo, never()).findAllByStatusAndTeacherIds(any(), any(), any());
         }
 
         @Test
-        @DisplayName("ORG_ADMIN with no teachers should receive empty page")
-        void orgAdminWithNoTeachersShouldReceiveEmptyPage() {
-            UUID orgId = UUID.randomUUID();
+        @DisplayName("ORG_ADMIN without organization should receive empty page")
+        void orgAdminWithoutOrganizationShouldReceiveEmptyPage() {
             UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, UUID.randomUUID(), "Org Admin", "orgadmin@maritime.edu");
-            orgAdmin.setOrganizationId(orgId);
-
-            when(userRepo.findByOrganizationId(orgId)).thenReturn(List.of());
 
             var response = controller.listPayouts("PENDING", 0, 20, orgAdmin);
 
@@ -122,6 +118,7 @@ class AdminRevenueControllerV3Test {
             assertThat(response.getBody().getData().getContent()).isEmpty();
             verify(payoutRepo, never()).findAllByStatus(any(), any());
             verify(payoutRepo, never()).findAllByStatusAndTeacherIds(any(), any(), any());
+            verify(payoutRepo, never()).findAllByStatusAndOrganizationId(any(), any(), any());
         }
     }
 
@@ -142,6 +139,7 @@ class AdminRevenueControllerV3Test {
             teacher.setOrganizationId(orgId);
             PayoutRequest payout = PayoutRequest.reconstitute(
                     payoutId,
+                    orgId,
                     teacherId,
                     bankId,
                     BigDecimal.valueOf(200000),
@@ -153,9 +151,8 @@ class AdminRevenueControllerV3Test {
                     Instant.now().minusSeconds(3600)
             );
 
-            when(payoutRepo.findById(payoutId)).thenReturn(Optional.of(payout));
-            when(userRepo.findById(teacherId)).thenReturn(Optional.of(teacher));
             when(processPayoutUseCase.approve(payoutId, orgAdmin.getId(), "ok")).thenReturn(payout);
+            when(payoutRepo.findById(payoutId)).thenReturn(Optional.of(payout));
             when(userRepo.findById(payout.getTeacherId())).thenReturn(Optional.of(teacher));
             when(bankAccountRepo.findById(bankId)).thenReturn(Optional.of(bank(bankId, teacherId, "1234567890")));
 
@@ -174,12 +171,10 @@ class AdminRevenueControllerV3Test {
             UUID payoutId = UUID.randomUUID();
             UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, UUID.randomUUID(), "Org Admin", "orgadmin@maritime.edu");
             orgAdmin.setOrganizationId(orgId);
-            UserJpaEntity foreignTeacher = user(UserJpaEntity.UserRole.TEACHER, teacherId, "Teacher Elsewhere", "teacher@other.edu");
-            foreignTeacher.setOrganizationId(UUID.randomUUID());
-            PayoutRequest payout = payoutWithId(payoutId, teacherId, UUID.randomUUID(), PayoutRequest.Status.PENDING);
+            UUID otherOrgId = UUID.randomUUID();
+            PayoutRequest payout = payoutWithId(payoutId, otherOrgId, teacherId, UUID.randomUUID(), PayoutRequest.Status.PENDING);
 
             when(payoutRepo.findById(payoutId)).thenReturn(Optional.of(payout));
-            when(userRepo.findById(teacherId)).thenReturn(Optional.of(foreignTeacher));
 
             assertThatThrownBy(() -> controller.approve(payoutId, new AdminRevenueControllerV3.AdminNoteBody("deny"), orgAdmin))
                     .isInstanceOf(AccessDeniedException.class)
@@ -216,8 +211,19 @@ class AdminRevenueControllerV3Test {
     }
 
     private static PayoutRequest payoutWithId(UUID payoutId, UUID teacherId, UUID bankId, PayoutRequest.Status status) {
+        return payoutWithId(payoutId, null, teacherId, bankId, status);
+    }
+
+    private static PayoutRequest payoutWithId(
+            UUID payoutId,
+            UUID organizationId,
+            UUID teacherId,
+            UUID bankId,
+            PayoutRequest.Status status
+    ) {
         return PayoutRequest.reconstitute(
                 payoutId,
+                organizationId,
                 teacherId,
                 bankId,
                 BigDecimal.valueOf(150000),

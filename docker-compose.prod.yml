@@ -23,7 +23,7 @@ x-backend-runtime-env: &backend-runtime-env
   CLOUDFLARE_R2_SIMULATION_PUBLIC_URL: ${CLOUDFLARE_R2_SIMULATION_PUBLIC_URL:-/simulations}
   CLOUDFLARE_R2_SIMULATION_PREFIX: ${CLOUDFLARE_R2_SIMULATION_PREFIX:-simulations}
   CLOUDFLARE_R2_PUBLIC_URL: ${CLOUDFLARE_R2_PUBLIC_URL:-}
-  VIDEO_INGEST_ENABLED: "true"
+  VIDEO_INGEST_ENABLED: ${VIDEO_INGEST_ENABLED:-true}
   VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS: ${VIDEO_PLAYBACK_TOKEN_EXPIRY_SECONDS:-14400}
   VIDEO_SEGMENT_PRESIGN_TTL_SECONDS: ${VIDEO_SEGMENT_PRESIGN_TTL_SECONDS:-120}
   VIDEO_MEDIA_DOMAIN: ${VIDEO_MEDIA_DOMAIN:-}
@@ -156,7 +156,7 @@ services:
     # Node.js SSR (~80-150MB) + nginx (~10MB) = ~200MB typical
     restart: always
     environment:
-      NG_ALLOWED_HOSTS: "holilihu.online,localhost"
+      NG_ALLOWED_HOSTS: "holilihu.online,localhost,34.87.45.168"
     cpus: "${FRONTEND_CPU_LIMIT:-0.5}"
     mem_limit: "${FRONTEND_MEMORY_LIMIT:-384M}"
     deploy:
@@ -169,6 +169,8 @@ services:
   caddy:
     image: caddy:2-alpine
     restart: always
+    environment:
+      LMS_SITE_ADDRESS: ${LMS_SITE_ADDRESS:-holilihu.online}
     ports:
       - "80:80"
       - "443:443"
