@@ -5,6 +5,9 @@ export interface AcademicCatalog {
   classGroups: AcademicClassGroup[];
   subjects: AcademicSubject[];
   subjectCourses: AcademicSubjectCourse[];
+  terms: AcademicTerm[];
+  curriculumPlans: AcademicCurriculumPlan[];
+  curriculumSubjects: AcademicCurriculumSubject[];
 }
 
 export interface AcademicDepartment {
@@ -70,6 +73,44 @@ export interface AcademicSubjectCourse {
   createdAt: string;
 }
 
+export interface AcademicTerm {
+  id: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  academicYear: string;
+  termNumber: number;
+  startsOn: string | null;
+  endsOn: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicCurriculumPlan {
+  id: string;
+  organizationId: string;
+  programId: string;
+  cohortId: string | null;
+  code: string;
+  name: string;
+  totalCredits: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicCurriculumSubject {
+  id: string;
+  organizationId: string;
+  curriculumPlanId: string;
+  subjectId: string;
+  termId: string | null;
+  displayOrder: number;
+  required: boolean;
+  creditsOverride: number | null;
+  status: string;
+  createdAt: string;
+}
+
 export interface CreateAcademicDepartmentRequest {
   code: string;
   name: string;
@@ -107,4 +148,30 @@ export interface LinkAcademicSubjectCourseRequest {
   subjectId: string;
   courseId: string;
   primary: boolean;
+}
+
+export interface CreateAcademicTermRequest {
+  code: string;
+  name: string;
+  academicYear: string;
+  termNumber: number;
+  startsOn: string | null;
+  endsOn: string | null;
+}
+
+export interface CreateAcademicCurriculumPlanRequest {
+  programId: string;
+  cohortId: string | null;
+  code: string;
+  name: string;
+  totalCredits: number;
+}
+
+export interface AddAcademicCurriculumSubjectRequest {
+  curriculumPlanId: string;
+  subjectId: string;
+  termId: string | null;
+  displayOrder: number;
+  required: boolean;
+  creditsOverride: number | null;
 }

@@ -5,17 +5,23 @@ import { ACADEMIC_ENDPOINTS } from '../endpoints/academic.endpoints';
 import { ApiResponse } from '../types/common.types';
 import {
   AcademicCatalog,
+  AcademicCurriculumPlan,
+  AcademicCurriculumSubject,
   AcademicClassGroup,
   AcademicCohort,
   AcademicDepartment,
   AcademicProgram,
   AcademicSubject,
   AcademicSubjectCourse,
+  AcademicTerm,
+  AddAcademicCurriculumSubjectRequest,
+  CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
   CreateAcademicDepartmentRequest,
   CreateAcademicProgramRequest,
   CreateAcademicSubjectRequest,
+  CreateAcademicTermRequest,
   LinkAcademicSubjectCourseRequest,
 } from '../types/academic.types';
 
@@ -56,6 +62,24 @@ export class AcademicApi {
   linkSubjectCourse(orgId: string, request: LinkAcademicSubjectCourseRequest) {
     return this.api.postWithResponse<AcademicSubjectCourse>(
       ACADEMIC_ENDPOINTS.SUBJECT_COURSES(orgId),
+      request
+    );
+  }
+
+  createTerm(orgId: string, request: CreateAcademicTermRequest) {
+    return this.api.postWithResponse<AcademicTerm>(ACADEMIC_ENDPOINTS.TERMS(orgId), request);
+  }
+
+  createCurriculumPlan(orgId: string, request: CreateAcademicCurriculumPlanRequest) {
+    return this.api.postWithResponse<AcademicCurriculumPlan>(
+      ACADEMIC_ENDPOINTS.CURRICULUM_PLANS(orgId),
+      request
+    );
+  }
+
+  addCurriculumSubject(orgId: string, request: AddAcademicCurriculumSubjectRequest) {
+    return this.api.postWithResponse<AcademicCurriculumSubject>(
+      ACADEMIC_ENDPOINTS.CURRICULUM_SUBJECTS(orgId),
       request
     );
   }

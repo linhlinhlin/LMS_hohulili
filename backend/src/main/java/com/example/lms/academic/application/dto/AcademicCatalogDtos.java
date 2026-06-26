@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,7 +19,10 @@ public final class AcademicCatalogDtos {
             List<CohortResponse> cohorts,
             List<ClassGroupResponse> classGroups,
             List<SubjectResponse> subjects,
-            List<SubjectCourseResponse> subjectCourses
+            List<SubjectCourseResponse> subjectCourses,
+            List<TermResponse> terms,
+            List<CurriculumPlanResponse> curriculumPlans,
+            List<CurriculumSubjectResponse> curriculumSubjects
     ) {}
 
     public record CreateDepartmentCommand(
@@ -60,10 +64,39 @@ public final class AcademicCatalogDtos {
             boolean primary
     ) {}
 
+    public record CreateTermCommand(
+            @NotBlank @Size(max = 64) String code,
+            @NotBlank @Size(max = 255) String name,
+            @NotBlank @Size(max = 16) String academicYear,
+            @NotNull @Min(1) Integer termNumber,
+            LocalDate startsOn,
+            LocalDate endsOn
+    ) {}
+
+    public record CreateCurriculumPlanCommand(
+            @NotNull UUID programId,
+            UUID cohortId,
+            @NotBlank @Size(max = 64) String code,
+            @NotBlank @Size(max = 255) String name,
+            @Min(0) Integer totalCredits
+    ) {}
+
+    public record AddCurriculumSubjectCommand(
+            @NotNull UUID curriculumPlanId,
+            @NotNull UUID subjectId,
+            UUID termId,
+            @Min(0) Integer displayOrder,
+            Boolean required,
+            @Min(0) Integer creditsOverride
+    ) {}
+
     public record DepartmentResponse(UUID id, UUID organizationId, String code, String name, String status, Instant createdAt) {}
     public record ProgramResponse(UUID id, UUID organizationId, UUID departmentId, String code, String name, String level, String status, Instant createdAt) {}
     public record CohortResponse(UUID id, UUID organizationId, String code, String name, Integer startYear, Integer graduationYear, String status, Instant createdAt) {}
     public record ClassGroupResponse(UUID id, UUID organizationId, UUID programId, UUID cohortId, String code, String name, String status, Instant createdAt) {}
     public record SubjectResponse(UUID id, UUID organizationId, UUID departmentId, String code, String name, Integer credits, String status, Instant createdAt) {}
     public record SubjectCourseResponse(UUID id, UUID organizationId, UUID subjectId, UUID courseId, boolean primary, String status, Instant createdAt) {}
+    public record TermResponse(UUID id, UUID organizationId, String code, String name, String academicYear, Integer termNumber, LocalDate startsOn, LocalDate endsOn, String status, Instant createdAt) {}
+    public record CurriculumPlanResponse(UUID id, UUID organizationId, UUID programId, UUID cohortId, String code, String name, Integer totalCredits, String status, Instant createdAt) {}
+    public record CurriculumSubjectResponse(UUID id, UUID organizationId, UUID curriculumPlanId, UUID subjectId, UUID termId, Integer displayOrder, Boolean required, Integer creditsOverride, String status, Instant createdAt) {}
 }
