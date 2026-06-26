@@ -1,10 +1,12 @@
 package com.example.lms.academic.application.dto;
 
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
@@ -22,7 +24,9 @@ public final class AcademicCatalogDtos {
             List<SubjectCourseResponse> subjectCourses,
             List<TermResponse> terms,
             List<CurriculumPlanResponse> curriculumPlans,
-            List<CurriculumSubjectResponse> curriculumSubjects
+            List<CurriculumSubjectResponse> curriculumSubjects,
+            List<LearningPackageResponse> learningPackages,
+            List<LearningPackageItemResponse> learningPackageItems
     ) {}
 
     public record CreateDepartmentCommand(
@@ -90,6 +94,25 @@ public final class AcademicCatalogDtos {
             @Min(0) Integer creditsOverride
     ) {}
 
+    public record CreateLearningPackageCommand(
+            UUID curriculumPlanId,
+            @NotBlank @Size(max = 64) String code,
+            @NotBlank @Size(max = 255) String name,
+            @Size(max = 5000) String description,
+            @Size(max = 32) String packageType,
+            @DecimalMin("0.00") BigDecimal price,
+            @Size(min = 3, max = 3) String currency,
+            @Size(max = 32) String enrollmentPolicy
+    ) {}
+
+    public record AddLearningPackageItemCommand(
+            @NotNull UUID packageId,
+            UUID subjectId,
+            UUID courseId,
+            @Min(0) Integer displayOrder,
+            Boolean required
+    ) {}
+
     public record DepartmentResponse(UUID id, UUID organizationId, String code, String name, String status, Instant createdAt) {}
     public record ProgramResponse(UUID id, UUID organizationId, UUID departmentId, String code, String name, String level, String status, Instant createdAt) {}
     public record CohortResponse(UUID id, UUID organizationId, String code, String name, Integer startYear, Integer graduationYear, String status, Instant createdAt) {}
@@ -99,4 +122,6 @@ public final class AcademicCatalogDtos {
     public record TermResponse(UUID id, UUID organizationId, String code, String name, String academicYear, Integer termNumber, LocalDate startsOn, LocalDate endsOn, String status, Instant createdAt) {}
     public record CurriculumPlanResponse(UUID id, UUID organizationId, UUID programId, UUID cohortId, String code, String name, Integer totalCredits, String status, Instant createdAt) {}
     public record CurriculumSubjectResponse(UUID id, UUID organizationId, UUID curriculumPlanId, UUID subjectId, UUID termId, Integer displayOrder, Boolean required, Integer creditsOverride, String status, Instant createdAt) {}
+    public record LearningPackageResponse(UUID id, UUID organizationId, UUID curriculumPlanId, String code, String name, String description, String packageType, BigDecimal price, String currency, String enrollmentPolicy, String status, Instant createdAt) {}
+    public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
 }

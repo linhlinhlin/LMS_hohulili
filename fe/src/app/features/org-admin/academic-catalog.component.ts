@@ -12,11 +12,14 @@ import { AcademicApi } from '../../api/client/academic.api';
 import { ApiResponse } from '../../api/types/common.types';
 import {
   AcademicCatalog,
+  AcademicLearningPackageItem,
   AddAcademicCurriculumSubjectRequest,
+  AddAcademicLearningPackageItemRequest,
   CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
   CreateAcademicDepartmentRequest,
+  CreateAcademicLearningPackageRequest,
   CreateAcademicProgramRequest,
   CreateAcademicSubjectRequest,
   CreateAcademicTermRequest,
@@ -35,6 +38,8 @@ const emptyCatalog = (): AcademicCatalog => ({
   terms: [],
   curriculumPlans: [],
   curriculumSubjects: [],
+  learningPackages: [],
+  learningPackageItems: [],
 });
 
 @Component({
@@ -76,7 +81,7 @@ const emptyCatalog = (): AcademicCatalog => ({
             Tài khoản hiện tại chưa có mã tổ chức. ORG_ADMIN cần thuộc một tổ chức cụ thể trước khi quản lý cấu trúc đào tạo.
           </div>
         } @else {
-          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-9">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-11">
             <div class="metric-card"><span>Khoa</span><strong>{{ catalog().departments.length }}</strong></div>
             <div class="metric-card"><span>Ngành</span><strong>{{ catalog().programs.length }}</strong></div>
             <div class="metric-card"><span>Khóa</span><strong>{{ catalog().cohorts.length }}</strong></div>
@@ -86,6 +91,8 @@ const emptyCatalog = (): AcademicCatalog => ({
             <div class="metric-card"><span>Học kỳ</span><strong>{{ catalog().terms.length }}</strong></div>
             <div class="metric-card"><span>Khung CT</span><strong>{{ catalog().curriculumPlans.length }}</strong></div>
             <div class="metric-card"><span>Môn trong khung</span><strong>{{ catalog().curriculumSubjects.length }}</strong></div>
+            <div class="metric-card"><span>Gói học</span><strong>{{ catalog().learningPackages.length }}</strong></div>
+            <div class="metric-card"><span>Mục trong gói</span><strong>{{ catalog().learningPackageItems.length }}</strong></div>
           </div>
 
           <div class="grid gap-5 xl:grid-cols-2">
@@ -313,6 +320,85 @@ const emptyCatalog = (): AcademicCatalog => ({
                 }
               </div>
             </article>
+
+            <article class="catalog-card">
+              <h2>Gói học / học phí</h2>
+              <form class="catalog-form" (submit)="createLearningPackage($event)">
+                <select aria-label="Khung chương trình của gói" [value]="learningPackageForm().curriculumPlanId ?? ''" (change)="patch(learningPackageForm, { curriculumPlanId: nullableText($event) })">
+                  <option value="">Không gắn khung chương trình</option>
+                  @for (plan of catalog().curriculumPlans; track plan.id) {
+                    <option [value]="plan.id">{{ plan.code }} - {{ plan.name }}</option>
+                  }
+                </select>
+                <input aria-label="Mã gói học" placeholder="Mã gói, ví dụ: VMU-DKT-K63" [value]="learningPackageForm().code" (input)="patch(learningPackageForm, { code: text($event) })">
+                <input aria-label="Tên gói học" placeholder="Tên gói học" [value]="learningPackageForm().name" (input)="patch(learningPackageForm, { name: text($event) })">
+                <input aria-label="Mô tả gói học" placeholder="Mô tả ngắn" [value]="learningPackageForm().description ?? ''" (input)="patch(learningPackageForm, { description: nullableText($event) })">
+                <select aria-label="Loại gói học" [value]="learningPackageForm().packageType" (change)="patch(learningPackageForm, { packageType: text($event) })">
+                  <option value="CURRICULUM_BUNDLE">Theo khung chương trình</option>
+                  <option value="SUBJECT_BUNDLE">Theo nhóm môn</option>
+                  <option value="COURSE_BUNDLE">Theo khóa học LMS</option>
+                </select>
+                <input aria-label="Học phí" type="number" min="0" placeholder="Học phí" [value]="learningPackageForm().price" (input)="patch(learningPackageForm, { price: numberValue($event) })">
+                <select aria-label="Chính sách ghi danh" [value]="learningPackageForm().enrollmentPolicy" (change)="patch(learningPackageForm, { enrollmentPolicy: text($event) })">
+                  <option value="ORG_APPROVAL">Cần ORG duyệt</option>
+                  <option value="PAYMENT_REQUIRED">Cần thanh toán</option>
+                  <option value="INVITE_ONLY">Chỉ theo lời mời</option>
+                  <option value="OPEN">Tự ghi danh</option>
+                </select>
+                <button class="primary-button" type="submit" [disabled]="saving()">Tạo gói học</button>
+              </form>
+              <div class="compact-list">
+                @for (learningPackage of catalog().learningPackages; track learningPackage.id) {
+                  <p>
+                    <strong>{{ learningPackage.code }}</strong>
+                    <span>{{ learningPackage.name }} · {{ formatPrice(learningPackage.price, learningPackage.currency) }} · {{ enrollmentPolicyLabel(learningPackage.enrollmentPolicy) }}</span>
+                  </p>
+                } @empty {
+                  <p class="empty-text">Chưa có gói học.</p>
+                }
+              </div>
+            </article>
+
+            <article class="catalog-card">
+              <h2>Môn / course trong gói học</h2>
+              <form class="catalog-form" (submit)="addLearningPackageItem($event)">
+                <select aria-label="Gói học" [value]="learningPackageItemForm().packageId" (change)="patch(learningPackageItemForm, { packageId: text($event) })">
+                  <option value="">Chọn gói học</option>
+                  @for (learningPackage of catalog().learningPackages; track learningPackage.id) {
+                    <option [value]="learningPackage.id">{{ learningPackage.code }} - {{ learningPackage.name }}</option>
+                  }
+                </select>
+                <select aria-label="Môn học trong gói" [value]="learningPackageItemForm().subjectId ?? ''" (change)="selectPackageSubject($event)">
+                  <option value="">Không chọn môn học</option>
+                  @for (subject of catalog().subjects; track subject.id) {
+                    <option [value]="subject.id">{{ subject.code }} - {{ subject.name }}</option>
+                  }
+                </select>
+                <select aria-label="Course LMS trong gói" [value]="learningPackageItemForm().courseId ?? ''" (change)="selectPackageCourse($event)">
+                  <option value="">Không chọn course LMS</option>
+                  @for (course of availableCourses(); track course.id) {
+                    <option [value]="course.id">{{ course.code }} - {{ course.title }}</option>
+                  }
+                </select>
+                <input aria-label="Thứ tự trong gói" type="number" placeholder="Thứ tự" [value]="learningPackageItemForm().displayOrder" (input)="patch(learningPackageItemForm, { displayOrder: numberValue($event) })">
+                <label class="inline-check">
+                  <input type="checkbox" [checked]="learningPackageItemForm().required" (change)="patch(learningPackageItemForm, { required: checked($event) })">
+                  Bắt buộc trong gói
+                </label>
+                <p class="helper-text">Chọn một trong hai: môn học hoặc course LMS. Nếu môn đã có course map, ưu tiên chọn môn để giữ đúng khung chương trình.</p>
+                <button class="primary-button" type="submit" [disabled]="saving()">Thêm vào gói</button>
+              </form>
+              <div class="compact-list">
+                @for (item of catalog().learningPackageItems; track item.id) {
+                  <p>
+                    <strong>{{ learningPackageLabel(item.packageId) }}</strong>
+                    <span>{{ packageItemLabel(item) }}{{ item.required ? ' · bắt buộc' : '' }}</span>
+                  </p>
+                } @empty {
+                  <p class="empty-text">Chưa có mục nào trong gói học.</p>
+                }
+              </div>
+            </article>
           </div>
         }
       </div>
@@ -534,6 +620,23 @@ export class OrgAcademicCatalogComponent implements OnInit {
     required: true,
     creditsOverride: null,
   });
+  protected readonly learningPackageForm = signal<CreateAcademicLearningPackageRequest>({
+    curriculumPlanId: null,
+    code: '',
+    name: '',
+    description: null,
+    packageType: 'CURRICULUM_BUNDLE',
+    price: 0,
+    currency: 'VND',
+    enrollmentPolicy: 'ORG_APPROVAL',
+  });
+  protected readonly learningPackageItemForm = signal<AddAcademicLearningPackageItemRequest>({
+    packageId: '',
+    subjectId: null,
+    courseId: null,
+    displayOrder: 0,
+    required: true,
+  });
 
   ngOnInit(): void {
     void this.reload();
@@ -733,6 +836,74 @@ export class OrgAcademicCatalogComponent implements OnInit {
     );
   }
 
+  protected async createLearningPackage(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = this.learningPackageForm();
+    await this.mutate(
+      this.academicApi.createLearningPackage(this.organizationId(), {
+        curriculumPlanId: form.curriculumPlanId,
+        code: form.code.trim(),
+        name: form.name.trim(),
+        description: form.description?.trim() || null,
+        packageType: form.packageType,
+        price: form.price,
+        currency: form.currency,
+        enrollmentPolicy: form.enrollmentPolicy,
+      }),
+      'Đã tạo gói học.',
+      () => this.learningPackageForm.set({
+        curriculumPlanId: null,
+        code: '',
+        name: '',
+        description: null,
+        packageType: 'CURRICULUM_BUNDLE',
+        price: 0,
+        currency: 'VND',
+        enrollmentPolicy: 'ORG_APPROVAL',
+      })
+    );
+  }
+
+  protected async addLearningPackageItem(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = this.learningPackageItemForm();
+    await this.mutate(
+      this.academicApi.addLearningPackageItem(this.organizationId(), {
+        packageId: form.packageId,
+        subjectId: form.subjectId,
+        courseId: form.courseId,
+        displayOrder: form.displayOrder,
+        required: form.required,
+      }),
+      'Đã thêm mục vào gói học.',
+      () => this.learningPackageItemForm.set({
+        packageId: '',
+        subjectId: null,
+        courseId: null,
+        displayOrder: 0,
+        required: true,
+      })
+    );
+  }
+
+  protected selectPackageSubject(event: Event): void {
+    const subjectId = this.nullableText(event);
+    this.learningPackageItemForm.update(current => ({
+      ...current,
+      subjectId,
+      courseId: subjectId ? null : current.courseId,
+    }));
+  }
+
+  protected selectPackageCourse(event: Event): void {
+    const courseId = this.nullableText(event);
+    this.learningPackageItemForm.update(current => ({
+      ...current,
+      courseId,
+      subjectId: courseId ? null : current.subjectId,
+    }));
+  }
+
   protected patch<T extends object>(target: WritableSignal<T>, value: Partial<T>): void {
     target.update(current => ({ ...current, ...value }));
   }
@@ -781,6 +952,42 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected curriculumPlanLabel(planId: string): string {
     const plan = this.catalog().curriculumPlans.find(item => item.id === planId);
     return plan ? plan.code : planId;
+  }
+
+  protected learningPackageLabel(packageId: string): string {
+    const learningPackage = this.catalog().learningPackages.find(item => item.id === packageId);
+    return learningPackage ? learningPackage.code : packageId;
+  }
+
+  protected packageItemLabel(item: AcademicLearningPackageItem): string {
+    if (item.subjectId) {
+      return this.subjectLabel(item.subjectId);
+    }
+    return item.courseId ? this.courseLabel(item.courseId) : 'Chưa chọn mục';
+  }
+
+  protected enrollmentPolicyLabel(policy: string): string {
+    switch (policy) {
+      case 'OPEN':
+        return 'Tự ghi danh';
+      case 'PAYMENT_REQUIRED':
+        return 'Cần thanh toán';
+      case 'INVITE_ONLY':
+        return 'Chỉ theo lời mời';
+      default:
+        return 'Cần ORG duyệt';
+    }
+  }
+
+  protected formatPrice(price: number, currency: string): string {
+    if (!price) {
+      return 'Miễn phí';
+    }
+    return new Intl.NumberFormat('vi-VN', {
+      style: 'currency',
+      currency: currency || 'VND',
+      maximumFractionDigits: 0,
+    }).format(price);
   }
 
   private async mutate<T>(

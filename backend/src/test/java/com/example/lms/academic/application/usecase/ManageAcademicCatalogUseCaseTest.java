@@ -1,10 +1,13 @@
 package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddCurriculumSubjectCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddLearningPackageItemCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateCurriculumPlanCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LinkSubjectCourseCommand;
 import com.example.lms.academic.domain.model.AcademicCohort;
 import com.example.lms.academic.domain.model.AcademicCurriculumPlan;
+import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicSubject;
 import com.example.lms.academic.domain.model.AcademicTerm;
 import com.example.lms.academic.domain.model.AcademicProgram;
@@ -21,6 +24,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
@@ -141,6 +145,57 @@ class ManageAcademicCatalogUseCaseTest {
         verify(repository, never()).saveCurriculumSubject(any());
     }
 
+    @Test
+    @DisplayName("createLearningPackage: creates package for same-organization curriculum plan")
+    void createLearningPackage_allowsSameOrganizationCurriculumPlan() {
+        UUID organizationId = UUID.randomUUID();
+        UUID planId = UUID.randomUUID();
+
+        when(repository.findCurriculumPlan(organizationId, planId))
+                .thenReturn(Optional.of(curriculumPlan(planId, organizationId)));
+        when(repository.learningPackageCodeExists(organizationId, "VMU-DKT-K63")).thenReturn(false);
+        when(repository.saveLearningPackage(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.createLearningPackage(
+                organizationId,
+                new CreateLearningPackageCommand(
+                        planId,
+                        "vmu-dkt-k63",
+                        "Gói Điều khiển tàu biển K63",
+                        "Gói học theo khung chương trình",
+                        "CURRICULUM_BUNDLE",
+                        BigDecimal.valueOf(1200000),
+                        "VND",
+                        "ORG_APPROVAL"));
+
+        assertThat(response.organizationId()).isEqualTo(organizationId);
+        assertThat(response.curriculumPlanId()).isEqualTo(planId);
+        assertThat(response.code()).isEqualTo("VMU-DKT-K63");
+        assertThat(response.price()).isEqualByComparingTo("1200000");
+        assertThat(response.enrollmentPolicy()).isEqualTo("ORG_APPROVAL");
+    }
+
+    @Test
+    @DisplayName("addLearningPackageItem: rejects course from another organization")
+    void addLearningPackageItem_rejectsCourseFromAnotherOrganization() {
+        UUID organizationId = UUID.randomUUID();
+        UUID otherOrganizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
+        when(courseRepository.findById(courseId))
+                .thenReturn(Optional.of(course(otherOrganizationId)));
+
+        assertThatThrownBy(() -> useCase.addLearningPackageItem(
+                organizationId,
+                new AddLearningPackageItemCommand(packageId, null, courseId, 1, true)))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("Course does not belong");
+        verify(repository, never()).saveLearningPackageItem(any());
+    }
+
     private AcademicSubject subject(UUID id, UUID organizationId) {
         return new AcademicSubject(
                 id,
@@ -189,6 +244,23 @@ class ManageAcademicCatalogUseCaseTest {
                 "CNTT-K63",
                 "Khung chương trình CNTT hàng hải K63",
                 128,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicLearningPackage learningPackage(UUID id, UUID organizationId) {
+        return new AcademicLearningPackage(
+                id,
+                organizationId,
+                UUID.randomUUID(),
+                "VMU-DKT-K63",
+                "Gói Điều khiển tàu biển K63",
+                null,
+                "CURRICULUM_BUNDLE",
+                BigDecimal.ZERO,
+                "VND",
+                "ORG_APPROVAL",
                 "ACTIVE",
                 Instant.now(),
                 null);

@@ -1099,3 +1099,46 @@ Debt còn lại:
 - Cần tạo dữ liệu payout pending/approved/completed có chủ ý nếu muốn demo thao tác duyệt rút tiền end-to-end.
 - Cần smoke UI bằng browser cho các màn `/org-admin/academic`, payment config và payout queue sau khi người dùng mở web.
 - Package/tuition/enrollment policy theo từng ORG vẫn là phase sau, chỉ thiết kế khi rule nghiệp vụ VMU được chốt cụ thể.
+
+## 31. Phase 4.1 VMU learning package foundation - 2026-06-26
+
+Mục tiêu của vòng này là mở rộng academic catalog từ khung chương trình sang gói học/học phí theo cách an toàn cho nhiều tổ chức. VMU được seed như dữ liệu mẫu đầu tiên, không hardcode logic VMU trong service/controller.
+
+Quyết định chính:
+
+- Không dùng lại bảng `packages` hiện có vì bảng đó thuộc workflow assessment/question-bank.
+- Thêm bảng mới `learning_packages` và `learning_package_items` trong academic/org domain.
+- Chưa nối package vào checkout/SePay ở vòng này vì payment hiện tại là course-level và tự enroll theo course/class; package checkout cần workflow riêng để tránh rò logic tài chính.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V145__academic_learning_packages.sql`.
+- Thêm seed `V146__seed_vmu_learning_packages.sql` cho gói `VMU-DKT-K63-FOUNDATION`.
+- Thêm domain/JPA/repository/usecase/controller cho learning package và package item.
+- Mở rộng `/api/v3/organizations/{orgId}/academic/catalog` trả về `learningPackages` và `learningPackageItems`.
+- Thêm API tạo learning package và thêm subject/course vào package.
+- Mở rộng `/org-admin/academic` để ORG_ADMIN tạo gói học và thêm môn/course vào gói.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 8, Failures: 0, Errors: 0
+
+mvn resources:resources flyway:migrate \
+  "-Dflyway.url=jdbc:postgresql://localhost:55433/lms" \
+  "-Dflyway.user=lms" \
+  "-Dflyway.password=lms"
+# Successfully applied migrations through v146 on a temporary PostgreSQL 16 container
+
+cd ../fe
+npm run build -- --configuration development
+# Application bundle generation complete
+```
+
+Debt còn lại sau Phase 4.1:
+
+- Cần thêm `organization_capabilities` để bật/tắt module như academic catalog, curriculum plan, learning packages theo từng ORG.
+- Cần thiết kế package enrollment/payment flow sau khi rule nghiệp vụ được chốt: miễn phí, cần ORG duyệt, invite-only, hoặc bắt buộc thanh toán.
+- Cần browser/API smoke sau khi branch được merge/deploy để xác nhận VMU package seed hiển thị trên review runtime.

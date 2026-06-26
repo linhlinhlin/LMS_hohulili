@@ -8,6 +8,8 @@ export interface AcademicCatalog {
   terms: AcademicTerm[];
   curriculumPlans: AcademicCurriculumPlan[];
   curriculumSubjects: AcademicCurriculumSubject[];
+  learningPackages: AcademicLearningPackage[];
+  learningPackageItems: AcademicLearningPackageItem[];
 }
 
 export interface AcademicDepartment {
@@ -111,6 +113,33 @@ export interface AcademicCurriculumSubject {
   createdAt: string;
 }
 
+export interface AcademicLearningPackage {
+  id: string;
+  organizationId: string;
+  curriculumPlanId: string | null;
+  code: string;
+  name: string;
+  description: string | null;
+  packageType: string;
+  price: number;
+  currency: string;
+  enrollmentPolicy: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicLearningPackageItem {
+  id: string;
+  organizationId: string;
+  packageId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  displayOrder: number;
+  required: boolean;
+  status: string;
+  createdAt: string;
+}
+
 export interface CreateAcademicDepartmentRequest {
   code: string;
   name: string;
@@ -174,4 +203,23 @@ export interface AddAcademicCurriculumSubjectRequest {
   displayOrder: number;
   required: boolean;
   creditsOverride: number | null;
+}
+
+export interface CreateAcademicLearningPackageRequest {
+  curriculumPlanId: string | null;
+  code: string;
+  name: string;
+  description: string | null;
+  packageType: string;
+  price: number;
+  currency: string;
+  enrollmentPolicy: string;
+}
+
+export interface AddAcademicLearningPackageItemRequest {
+  packageId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  displayOrder: number;
+  required: boolean;
 }
