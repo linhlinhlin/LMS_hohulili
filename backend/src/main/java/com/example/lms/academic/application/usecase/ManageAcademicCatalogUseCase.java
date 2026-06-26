@@ -29,7 +29,9 @@ public class ManageAcademicCatalogUseCase {
                 repository.findSubjectCourses(organizationId).stream().map(this::toResponse).toList(),
                 repository.findTerms(organizationId).stream().map(this::toResponse).toList(),
                 repository.findCurriculumPlans(organizationId).stream().map(this::toResponse).toList(),
-                repository.findCurriculumSubjects(organizationId).stream().map(this::toResponse).toList()
+                repository.findCurriculumSubjects(organizationId).stream().map(this::toResponse).toList(),
+                repository.findLearningPackages(organizationId).stream().map(this::toResponse).toList(),
+                repository.findLearningPackageItems(organizationId).stream().map(this::toResponse).toList()
         );
     }
 
@@ -172,6 +174,54 @@ public class ManageAcademicCatalogUseCase {
         return toResponse(repository.saveCurriculumSubject(subject));
     }
 
+    public LearningPackageResponse createLearningPackage(UUID organizationId, CreateLearningPackageCommand command) {
+        if (command.curriculumPlanId() != null) {
+            requireCurriculumPlan(organizationId, command.curriculumPlanId());
+        }
+        var learningPackage = AcademicLearningPackage.create(
+                organizationId,
+                command.curriculumPlanId(),
+                command.code(),
+                command.name(),
+                command.description(),
+                command.packageType(),
+                command.price(),
+                command.currency(),
+                command.enrollmentPolicy());
+        if (repository.learningPackageCodeExists(organizationId, learningPackage.code())) {
+            throw new ValidationException("code", "Learning package code already exists");
+        }
+        return toResponse(repository.saveLearningPackage(learningPackage));
+    }
+
+    public LearningPackageItemResponse addLearningPackageItem(UUID organizationId, AddLearningPackageItemCommand command) {
+        requireLearningPackage(organizationId, command.packageId());
+        if (command.subjectId() != null) {
+            requireSubject(organizationId, command.subjectId());
+            if (repository.learningPackageSubjectExists(organizationId, command.packageId(), command.subjectId())) {
+                throw new ValidationException("subjectId", "Subject is already in this learning package");
+            }
+        }
+        if (command.courseId() != null) {
+            var course = courseRepository.findById(command.courseId())
+                    .orElseThrow(() -> new EntityNotFoundException("Course", command.courseId()));
+            if (!Objects.equals(course.getOrganizationId(), organizationId)) {
+                throw new BusinessRuleException("COURSE_ORG_MISMATCH", "Course does not belong to this organization");
+            }
+            if (repository.learningPackageCourseExists(organizationId, command.packageId(), command.courseId())) {
+                throw new ValidationException("courseId", "Course is already in this learning package");
+            }
+        }
+        var item = AcademicLearningPackageItem.create(
+                organizationId,
+                command.packageId(),
+                command.subjectId(),
+                command.courseId(),
+                command.displayOrder(),
+                command.required());
+        return toResponse(repository.saveLearningPackageItem(item));
+    }
+
     private void requireDepartment(UUID organizationId, UUID id) {
         repository.findDepartment(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicDepartment", id));
@@ -200,6 +250,11 @@ public class ManageAcademicCatalogUseCase {
     private void requireCurriculumPlan(UUID organizationId, UUID id) {
         repository.findCurriculumPlan(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicCurriculumPlan", id));
+    }
+
+    private void requireLearningPackage(UUID organizationId, UUID id) {
+        repository.findLearningPackage(organizationId, id)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicLearningPackage", id));
     }
 
     private DepartmentResponse toResponse(AcademicDepartment d) {
@@ -265,5 +320,34 @@ public class ManageAcademicCatalogUseCase {
                 s.creditsOverride(),
                 s.status(),
                 s.createdAt());
+    }
+
+    private LearningPackageResponse toResponse(AcademicLearningPackage p) {
+        return new LearningPackageResponse(
+                p.id(),
+                p.organizationId(),
+                p.curriculumPlanId(),
+                p.code(),
+                p.name(),
+                p.description(),
+                p.packageType(),
+                p.price(),
+                p.currency(),
+                p.enrollmentPolicy(),
+                p.status(),
+                p.createdAt());
+    }
+
+    private LearningPackageItemResponse toResponse(AcademicLearningPackageItem i) {
+        return new LearningPackageItemResponse(
+                i.id(),
+                i.organizationId(),
+                i.packageId(),
+                i.subjectId(),
+                i.courseId(),
+                i.displayOrder(),
+                i.required(),
+                i.status(),
+                i.createdAt());
     }
 }

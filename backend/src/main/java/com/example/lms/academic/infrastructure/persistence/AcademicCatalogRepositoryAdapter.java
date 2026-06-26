@@ -23,6 +23,8 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private final AcademicTermJpaRepository terms;
     private final AcademicCurriculumPlanJpaRepository curriculumPlans;
     private final AcademicCurriculumSubjectJpaRepository curriculumSubjects;
+    private final AcademicLearningPackageJpaRepository learningPackages;
+    private final AcademicLearningPackageItemJpaRepository learningPackageItems;
 
     @Override
     public List<AcademicDepartment> findDepartments(UUID organizationId) {
@@ -72,6 +74,18 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public List<AcademicLearningPackage> findLearningPackages(UUID organizationId) {
+        return learningPackages.findByOrganizationIdOrderByNameAsc(organizationId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<AcademicLearningPackageItem> findLearningPackageItems(UUID organizationId) {
+        return learningPackageItems.findByOrganizationIdOrderByDisplayOrderAscCreatedAtAsc(organizationId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id) {
         return departments.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
@@ -99,6 +113,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id) {
         return curriculumPlans.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id) {
+        return learningPackages.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
 
     @Override
@@ -147,6 +166,21 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public boolean learningPackageCodeExists(UUID organizationId, String code) {
+        return learningPackages.existsByOrganizationIdAndCodeIgnoreCase(organizationId, code);
+    }
+
+    @Override
+    public boolean learningPackageSubjectExists(UUID organizationId, UUID packageId, UUID subjectId) {
+        return learningPackageItems.existsByOrganizationIdAndPackageIdAndSubjectId(organizationId, packageId, subjectId);
+    }
+
+    @Override
+    public boolean learningPackageCourseExists(UUID organizationId, UUID packageId, UUID courseId) {
+        return learningPackageItems.existsByOrganizationIdAndPackageIdAndCourseId(organizationId, packageId, courseId);
+    }
+
+    @Override
     public AcademicDepartment saveDepartment(AcademicDepartment department) {
         return toDomain(departments.save(toEntity(department)));
     }
@@ -189,6 +223,16 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public AcademicCurriculumSubject saveCurriculumSubject(AcademicCurriculumSubject subject) {
         return toDomain(curriculumSubjects.save(toEntity(subject)));
+    }
+
+    @Override
+    public AcademicLearningPackage saveLearningPackage(AcademicLearningPackage learningPackage) {
+        return toDomain(learningPackages.save(toEntity(learningPackage)));
+    }
+
+    @Override
+    public AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item) {
+        return toDomain(learningPackageItems.save(toEntity(item)));
     }
 
     private AcademicDepartment toDomain(AcademicDepartmentJpaEntity e) {
@@ -259,6 +303,37 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getUpdatedAt());
     }
 
+    private AcademicLearningPackage toDomain(AcademicLearningPackageJpaEntity e) {
+        return new AcademicLearningPackage(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getCurriculumPlanId(),
+                e.getCode(),
+                e.getName(),
+                e.getDescription(),
+                e.getPackageType(),
+                e.getPrice(),
+                e.getCurrency(),
+                e.getEnrollmentPolicy(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
+    private AcademicLearningPackageItem toDomain(AcademicLearningPackageItemJpaEntity e) {
+        return new AcademicLearningPackageItem(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getPackageId(),
+                e.getSubjectId(),
+                e.getCourseId(),
+                e.getDisplayOrder(),
+                e.isRequired(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
     private AcademicDepartmentJpaEntity toEntity(AcademicDepartment d) {
         return AcademicDepartmentJpaEntity.builder()
                 .id(d.id()).organizationId(d.organizationId()).code(d.code()).name(d.name())
@@ -319,5 +394,20 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 .subjectId(s.subjectId()).termId(s.termId()).displayOrder(s.displayOrder()).required(s.required())
                 .creditsOverride(s.creditsOverride()).status(s.status()).createdAt(s.createdAt()).updatedAt(s.updatedAt())
                 .build();
+    }
+
+    private AcademicLearningPackageJpaEntity toEntity(AcademicLearningPackage p) {
+        return AcademicLearningPackageJpaEntity.builder()
+                .id(p.id()).organizationId(p.organizationId()).curriculumPlanId(p.curriculumPlanId())
+                .code(p.code()).name(p.name()).description(p.description()).packageType(p.packageType())
+                .price(p.price()).currency(p.currency()).enrollmentPolicy(p.enrollmentPolicy()).status(p.status())
+                .createdAt(p.createdAt()).updatedAt(p.updatedAt()).build();
+    }
+
+    private AcademicLearningPackageItemJpaEntity toEntity(AcademicLearningPackageItem i) {
+        return AcademicLearningPackageItemJpaEntity.builder()
+                .id(i.id()).organizationId(i.organizationId()).packageId(i.packageId()).subjectId(i.subjectId())
+                .courseId(i.courseId()).displayOrder(i.displayOrder()).required(i.required()).status(i.status())
+                .createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
     }
 }

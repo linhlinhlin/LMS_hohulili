@@ -16,6 +16,8 @@ public interface AcademicCatalogRepository {
     List<AcademicTerm> findTerms(UUID organizationId);
     List<AcademicCurriculumPlan> findCurriculumPlans(UUID organizationId);
     List<AcademicCurriculumSubject> findCurriculumSubjects(UUID organizationId);
+    List<AcademicLearningPackage> findLearningPackages(UUID organizationId);
+    List<AcademicLearningPackageItem> findLearningPackageItems(UUID organizationId);
 
     Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id);
     Optional<AcademicProgram> findProgram(UUID organizationId, UUID id);
@@ -23,6 +25,7 @@ public interface AcademicCatalogRepository {
     Optional<AcademicSubject> findSubject(UUID organizationId, UUID id);
     Optional<AcademicTerm> findTerm(UUID organizationId, UUID id);
     Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id);
+    Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id);
 
     boolean departmentCodeExists(UUID organizationId, String code);
     boolean programCodeExists(UUID organizationId, String code);
@@ -33,6 +36,9 @@ public interface AcademicCatalogRepository {
     boolean termCodeExists(UUID organizationId, String code);
     boolean curriculumPlanCodeExists(UUID organizationId, String code);
     boolean curriculumSubjectExists(UUID organizationId, UUID curriculumPlanId, UUID subjectId);
+    boolean learningPackageCodeExists(UUID organizationId, String code);
+    boolean learningPackageSubjectExists(UUID organizationId, UUID packageId, UUID subjectId);
+    boolean learningPackageCourseExists(UUID organizationId, UUID packageId, UUID courseId);
 
     AcademicDepartment saveDepartment(AcademicDepartment department);
     AcademicProgram saveProgram(AcademicProgram program);
@@ -43,4 +49,6 @@ public interface AcademicCatalogRepository {
     AcademicTerm saveTerm(AcademicTerm term);
     AcademicCurriculumPlan saveCurriculumPlan(AcademicCurriculumPlan plan);
     AcademicCurriculumSubject saveCurriculumSubject(AcademicCurriculumSubject subject);
+    AcademicLearningPackage saveLearningPackage(AcademicLearningPackage learningPackage);
+    AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item);
 }
