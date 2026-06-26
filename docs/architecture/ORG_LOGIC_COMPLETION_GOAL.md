@@ -1362,3 +1362,74 @@ Debt còn lại sau Phase 4.5:
 - `PAYMENT_REQUIRED` package vẫn cần slice package checkout/payment completion trước khi auto-grant.
 - `INSTRUCTOR_LED` package cần rule xếp lớp cụ thể, không nên dùng lớp `DEFAULT`.
 - Cần Docker/Flyway/browser smoke khi Docker Desktop daemon phản hồi lại, vì lượt này Docker CLI timeout ở bước `docker compose ps`.
+
+## 36. Phase 4.6 package class placement for instructor-led courses - 2026-06-26
+
+Mục tiêu của vòng này là xử lý phần còn thiếu của Phase 4.5: khi một gói học chứa course có giảng viên hoặc cần triển khai theo lớp/kỳ/khóa, hệ thống phải biết cấp học viên vào lớp học cụ thể nào. Đây là workflow rất quan trọng với VMU vì nghiệp vụ thật thường đi qua lớp như CNT63ĐH, KPM63ĐH, khóa K63, học kỳ và môn học, không chỉ qua course tự học.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V151__learning_package_class_targets.sql`.
+- Thêm bảng `learning_package_class_targets` với:
+  - `organization_id`;
+  - `package_id`;
+  - `course_id`;
+  - `learning_class_id`;
+  - `status`.
+- Thêm unique `(package_id, course_id)` để một course trong một package chỉ có một class target vận hành chính.
+- Thêm FK theo tenant:
+  - `(package_id, organization_id)` -> `learning_packages`;
+  - `(course_id, organization_id)` -> `courses`;
+  - `(learning_class_id, organization_id)` -> `learning_classes`.
+- Thêm domain/JPA/repository mapping `AcademicLearningPackageClassTarget`.
+- Mở rộng academic catalog response bằng `learningPackageClassTargets`.
+- Thêm API:
+  - `POST /api/v3/organizations/{orgId}/academic/learning-package-class-targets`.
+- `ManageAcademicCatalogUseCase` validate:
+  - package thuộc đúng org;
+  - course thuộc đúng org;
+  - learning class thuộc đúng org;
+  - learning class thuộc đúng course;
+  - package/course chưa có target trùng.
+- `GrantCourseAccessUseCase` thêm `grantClass(...)` để cấp quyền vào lớp cụ thể:
+  - course phải thuộc đúng org và đã `APPROVED`;
+  - class phải thuộc đúng org/course;
+  - class phải `OPEN`;
+  - class chưa vượt `maxStudents`;
+  - enrollment cùng class là idempotent;
+  - enrollment `DROPPED` hoặc `SUSPENDED` trong class được tái kích hoạt.
+- `ManageLearningPackageEnrollmentUseCase` giờ ưu tiên class target:
+  - nếu package/course có `learning_package_class_targets` `ACTIVE` -> gọi `grantClass`;
+  - nếu không có target -> giữ đường `grant` self-paced hiện tại;
+  - vì vậy `INSTRUCTOR_LED` course không bị nhét vào lớp `DEFAULT` sai nghiệp vụ.
+
+Quyết định thiết kế:
+
+- Không hardcode VMU. VMU chỉ là dữ liệu: organization, curriculum, subject, package, course và learning class.
+- Không thêm UI lớn trong phase này. Backend/API/schema là nguồn sự thật trước; org-admin UI có thể bọc endpoint này ở phase sau.
+- Không tạo plugin/microservice. Đây vẫn là modular monolith, đúng hướng ponytail: thêm đúng bảng mapping còn thiếu.
+- Không bỏ qua rule `maxStudents`; package entitlement không được vượt sức chứa lớp.
+- Không coi enrollment ở lớp khác cùng course là thành công. Nếu học viên đã `ACTIVE`/`COMPLETED` ở lớp khác, `grantClass` trả lỗi `COURSE_ALREADY_ENROLLED_DIFFERENT_CLASS` để ORG xử lý chuyển lớp rõ ràng.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest,AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 31, Failures: 0, Errors: 0
+
+mvn test
+# Tests run: 1201, Failures: 0, Errors: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T db psql -U lms -d lms -c "SELECT version, description, success FROM flyway_schema_history WHERE version='151'; SELECT to_regclass('public.learning_package_class_targets');"
+# V151 success=true; table learning_package_class_targets exists
+```
+
+Debt còn lại sau Phase 4.6:
+
+- Cần FE nhỏ cho ORG_ADMIN chọn class target từ `/org-admin/academic`.
+- `PAYMENT_REQUIRED` package vẫn cần checkout/payment completion trước khi auto-grant.

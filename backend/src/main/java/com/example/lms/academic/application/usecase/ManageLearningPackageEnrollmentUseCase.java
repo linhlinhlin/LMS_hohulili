@@ -14,8 +14,10 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @Component
@@ -100,10 +102,22 @@ public class ManageLearningPackageEnrollmentUseCase {
                     "PACKAGE_HAS_NO_COURSES",
                     "Gói học chưa có khóa học hợp lệ để cấp quyền");
         }
-        courseIds.forEach(courseId -> courseAccessGrant.grant(
-                enrollment.organizationId(),
-                courseId,
-                enrollment.studentId()));
+        var classTargets = resolvePackageClassTargets(enrollment.organizationId(), enrollment.packageId());
+        courseIds.forEach(courseId -> {
+            UUID learningClassId = classTargets.get(courseId);
+            if (learningClassId != null) {
+                courseAccessGrant.grantClass(
+                        enrollment.organizationId(),
+                        courseId,
+                        learningClassId,
+                        enrollment.studentId());
+                return;
+            }
+            courseAccessGrant.grant(
+                    enrollment.organizationId(),
+                    courseId,
+                    enrollment.studentId());
+        });
     }
 
     private List<UUID> resolvePackageCourseIds(UUID organizationId, UUID packageId) {
@@ -126,6 +140,15 @@ public class ManageLearningPackageEnrollmentUseCase {
                     }
                 });
         return new ArrayList<>(courseIds);
+    }
+
+    private Map<UUID, UUID> resolvePackageClassTargets(UUID organizationId, UUID packageId) {
+        var targets = new LinkedHashMap<UUID, UUID>();
+        repository.findLearningPackageClassTargets(organizationId).stream()
+                .filter(target -> packageId.equals(target.packageId()))
+                .filter(target -> "ACTIVE".equals(target.status()))
+                .forEach(target -> targets.putIfAbsent(target.courseId(), target.learningClassId()));
+        return targets;
     }
 
     private String normalizeStatus(String status) {

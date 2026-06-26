@@ -4,6 +4,7 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.*;
 import com.example.lms.academic.domain.model.*;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
@@ -18,6 +19,7 @@ import java.util.UUID;
 public class ManageAcademicCatalogUseCase {
     private final AcademicCatalogRepository repository;
     private final CourseRepository courseRepository;
+    private final LearningClassRepositoryPort learningClassRepository;
 
     public CatalogResponse getCatalog(UUID organizationId) {
         return new CatalogResponse(
@@ -31,7 +33,8 @@ public class ManageAcademicCatalogUseCase {
                 repository.findCurriculumPlans(organizationId).stream().map(this::toResponse).toList(),
                 repository.findCurriculumSubjects(organizationId).stream().map(this::toResponse).toList(),
                 repository.findLearningPackages(organizationId).stream().map(this::toResponse).toList(),
-                repository.findLearningPackageItems(organizationId).stream().map(this::toResponse).toList()
+                repository.findLearningPackageItems(organizationId).stream().map(this::toResponse).toList(),
+                repository.findLearningPackageClassTargets(organizationId).stream().map(this::toResponse).toList()
         );
     }
 
@@ -222,6 +225,34 @@ public class ManageAcademicCatalogUseCase {
         return toResponse(repository.saveLearningPackageItem(item));
     }
 
+    public LearningPackageClassTargetResponse createLearningPackageClassTarget(
+            UUID organizationId,
+            CreateLearningPackageClassTargetCommand command) {
+        requireLearningPackage(organizationId, command.packageId());
+        var course = courseRepository.findById(command.courseId())
+                .orElseThrow(() -> new EntityNotFoundException("Course", command.courseId()));
+        if (!Objects.equals(course.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("COURSE_ORG_MISMATCH", "Khóa học không thuộc tổ chức này");
+        }
+        var learningClass = learningClassRepository.findById(command.learningClassId())
+                .orElseThrow(() -> new EntityNotFoundException("LearningClass", command.learningClassId()));
+        if (!Objects.equals(learningClass.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("CLASS_ORG_MISMATCH", "Lớp học không thuộc tổ chức này");
+        }
+        if (!Objects.equals(learningClass.getCourseId(), command.courseId())) {
+            throw new ValidationException("learningClassId", "Lớp học không thuộc khóa học đã chọn");
+        }
+        if (repository.learningPackageClassTargetExists(organizationId, command.packageId(), command.courseId())) {
+            throw new ValidationException("courseId", "Gói học đã có lớp đích cho khóa học này");
+        }
+        var target = AcademicLearningPackageClassTarget.create(
+                organizationId,
+                command.packageId(),
+                command.courseId(),
+                command.learningClassId());
+        return toResponse(repository.saveLearningPackageClassTarget(target));
+    }
+
     private void requireDepartment(UUID organizationId, UUID id) {
         repository.findDepartment(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicDepartment", id));
@@ -349,5 +380,16 @@ public class ManageAcademicCatalogUseCase {
                 i.required(),
                 i.status(),
                 i.createdAt());
+    }
+
+    private LearningPackageClassTargetResponse toResponse(AcademicLearningPackageClassTarget t) {
+        return new LearningPackageClassTargetResponse(
+                t.id(),
+                t.organizationId(),
+                t.packageId(),
+                t.courseId(),
+                t.learningClassId(),
+                t.status(),
+                t.createdAt());
     }
 }

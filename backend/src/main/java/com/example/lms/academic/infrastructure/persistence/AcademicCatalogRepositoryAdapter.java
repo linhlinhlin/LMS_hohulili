@@ -25,6 +25,7 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private final AcademicCurriculumSubjectJpaRepository curriculumSubjects;
     private final AcademicLearningPackageJpaRepository learningPackages;
     private final AcademicLearningPackageItemJpaRepository learningPackageItems;
+    private final AcademicLearningPackageClassTargetJpaRepository learningPackageClassTargets;
     private final AcademicLearningPackageEnrollmentJpaRepository learningPackageEnrollments;
 
     @Override
@@ -82,6 +83,13 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public List<AcademicLearningPackageItem> findLearningPackageItems(UUID organizationId) {
         return learningPackageItems.findByOrganizationIdOrderByDisplayOrderAscCreatedAtAsc(organizationId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<AcademicLearningPackageClassTarget> findLearningPackageClassTargets(UUID organizationId) {
+        return learningPackageClassTargets.findByOrganizationIdOrderByCreatedAtAsc(organizationId).stream()
                 .map(this::toDomain)
                 .toList();
     }
@@ -202,6 +210,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public boolean learningPackageClassTargetExists(UUID organizationId, UUID packageId, UUID courseId) {
+        return learningPackageClassTargets.existsByOrganizationIdAndPackageIdAndCourseId(organizationId, packageId, courseId);
+    }
+
+    @Override
     public AcademicDepartment saveDepartment(AcademicDepartment department) {
         return toDomain(departments.save(toEntity(department)));
     }
@@ -254,6 +267,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item) {
         return toDomain(learningPackageItems.save(toEntity(item)));
+    }
+
+    @Override
+    public AcademicLearningPackageClassTarget saveLearningPackageClassTarget(AcademicLearningPackageClassTarget target) {
+        return toDomain(learningPackageClassTargets.save(toEntity(target)));
     }
 
     @Override
@@ -360,6 +378,18 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getUpdatedAt());
     }
 
+    private AcademicLearningPackageClassTarget toDomain(AcademicLearningPackageClassTargetJpaEntity e) {
+        return new AcademicLearningPackageClassTarget(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getPackageId(),
+                e.getCourseId(),
+                e.getLearningClassId(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
     private AcademicLearningPackageEnrollment toDomain(AcademicLearningPackageEnrollmentJpaEntity e) {
         return new AcademicLearningPackageEnrollment(
                 e.getId(),
@@ -450,6 +480,13 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 .id(i.id()).organizationId(i.organizationId()).packageId(i.packageId()).subjectId(i.subjectId())
                 .courseId(i.courseId()).displayOrder(i.displayOrder()).required(i.required()).status(i.status())
                 .createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
+    }
+
+    private AcademicLearningPackageClassTargetJpaEntity toEntity(AcademicLearningPackageClassTarget t) {
+        return AcademicLearningPackageClassTargetJpaEntity.builder()
+                .id(t.id()).organizationId(t.organizationId()).packageId(t.packageId())
+                .courseId(t.courseId()).learningClassId(t.learningClassId()).status(t.status())
+                .createdAt(t.createdAt()).updatedAt(t.updatedAt()).build();
     }
 
     private AcademicLearningPackageEnrollmentJpaEntity toEntity(AcademicLearningPackageEnrollment e) {

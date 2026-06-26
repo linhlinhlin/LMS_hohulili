@@ -26,7 +26,8 @@ public final class AcademicCatalogDtos {
             List<CurriculumPlanResponse> curriculumPlans,
             List<CurriculumSubjectResponse> curriculumSubjects,
             List<LearningPackageResponse> learningPackages,
-            List<LearningPackageItemResponse> learningPackageItems
+            List<LearningPackageItemResponse> learningPackageItems,
+            List<LearningPackageClassTargetResponse> learningPackageClassTargets
     ) {}
 
     public record CreateDepartmentCommand(
@@ -113,6 +114,12 @@ public final class AcademicCatalogDtos {
             Boolean required
     ) {}
 
+    public record CreateLearningPackageClassTargetCommand(
+            @NotNull UUID packageId,
+            @NotNull UUID courseId,
+            @NotNull UUID learningClassId
+    ) {}
+
     public record ReviewLearningPackageEnrollmentCommand(
             @Size(max = 1000) String note
     ) {}
@@ -128,5 +135,6 @@ public final class AcademicCatalogDtos {
     public record CurriculumSubjectResponse(UUID id, UUID organizationId, UUID curriculumPlanId, UUID subjectId, UUID termId, Integer displayOrder, Boolean required, Integer creditsOverride, String status, Instant createdAt) {}
     public record LearningPackageResponse(UUID id, UUID organizationId, UUID curriculumPlanId, String code, String name, String description, String packageType, BigDecimal price, String currency, String enrollmentPolicy, String status, Instant createdAt) {}
     public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
+    public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID learningClassId, String status, Instant createdAt) {}
     public record LearningPackageEnrollmentResponse(UUID id, UUID organizationId, UUID packageId, UUID studentId, String status, String decisionNote, Instant requestedAt, Instant decidedAt, UUID decidedBy, Instant createdAt) {}
 }

@@ -158,6 +158,17 @@ public class AcademicCatalogControllerV3 {
                 .body(ApiResponse.success(useCase.addLearningPackageItem(orgId, command)));
     }
 
+    @PostMapping("/learning-package-class-targets")
+    @Operation(summary = "Map a package course to a concrete learning class")
+    public ResponseEntity<ApiResponse<LearningPackageClassTargetResponse>> createLearningPackageClassTarget(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody CreateLearningPackageClassTargetCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.createLearningPackageClassTarget(orgId, command)));
+    }
+
     private void verifyOrgAccess(UserJpaEntity currentUser, UUID orgId) {
         if (currentUser == null) {
             throw new AccessDeniedException("Authentication is required");

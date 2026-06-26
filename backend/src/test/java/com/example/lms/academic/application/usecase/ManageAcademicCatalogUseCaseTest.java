@@ -3,6 +3,7 @@ package com.example.lms.academic.application.usecase;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddCurriculumSubjectCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddLearningPackageItemCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateCurriculumPlanCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageClassTargetCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LinkSubjectCourseCommand;
 import com.example.lms.academic.domain.model.AcademicCohort;
@@ -14,6 +15,8 @@ import com.example.lms.academic.domain.model.AcademicProgram;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.learning_delivery.domain.model.LearningClass;
+import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -44,6 +47,9 @@ class ManageAcademicCatalogUseCaseTest {
 
     @Mock
     private CourseRepository courseRepository;
+
+    @Mock
+    private LearningClassRepositoryPort learningClassRepository;
 
     @InjectMocks
     private ManageAcademicCatalogUseCase useCase;
@@ -196,6 +202,55 @@ class ManageAcademicCatalogUseCaseTest {
         verify(repository, never()).saveLearningPackageItem(any());
     }
 
+    @Test
+    @DisplayName("createLearningPackageClassTarget: maps package course to same-organization class")
+    void createLearningPackageClassTarget_allowsSameOrganizationClass() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID classId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
+        when(learningClassRepository.findById(classId))
+                .thenReturn(Optional.of(learningClass(classId, organizationId, courseId)));
+        when(repository.learningPackageClassTargetExists(organizationId, packageId, courseId)).thenReturn(false);
+        when(repository.saveLearningPackageClassTarget(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.createLearningPackageClassTarget(
+                organizationId,
+                new CreateLearningPackageClassTargetCommand(packageId, courseId, classId));
+
+        assertThat(response.organizationId()).isEqualTo(organizationId);
+        assertThat(response.packageId()).isEqualTo(packageId);
+        assertThat(response.courseId()).isEqualTo(courseId);
+        assertThat(response.learningClassId()).isEqualTo(classId);
+    }
+
+    @Test
+    @DisplayName("createLearningPackageClassTarget: rejects class mapped to another course")
+    void createLearningPackageClassTarget_rejectsClassFromAnotherCourse() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID classId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
+        when(learningClassRepository.findById(classId))
+                .thenReturn(Optional.of(learningClass(classId, organizationId, UUID.randomUUID())));
+
+        assertThatThrownBy(() -> useCase.createLearningPackageClassTarget(
+                organizationId,
+                new CreateLearningPackageClassTargetCommand(packageId, courseId, classId)))
+                .isInstanceOf(com.example.lms.shared.exception.ValidationException.class)
+                .hasMessageContaining("khóa học đã chọn");
+
+        verify(repository, never()).saveLearningPackageClassTarget(any());
+    }
+
     private AcademicSubject subject(UUID id, UUID organizationId) {
         return new AcademicSubject(
                 id,
@@ -290,5 +345,16 @@ class ManageAcademicCatalogUseCaseTest {
                 UUID.randomUUID());
         course.assignOrganization(organizationId);
         return course;
+    }
+
+    private LearningClass learningClass(UUID id, UUID organizationId, UUID courseId) {
+        return LearningClass.builder()
+                .id(id)
+                .organizationId(organizationId)
+                .courseId(courseId)
+                .name("VMU K63")
+                .code("VMU-K63-" + id.toString().substring(0, 8))
+                .status(LearningClass.ClassStatus.OPEN)
+                .build();
     }
 }

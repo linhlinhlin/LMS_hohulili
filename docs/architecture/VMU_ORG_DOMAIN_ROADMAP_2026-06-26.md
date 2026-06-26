@@ -701,3 +701,54 @@ cd backend
 mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest" test
 # Tests run: 13, Failures: 0, Errors: 0
 ```
+
+## 17. Phase F implementation - package class placement
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- support university-style package delivery where a package course must place a learner into a concrete learning class;
+- keep VMU logic as data, not hardcoded branches;
+- avoid granting `INSTRUCTOR_LED` courses through the self-paced `DEFAULT` class.
+
+Backend scope:
+
+- Adds `V151__learning_package_class_targets.sql`.
+- Adds `learning_package_class_targets` as the package/course/class placement table.
+- Adds domain/JPA/repository support for `AcademicLearningPackageClassTarget`.
+- Adds API:
+  - `POST /api/v3/organizations/{orgId}/academic/learning-package-class-targets`.
+- Extends academic catalog payload with `learningPackageClassTargets`.
+- Extends `GrantCourseAccessUseCase` with `grantClass(...)`.
+- Extends package enrollment activation so:
+  - active class target -> enroll into that concrete class;
+  - no class target -> use existing self-paced grant path.
+- Rejects silent success when the learner is already `ACTIVE`/`COMPLETED` in another class of the same course, so VMU roster placement stays explicit.
+
+VMU fit:
+
+- VMU can configure a K63 package course to a concrete class/term offering without code changes.
+- Subjects still resolve to LMS courses through `subject_courses`.
+- Package approval remains the business trigger; class target controls operational placement.
+
+Still intentionally not done:
+
+- org-admin UI for selecting package class targets.
+- package checkout/payment completion for `PAYMENT_REQUIRED`.
+- automatic class allocation by cohort/class group. That should come only if VMU needs rule-based placement beyond explicit target selection.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest,AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 31, Failures: 0, Errors: 0
+
+mvn test
+# Tests run: 1201, Failures: 0, Errors: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```

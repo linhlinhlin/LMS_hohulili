@@ -2,6 +2,7 @@ package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
+import com.example.lms.academic.domain.model.AcademicLearningPackageClassTarget;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
 import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
 import com.example.lms.academic.domain.model.AcademicSubjectCourse;
@@ -75,6 +76,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
         when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
         when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         var response = useCase.requestEnrollment(orgId, packageId, studentId);
@@ -135,6 +137,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
         when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
         when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         var response = useCase.approve(
@@ -147,6 +150,32 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.decidedBy()).isEqualTo(approverId);
         assertThat(response.decisionNote()).isEqualTo("Đủ điều kiện theo lớp VMU.");
         verify(courseAccessGrant).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("approve: package class target grants concrete class access")
+    void approve_packageClassTargetGrantsClassAccess() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID approverId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID classId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_APPROVAL");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findLearningPackageClassTargets(orgId))
+                .thenReturn(List.of(classTarget(orgId, packageId, courseId, classId)));
+        when(courseAccessGrant.grantClass(orgId, courseId, classId, studentId)).thenReturn(UUID.randomUUID());
+
+        useCase.approve(orgId, enrollmentId, approverId, null);
+
+        verify(courseAccessGrant).grantClass(orgId, courseId, classId, studentId);
+        verify(courseAccessGrant, never()).grant(orgId, courseId, studentId);
     }
 
     @Test
@@ -165,6 +194,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageSubjectItem(orgId, packageId, subjectId)));
         when(repository.findSubjectCourses(orgId)).thenReturn(List.of(subjectCourse(orgId, subjectId, courseId)));
+        when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
         when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         useCase.approve(orgId, enrollmentId, approverId, null);
@@ -273,6 +303,18 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 subjectId,
                 courseId,
                 true,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicLearningPackageClassTarget classTarget(UUID orgId, UUID packageId, UUID courseId, UUID classId) {
+        return new AcademicLearningPackageClassTarget(
+                UUID.randomUUID(),
+                orgId,
+                packageId,
+                courseId,
+                classId,
                 "ACTIVE",
                 Instant.now(),
                 null);
