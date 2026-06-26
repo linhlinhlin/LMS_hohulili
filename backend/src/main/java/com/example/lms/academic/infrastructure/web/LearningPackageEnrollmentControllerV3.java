@@ -76,6 +76,19 @@ public class LearningPackageEnrollmentControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(useCase.reject(orgId, enrollmentId, currentUser.getId(), command)));
     }
 
+    @PatchMapping("/learning-package-enrollments/{enrollmentId}/complete-payment")
+    @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
+    @Operation(summary = "Confirm payment for a pending learning package enrollment")
+    public ResponseEntity<ApiResponse<LearningPackageEnrollmentResponse>> completePayment(
+            @PathVariable UUID orgId,
+            @PathVariable UUID enrollmentId,
+            @Valid @RequestBody(required = false) ReviewLearningPackageEnrollmentCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAdminAccess(currentUser, orgId);
+        return ResponseEntity.ok(ApiResponse.success(
+                useCase.completePayment(orgId, enrollmentId, currentUser.getId(), command)));
+    }
+
     private void verifyStudentAccess(UserJpaEntity currentUser, UUID orgId) {
         if (currentUser == null || currentUser.getRole() != UserJpaEntity.UserRole.STUDENT
                 || !Objects.equals(currentUser.getOrganizationId(), orgId)) {

@@ -82,6 +82,19 @@ public class ManageLearningPackageEnrollmentUseCase {
                 enrollment.reject(approverId, command == null ? null : command.note())));
     }
 
+    @Transactional
+    public LearningPackageEnrollmentResponse completePayment(
+            UUID organizationId,
+            UUID enrollmentId,
+            UUID confirmerId,
+            ReviewLearningPackageEnrollmentCommand command) {
+        var enrollment = requireEnrollment(organizationId, enrollmentId);
+        var completed = repository.saveLearningPackageEnrollment(
+                enrollment.completePayment(confirmerId, command == null ? null : command.note()));
+        grantActivePackageCourses(completed);
+        return toResponse(completed);
+    }
+
     private AcademicLearningPackage requireLearningPackage(UUID organizationId, UUID packageId) {
         return repository.findLearningPackage(organizationId, packageId)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicLearningPackage", packageId));

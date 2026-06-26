@@ -16,4 +16,5 @@ export const ACADEMIC_ENDPOINTS = {
   MY_LEARNING_PACKAGE_ENROLLMENT: (orgId: string, packageId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages/${packageId}/enrollments/me`,
   APPROVE_LEARNING_PACKAGE_ENROLLMENT: (orgId: string, enrollmentId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments/${enrollmentId}/approve`,
   REJECT_LEARNING_PACKAGE_ENROLLMENT: (orgId: string, enrollmentId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments/${enrollmentId}/reject`,
+  COMPLETE_LEARNING_PACKAGE_PAYMENT: (orgId: string, enrollmentId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments/${enrollmentId}/complete-payment`,
 } as const;

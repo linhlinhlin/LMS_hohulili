@@ -151,4 +151,15 @@ export class AcademicApi {
       request
     );
   }
+
+  completeLearningPackagePayment(
+    orgId: string,
+    enrollmentId: string,
+    request: ReviewAcademicLearningPackageEnrollmentRequest
+  ) {
+    return this.api.patchWithResponse<AcademicLearningPackageEnrollment>(
+      ACADEMIC_ENDPOINTS.COMPLETE_LEARNING_PACKAGE_PAYMENT(orgId, enrollmentId),
+      request
+    );
+  }
 }

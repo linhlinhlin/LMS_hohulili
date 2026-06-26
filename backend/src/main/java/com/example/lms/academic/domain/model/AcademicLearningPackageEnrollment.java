@@ -88,6 +88,15 @@ public record AcademicLearningPackageEnrollment(
         return decide("REJECTED", approverId, note);
     }
 
+    public AcademicLearningPackageEnrollment completePayment(UUID confirmerId, String note) {
+        if (!"PENDING_PAYMENT".equals(status)) {
+            throw new BusinessRuleException(
+                    "PACKAGE_PAYMENT_NOT_COMPLETABLE",
+                    "Only pending payment package enrollments can be completed");
+        }
+        return decide("ACTIVE", confirmerId, note);
+    }
+
     private AcademicLearningPackageEnrollment decide(String nextStatus, UUID approverId, String note) {
         Objects.requireNonNull(approverId, "approverId is required");
         var now = Instant.now();

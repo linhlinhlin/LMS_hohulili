@@ -488,6 +488,16 @@ const capabilityLabels: Record<string, string> = {
                         </button>
                       </span>
                     }
+                    @if (enrollment.status === 'PENDING_PAYMENT') {
+                      <span class="action-row">
+                        <button type="button" class="secondary-button compact-action" [disabled]="saving()" (click)="rejectPackageEnrollment(enrollment)">
+                          Hủy yêu cầu
+                        </button>
+                        <button type="button" class="primary-button compact-action" [disabled]="saving()" (click)="completePackagePayment(enrollment)">
+                          Xác nhận thanh toán
+                        </button>
+                      </span>
+                    }
                   </p>
                 } @empty {
                   <p class="empty-text">Chưa có yêu cầu đăng ký gói học.</p>
@@ -1145,6 +1155,16 @@ export class OrgAcademicCatalogComponent implements OnInit {
         note: 'Chưa đủ điều kiện theo chính sách của tổ chức.',
       }),
       'Đã từ chối yêu cầu gói học.',
+      () => undefined
+    );
+  }
+
+  protected async completePackagePayment(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
+    await this.mutate(
+      this.academicApi.completeLearningPackagePayment(this.organizationId(), enrollment.id, {
+        note: 'Đã xác nhận thanh toán gói học.',
+      }),
+      'Đã xác nhận thanh toán và kích hoạt gói học.',
       () => undefined
     );
   }

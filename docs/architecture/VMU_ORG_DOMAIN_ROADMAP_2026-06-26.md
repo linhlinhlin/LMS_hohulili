@@ -800,3 +800,63 @@ Still intentionally not done:
 
 - `PAYMENT_REQUIRED` package checkout and payment completion.
 - Automatic class allocation by cohort/class group. This should be added only if VMU needs rule-based placement beyond explicit target selection.
+
+## 19. Phase H implementation - paid package completion
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make `PAYMENT_REQUIRED` learning packages operational for VMU-style administration;
+- allow ORG_ADMIN to confirm an already-reconciled tuition/payment event;
+- activate the package only after payment confirmation;
+- reuse the package course-grant path, including class-target placement from Phase F.
+
+Backend scope:
+
+- Adds `AcademicLearningPackageEnrollment.completePayment(...)`.
+- Allows only `PENDING_PAYMENT -> ACTIVE`.
+- Adds use case `ManageLearningPackageEnrollmentUseCase.completePayment(...)`.
+- Adds endpoint:
+  - `PATCH /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/complete-payment`.
+- Keeps same-org ORG_ADMIN guard.
+- Does not add a new table or widen `payment_transactions` yet.
+
+Frontend scope:
+
+- Academic API endpoint/client supports payment completion.
+- `/org-admin/academic` shows `Xác nhận thanh toán` for `PENDING_PAYMENT` package enrollments.
+- Existing reject path remains available for unpaid or invalid requests.
+
+VMU fit:
+
+- A training office can reconcile tuition outside the LMS, then activate a package inside the LMS.
+- Package activation still grants concrete class enrollment when a package class target exists.
+- This matches a realistic university back-office workflow without forcing full online checkout before the academic model is stable.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 18, Failures: 0, Errors: 0
+
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Runtime smoke:
+
+```text
+Backend Docker rebuilt and healthy.
+Student package request: PENDING_PAYMENT.
+ORG_ADMIN complete-payment: ACTIVE.
+/org-admin/academic browser smoke: API failures 0, console errors 0, page errors 0.
+```
+
+Still intentionally not done:
+
+- Public SePay/VNPay package checkout.
+- Package-level revenue split/refund model.
+- Automatic cohort/class-group allocation.

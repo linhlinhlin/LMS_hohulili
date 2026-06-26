@@ -75,6 +75,31 @@ class LearningPackageEnrollmentControllerV3Test {
         verify(useCase).listEnrollments(organizationId, "PENDING_APPROVAL");
     }
 
+    @Test
+    @DisplayName("completePayment: allows same-organization ORG_ADMIN")
+    void completePayment_allowsSameOrganizationOrgAdmin() {
+        UUID organizationId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId, true);
+
+        controller.completePayment(organizationId, enrollmentId, null, orgAdmin);
+
+        verify(useCase).completePayment(organizationId, enrollmentId, orgAdmin.getId(), null);
+    }
+
+    @Test
+    @DisplayName("completePayment: rejects ORG_ADMIN from another organization")
+    void completePayment_rejectsOrgAdminFromAnotherOrganization() {
+        UUID organizationId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, UUID.randomUUID(), true);
+
+        assertThatThrownBy(() -> controller.completePayment(organizationId, enrollmentId, null, orgAdmin))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("No access");
+        verify(useCase, never()).completePayment(organizationId, enrollmentId, orgAdmin.getId(), null);
+    }
+
     private UserJpaEntity user(UserJpaEntity.UserRole role, UUID organizationId, boolean withId) {
         UserJpaEntity user = mock(UserJpaEntity.class);
         when(user.getRole()).thenReturn(role);

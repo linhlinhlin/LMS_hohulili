@@ -218,6 +218,51 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     @Test
+    @DisplayName("completePayment: pending payment enrollment becomes active and grants package courses")
+    void completePayment_pendingPaymentBecomesActiveAndGrantsCourses() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID confirmerId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_PAYMENT");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
+        when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
+
+        var response = useCase.completePayment(
+                orgId,
+                enrollmentId,
+                confirmerId,
+                new ReviewLearningPackageEnrollmentCommand("Đã đối soát chuyển khoản."));
+
+        assertThat(response.status()).isEqualTo("ACTIVE");
+        assertThat(response.decidedBy()).isEqualTo(confirmerId);
+        assertThat(response.decisionNote()).isEqualTo("Đã đối soát chuyển khoản.");
+        verify(courseAccessGrant).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("completePayment: rejects non-payment-pending enrollment")
+    void completePayment_rejectsNonPaymentPendingEnrollment() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, UUID.randomUUID(), UUID.randomUUID(), "PENDING_APPROVAL");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> useCase.completePayment(orgId, enrollmentId, UUID.randomUUID(), null))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("pending payment");
+        verify(repository, never()).saveLearningPackageEnrollment(any());
+    }
+
+    @Test
     @DisplayName("listEnrollments: rejects unsupported status filter")
     void listEnrollments_rejectsUnsupportedStatus() {
         assertThatThrownBy(() -> useCase.listEnrollments(UUID.randomUUID(), "unknown"))

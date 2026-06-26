@@ -1487,3 +1487,74 @@ Debt còn lại sau Phase 4.7:
 
 - `PAYMENT_REQUIRED` package vẫn cần checkout/payment completion trước khi auto-grant.
 - Có thể thêm rule auto class allocation theo cohort/class group nếu VMU cần vận hành hàng loạt.
+
+## 38. Phase 4.8 paid package payment completion - 2026-06-26
+
+Mục tiêu của vòng này là hoàn thiện lát cắt tối thiểu để gói học trả phí có thể vận hành trong org-admin: khi học viên đăng ký gói có `enrollmentPolicy = PAYMENT_REQUIRED`, hệ thống giữ trạng thái `PENDING_PAYMENT`; sau khi ORG_ADMIN đối soát học phí hoặc chuyển khoản, ORG_ADMIN xác nhận thanh toán để kích hoạt gói và cấp quyền học theo đúng package/class target.
+
+Thay đổi đã thực hiện:
+
+- Thêm domain transition `AcademicLearningPackageEnrollment.completePayment(...)`.
+- Chỉ cho phép `PENDING_PAYMENT -> ACTIVE`; các trạng thái khác trả lỗi nghiệp vụ `PACKAGE_PAYMENT_NOT_COMPLETABLE`.
+- Thêm use case `ManageLearningPackageEnrollmentUseCase.completePayment(...)`.
+- Sau khi xác nhận thanh toán, use case gọi lại `grantActivePackageCourses(...)`, nên vẫn tôn trọng rule Phase 4.6:
+  - nếu package/course có class target `ACTIVE` thì enroll vào lớp cụ thể;
+  - nếu không có class target thì dùng self-paced grant hiện có.
+- Thêm API:
+  - `PATCH /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/complete-payment`.
+- API chỉ cho `ADMIN` hoặc `ORG_ADMIN`; `ORG_ADMIN` vẫn bị chặn nếu khác organization.
+- `/org-admin/academic` thêm nút `Xác nhận thanh toán` cho yêu cầu gói học đang `PENDING_PAYMENT`.
+- FE academic API client/endpoints được mở rộng tương ứng.
+
+Quyết định thiết kế:
+
+- Không hardcode VMU. VMU chỉ cần cấu hình gói học, học phí, lớp triển khai và policy.
+- Không mở rộng `payment_transactions` trong vòng này. Bảng payment hiện đang gắn chặt với course-level payment, revenue split và refund; ép package payment vào đó ngay sẽ tạo debt lớn hơn lợi ích demo.
+- Không triển khai checkout public SePay/VNPay trong vòng này. Lát cắt hiện tại phục vụ mô hình ORG/VMU thực tế: bộ phận quản trị đối soát học phí rồi xác nhận thủ công.
+- Không thêm schema mới vì trạng thái `PENDING_PAYMENT`, `ACTIVE`, `decided_by`, `decision_note` đã đủ cho completion tối thiểu.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 18, Failures: 0, Errors: 0
+
+cd fe
+npm run build
+# Application bundle generation complete
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+API smoke:
+
+```text
+Created temporary PAYMENT_REQUIRED package.
+Added package course item.
+Added package -> course -> class target.
+Student request enrollment -> PENDING_PAYMENT.
+ORG_ADMIN complete-payment -> ACTIVE.
+Latest smoke enrollment: 9ef2fd5d-d580-4e16-b3d9-39434c8d52e4
+Latest smoke package: 1a546650-7f5d-4355-9f37-7366f5243b8a
+```
+
+Browser smoke:
+
+```text
+Route: http://localhost:4200/org-admin/academic
+Login: orgadmin@maritime.edu / orgadmin123
+Rendered package-class target card: 1
+Buttons rendered: 19
+API failures: 0
+console errors: 0
+page errors: 0
+```
+
+Debt còn lại sau Phase 4.8:
+
+- Public package checkout bằng SePay/VNPay vẫn là phase riêng.
+- Nếu bán gói học trực tiếp, cần mô hình doanh thu/refund package-level thay vì tái dùng vội course-level payment.
+- Có thể thêm auto class allocation theo cohort/class group nếu VMU cần phân lớp hàng loạt.
