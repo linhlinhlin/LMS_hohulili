@@ -2450,7 +2450,7 @@ Quyết định thiết kế:
 - Không trộn dữ liệu package vào bảng `revenue_splits` cũ vì bảng đó đang đại diện cho course checkout.
 - Không tạo microservice hay accounting subsystem mới; một port đọc aggregate là đủ cho chặng này.
 - Không đổi UI trong vòng này. FE teacher/admin đang gọi các endpoint cũ nên tự nhận số mới từ backend.
-- `totalCoursesSold` trong teacher summary vẫn giữ semantics cũ là course-level distinct courses. Nếu muốn thống kê "package/course sales" đầy đủ hơn, cần đổi tên metric hoặc tạo metric mới để tránh gây hiểu nhầm.
+- `totalCoursesSold` trong teacher summary dùng union distinct `courseId` từ course checkout và package revenue split, nên course nằm trong cả hai nguồn chỉ được tính một lần.
 
 Verification:
 
@@ -2475,7 +2475,7 @@ learning_package_revenue_splits contains teacher vudinhthang@maritime.edu
 
 Teacher API smoke:
 GET /api/v3/teacher/revenue/summary
-# totalRevenue 875,000.00; thisMonthRevenue 875,000.00
+# totalRevenue 875,000.00; thisMonthRevenue 875,000.00; totalCoursesSold 1
 
 GET /api/v3/teacher/payout/balance
 # availableBalance 875,000.00; minPayoutAmount 100,000

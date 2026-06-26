@@ -16,6 +16,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -41,13 +42,17 @@ class GetTeacherRevenueUseCaseTest {
     @DisplayName("getSummary should include learning package revenue")
     void getSummaryShouldIncludeLearningPackageRevenue() {
         UUID teacherId = UUID.randomUUID();
+        UUID courseA = UUID.randomUUID();
+        UUID courseB = UUID.randomUUID();
+        UUID courseC = UUID.randomUUID();
         when(revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId)).thenReturn(BigDecimal.valueOf(200000));
         when(learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId)).thenReturn(BigDecimal.valueOf(300000));
         when(revenueSplitRepository.sumTeacherAmountThisMonth(teacherId)).thenReturn(BigDecimal.valueOf(100000));
         when(learningPackageRevenuePort.sumTeacherAmountThisMonth(teacherId)).thenReturn(BigDecimal.valueOf(50000));
         when(revenueSplitRepository.sumTeacherAmountLastMonth(teacherId)).thenReturn(BigDecimal.valueOf(50000));
         when(learningPackageRevenuePort.sumTeacherAmountLastMonth(teacherId)).thenReturn(BigDecimal.valueOf(50000));
-        when(revenueSplitRepository.countDistinctCoursesByTeacherId(teacherId)).thenReturn(2L);
+        when(revenueSplitRepository.findDistinctCourseIdsByTeacherId(teacherId)).thenReturn(List.of(courseA, courseB));
+        when(learningPackageRevenuePort.findDistinctCourseIdsByTeacherId(teacherId)).thenReturn(List.of(courseB, courseC));
 
         var summary = useCase.getSummary(teacherId);
 
@@ -55,7 +60,7 @@ class GetTeacherRevenueUseCaseTest {
         assertThat(summary.thisMonthRevenue()).isEqualByComparingTo(BigDecimal.valueOf(150000));
         assertThat(summary.lastMonthRevenue()).isEqualByComparingTo(BigDecimal.valueOf(100000));
         assertThat(summary.growthPercentage()).isEqualTo(50.0);
-        assertThat(summary.totalCoursesSold()).isEqualTo(2L);
+        assertThat(summary.totalCoursesSold()).isEqualTo(3L);
     }
 
     @Test

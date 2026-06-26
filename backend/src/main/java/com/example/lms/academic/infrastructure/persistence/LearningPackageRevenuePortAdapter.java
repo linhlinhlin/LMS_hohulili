@@ -32,6 +32,11 @@ public class LearningPackageRevenuePortAdapter implements LearningPackageRevenue
     }
 
     @Override
+    public List<UUID> findDistinctCourseIdsByTeacherId(UUID teacherId) {
+        return repository.findDistinctCourseIdsByTeacherId(teacherId);
+    }
+
+    @Override
     public BigDecimal sumGrossRevenueAll() {
         return repository.sumGrossRevenueAll();
     }

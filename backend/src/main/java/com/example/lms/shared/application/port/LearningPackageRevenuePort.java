@@ -10,6 +10,7 @@ public interface LearningPackageRevenuePort {
     BigDecimal sumTeacherAmountByTeacherId(UUID teacherId);
     BigDecimal sumTeacherAmountThisMonth(UUID teacherId);
     BigDecimal sumTeacherAmountLastMonth(UUID teacherId);
+    List<UUID> findDistinctCourseIdsByTeacherId(UUID teacherId);
     BigDecimal sumGrossRevenueAll();
     BigDecimal sumPlatformAmountAll();
     BigDecimal sumTeacherAmountAll();

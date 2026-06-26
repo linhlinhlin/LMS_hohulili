@@ -39,6 +39,9 @@ public interface AcademicLearningPackageRevenueSplitJpaRepository
         """, nativeQuery = true)
     BigDecimal sumTeacherAmountLastMonth(@Param("teacherId") UUID teacherId);
 
+    @Query("SELECT DISTINCT s.courseId FROM AcademicLearningPackageRevenueSplitJpaEntity s WHERE s.teacherId = :teacherId")
+    List<UUID> findDistinctCourseIdsByTeacherId(@Param("teacherId") UUID teacherId);
+
     @Query("SELECT COALESCE(SUM(s.grossAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s")
     BigDecimal sumGrossRevenueAll();
 

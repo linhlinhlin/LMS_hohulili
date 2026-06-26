@@ -52,8 +52,8 @@ public class RevenueSplitRepositoryAdapter implements RevenueSplitRepository {
     }
 
     @Override
-    public long countDistinctCoursesByTeacherId(UUID teacherId) {
-        return jpaRepo.countDistinctCoursesByTeacherId(teacherId);
+    public List<UUID> findDistinctCourseIdsByTeacherId(UUID teacherId) {
+        return jpaRepo.findDistinctCourseIdsByTeacherId(teacherId);
     }
 
     // ==================== Issue #260 (Phase 4 PR 4): cross-org aggregates ====================

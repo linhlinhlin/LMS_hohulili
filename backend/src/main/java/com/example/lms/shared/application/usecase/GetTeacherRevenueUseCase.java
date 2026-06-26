@@ -20,8 +20,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -94,7 +96,7 @@ public class GetTeacherRevenueUseCase {
         BigDecimal lastMonth = sumRevenue(
                 revenueSplitRepository.sumTeacherAmountLastMonth(teacherId),
                 learningPackageRevenuePort.sumTeacherAmountLastMonth(teacherId));
-        long       sold      = revenueSplitRepository.countDistinctCoursesByTeacherId(teacherId);
+        long       sold      = countDistinctRevenueCourses(teacherId);
 
         double growth = 0.0;
         if (lastMonth.compareTo(BigDecimal.ZERO) > 0) {
@@ -173,5 +175,16 @@ public class GetTeacherRevenueUseCase {
 
     private BigDecimal zeroIfNull(BigDecimal value) {
         return value == null ? BigDecimal.ZERO : value;
+    }
+
+    private long countDistinctRevenueCourses(UUID teacherId) {
+        Set<UUID> courseIds = new HashSet<>();
+        courseIds.addAll(listOrEmpty(revenueSplitRepository.findDistinctCourseIdsByTeacherId(teacherId)));
+        courseIds.addAll(listOrEmpty(learningPackageRevenuePort.findDistinctCourseIdsByTeacherId(teacherId)));
+        return courseIds.size();
+    }
+
+    private List<UUID> listOrEmpty(List<UUID> values) {
+        return values == null ? List.of() : values;
     }
 }
