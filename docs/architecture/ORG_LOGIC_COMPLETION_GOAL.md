@@ -1788,6 +1788,69 @@ GET /api/v3/organizations/{orgId}/academic/catalog -> memberships=1.
 
 Debt còn lại sau Phase 4.12:
 
-- Cần bulk import/transfer lớp hành chính nếu VMU vận hành danh sách sinh viên lớn.
+- Cần bulk import lớp hành chính nếu VMU vận hành danh sách sinh viên lớn. Chuyển lớp đơn lẻ đã được xử lý ở Phase 4.13.
+- Public package checkout bằng SePay/VNPay vẫn là phase riêng.
+- Package-level revenue/refund/accounting vẫn chưa nên dùng chung vội với course-level payment.
+
+## 43. Phase 4.13 class-group membership transfer history - 2026-06-26
+
+Mục tiêu của vòng này là làm cho lớp hành chính dùng được trong vận hành thật của VMU: sinh viên có thể chuyển từ lớp này sang lớp khác mà hệ thống không xóa lịch sử cũ. Đây là nghiệp vụ nhỏ nhưng quan trọng vì dữ liệu học thuật cần trả lời được câu hỏi "sinh viên hiện thuộc lớp nào" và "trước đây đã thuộc lớp nào" mà không hardcode riêng cho VMU.
+
+Thay đổi đã thực hiện:
+
+- Dùng lại schema hiện có `academic_class_group_memberships.status`, `left_at`, `updated_at`; không thêm migration mới.
+- Domain `AcademicClassGroupMembership` có business method `leave(leftAt)` để đóng membership cũ thành `INACTIVE`.
+- `AcademicCatalogRepository` có thêm cổng tìm membership theo `organization_id + id` và replace membership cũ/mới trong một transaction.
+- Adapter persistence lưu membership cũ bằng `saveAndFlush(...)` trước khi tạo membership mới để không đụng unique index "mỗi sinh viên chỉ có một membership ACTIVE trong một org".
+- Use case `transferClassGroupMembership(...)` validate target class group cùng org, membership đang `ACTIVE`, và không cho chuyển sang chính lớp hiện tại.
+- API mới: `PATCH /api/v3/organizations/{orgId}/academic/class-group-memberships/{membershipId}/transfer`.
+- `/org-admin/academic` hiển thị trạng thái `Đang học` / `Đã rời lớp` và thêm control `Chuyển lớp` cho membership đang active.
+
+Quyết định thiết kế:
+
+- Không xóa record cũ khi chuyển lớp. Lịch sử học thuật là dữ liệu nghiệp vụ, không phải trạng thái UI tạm thời.
+- Không thêm bulk import trong vòng này. Chuyển lớp đơn lẻ là workflow nhỏ nhất đủ kiểm chứng invariant trước; bulk import sẽ dùng lại cùng use case hoặc service orchestration sau.
+- Không hardcode VMU. VMU chỉ là dữ liệu tổ chức, lớp hành chính, sinh viên và policy đang bật.
+- Không đổi package enrollment rule ở vòng này. Phase 4.12 đã dùng membership active làm nguồn chọn class target; Phase 4.13 chỉ đảm bảo membership active được chuyển an toàn.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 17, Failures: 0, Errors: 0
+
+mvn "-Dtest=AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 38, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d db backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+API smoke:
+
+```text
+PATCH /api/v3/organizations/{orgId}/academic/class-group-memberships/{membershipId}/transfer -> 200.
+old membership -> INACTIVE + leftAt set.
+new membership -> ACTIVE in target class group.
+active memberships for the same student/org -> 1.
+inactive history rows for the same student/org -> retained.
+```
+
+UI smoke:
+
+```text
+/org-admin/academic desktop smoke -> membership card rendered, transfer select rendered, transfer button rendered, statuses ["Đang học", "Đã rời lớp"], console errors 0, network failures 0.
+/org-admin/academic mobile 390x844 smoke -> same checks passed.
+```
+
+Debt còn lại sau Phase 4.13:
+
+- Bulk import/transfer roster cho danh sách sinh viên lớn vẫn là phase riêng.
 - Public package checkout bằng SePay/VNPay vẫn là phase riêng.
 - Package-level revenue/refund/accounting vẫn chưa nên dùng chung vội với course-level payment.

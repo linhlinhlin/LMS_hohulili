@@ -1,6 +1,7 @@
 package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateDepartmentCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.TransferClassGroupMembershipCommand;
 import com.example.lms.academic.application.usecase.ManageAcademicCatalogUseCase;
 import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -69,6 +70,20 @@ class AcademicCatalogControllerV3Test {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("academic_catalog");
         verify(useCase, never()).getCatalog(organizationId);
+    }
+
+    @Test
+    @DisplayName("transferClassGroupMembership: allows same-organization ORG_ADMIN when academic catalog is enabled")
+    void transferClassGroupMembership_allowsSameOrgAdminWhenCapabilityEnabled() {
+        UUID organizationId = UUID.randomUUID();
+        UUID membershipId = UUID.randomUUID();
+        var command = new TransferClassGroupMembershipCommand(UUID.randomUUID());
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId);
+        when(capabilitiesUseCase.isEnabled(organizationId, "academic_catalog")).thenReturn(true);
+
+        controller.transferClassGroupMembership(organizationId, membershipId, command, orgAdmin);
+
+        verify(useCase).transferClassGroupMembership(organizationId, membershipId, command);
     }
 
     private UserJpaEntity user(UserJpaEntity.UserRole role, UUID organizationId) {

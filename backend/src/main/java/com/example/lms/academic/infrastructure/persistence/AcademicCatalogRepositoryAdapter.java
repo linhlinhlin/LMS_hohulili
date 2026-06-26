@@ -6,6 +6,7 @@ import com.example.lms.academic.infrastructure.persistence.entity.*;
 import com.example.lms.academic.infrastructure.persistence.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -149,6 +150,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id) {
         return learningPackages.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicClassGroupMembership> findClassGroupMembership(UUID organizationId, UUID id) {
+        return classGroupMemberships.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
 
     @Override
@@ -304,6 +310,15 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public AcademicClassGroupMembership saveClassGroupMembership(AcademicClassGroupMembership membership) {
         return toDomain(classGroupMemberships.save(toEntity(membership)));
+    }
+
+    @Override
+    @Transactional
+    public AcademicClassGroupMembership replaceClassGroupMembership(
+            AcademicClassGroupMembership previous,
+            AcademicClassGroupMembership next) {
+        classGroupMemberships.saveAndFlush(toEntity(previous));
+        return toDomain(classGroupMemberships.save(toEntity(next)));
     }
 
     @Override

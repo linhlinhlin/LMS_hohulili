@@ -33,6 +33,7 @@ import {
   CreateAcademicTermRequest,
   LinkAcademicSubjectCourseRequest,
   ReviewAcademicLearningPackageEnrollmentRequest,
+  TransferAcademicClassGroupMembershipRequest,
 } from '../types/academic.types';
 
 @Injectable({ providedIn: 'root' })
@@ -68,6 +69,17 @@ export class AcademicApi {
   createClassGroupMembership(orgId: string, request: CreateAcademicClassGroupMembershipRequest) {
     return this.api.postWithResponse<AcademicClassGroupMembership>(
       ACADEMIC_ENDPOINTS.CLASS_GROUP_MEMBERSHIPS(orgId),
+      request
+    );
+  }
+
+  transferClassGroupMembership(
+    orgId: string,
+    membershipId: string,
+    request: TransferAcademicClassGroupMembershipRequest
+  ) {
+    return this.api.patchWithResponse<AcademicClassGroupMembership>(
+      ACADEMIC_ENDPOINTS.TRANSFER_CLASS_GROUP_MEMBERSHIP(orgId, membershipId),
       request
     );
   }

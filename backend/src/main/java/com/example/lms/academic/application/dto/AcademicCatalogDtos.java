@@ -127,6 +127,10 @@ public final class AcademicCatalogDtos {
             @NotNull UUID studentId
     ) {}
 
+    public record TransferClassGroupMembershipCommand(
+            @NotNull UUID classGroupId
+    ) {}
+
     public record ReviewLearningPackageEnrollmentCommand(
             @Size(max = 1000) String note,
             @Size(max = 128) String paymentReference
@@ -144,7 +148,7 @@ public final class AcademicCatalogDtos {
     public record LearningPackageResponse(UUID id, UUID organizationId, UUID curriculumPlanId, String code, String name, String description, String packageType, BigDecimal price, String currency, String enrollmentPolicy, String status, Instant createdAt) {}
     public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
     public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId, UUID learningClassId, String status, Instant createdAt) {}
-    public record ClassGroupMembershipResponse(UUID id, UUID organizationId, UUID classGroupId, UUID studentId, String status, Instant joinedAt, Instant createdAt) {}
+    public record ClassGroupMembershipResponse(UUID id, UUID organizationId, UUID classGroupId, UUID studentId, String status, Instant joinedAt, Instant leftAt, Instant createdAt) {}
     public record LearningPackageEnrollmentResponse(
             UUID id,
             UUID organizationId,

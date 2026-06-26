@@ -12,6 +12,7 @@ import { AcademicApi } from '../../api/client/academic.api';
 import { ApiResponse } from '../../api/types/common.types';
 import {
   AcademicCatalog,
+  AcademicClassGroupMembership,
   AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
   AddAcademicCurriculumSubjectRequest,
@@ -103,7 +104,7 @@ const capabilityLabels: Record<string, string> = {
             <div class="metric-card"><span>Ngành</span><strong>{{ catalog().programs.length }}</strong></div>
             <div class="metric-card"><span>Khóa</span><strong>{{ catalog().cohorts.length }}</strong></div>
             <div class="metric-card"><span>Lớp</span><strong>{{ catalog().classGroups.length }}</strong></div>
-            <div class="metric-card"><span>Sinh viên lớp</span><strong>{{ catalog().classGroupMemberships.length }}</strong></div>
+            <div class="metric-card"><span>Sinh viên lớp</span><strong>{{ activeClassGroupMemberships().length }}</strong></div>
             <div class="metric-card"><span>Môn học</span><strong>{{ catalog().subjects.length }}</strong></div>
             <div class="metric-card"><span>Course map</span><strong>{{ catalog().subjectCourses.length }}</strong></div>
             <div class="metric-card"><span>Học kỳ</span><strong>{{ catalog().terms.length }}</strong></div>
@@ -455,10 +456,39 @@ const capabilityLabels: Record<string, string> = {
               </form>
               <div class="compact-list">
                 @for (membership of catalog().classGroupMemberships; track membership.id) {
-                  <p>
-                    <strong>{{ classGroupLabel(membership.classGroupId) }}</strong>
-                    <span>{{ studentLabel(membership.studentId) }}</span>
-                  </p>
+                  <div class="membership-row">
+                    <p>
+                      <strong>{{ classGroupLabel(membership.classGroupId) }}</strong>
+                      <span>{{ studentLabel(membership.studentId) }}</span>
+                      <span class="membership-status" [class.inactive]="membership.status !== 'ACTIVE'">
+                        {{ classGroupMembershipStatusLabel(membership) }}
+                      </span>
+                    </p>
+                    @if (membership.status === 'ACTIVE') {
+                      <div class="membership-transfer">
+                        <select
+                          data-testid="class-group-membership-transfer-target"
+                          aria-label="Lớp hành chính muốn chuyển tới"
+                          [value]="transferTargetFor(membership.id)"
+                          (change)="setTransferTarget(membership.id, $event)">
+                          <option value="">Chuyển sang lớp...</option>
+                          @for (classGroup of catalog().classGroups; track classGroup.id) {
+                            @if (classGroup.id !== membership.classGroupId) {
+                              <option [value]="classGroup.id">{{ classGroup.code }} - {{ classGroup.name }}</option>
+                            }
+                          }
+                        </select>
+                        <button
+                          data-testid="class-group-membership-transfer-submit"
+                          class="secondary-button compact-action"
+                          type="button"
+                          [disabled]="saving() || !canTransferMembership(membership)"
+                          (click)="transferClassGroupMembership(membership)">
+                          Chuyển lớp
+                        </button>
+                      </div>
+                    }
+                  </div>
                 } @empty {
                   <p class="empty-text">Chưa có sinh viên nào được gán vào lớp hành chính.</p>
                 }
@@ -755,6 +785,50 @@ const capabilityLabels: Record<string, string> = {
       font-size: 0.9rem;
     }
 
+    .membership-row {
+      display: grid;
+      gap: 0.5rem;
+      border-radius: 0.9rem;
+      background: #f8fafc;
+      padding: 0.75rem 0.9rem;
+    }
+
+    .membership-row p {
+      padding: 0;
+      background: transparent;
+    }
+
+    .membership-transfer {
+      display: grid;
+      gap: 0.5rem;
+    }
+
+    .membership-transfer select {
+      min-height: 2.35rem;
+      border-radius: 0.75rem;
+    }
+
+    @media (min-width: 640px) {
+      .membership-transfer {
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+      }
+    }
+
+    .membership-status {
+      border-radius: 999px;
+      background: #dcfce7;
+      color: #166534;
+      padding: 0.15rem 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 800;
+    }
+
+    .membership-status.inactive {
+      background: #e2e8f0;
+      color: #64748b;
+    }
+
     .compact-list strong {
       color: #0f172a;
       font-weight: 800;
@@ -800,6 +874,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
   protected readonly packagePaymentReferences = signal<Record<string, string>>({});
+  protected readonly classGroupTransferTargets = signal<Record<string, string>>({});
   protected readonly learningClasses = signal<ClassSummary[]>([]);
   private readonly classNameCache = signal<Record<string, string>>({});
   protected readonly loading = signal(false);
@@ -814,6 +889,9 @@ export class OrgAcademicCatalogComponent implements OnInit {
       enabled: capability.enabled,
       label: capabilityLabels[capability.key] ?? capability.key,
     }))
+  );
+  protected readonly activeClassGroupMemberships = computed(() =>
+    this.catalog().classGroupMemberships.filter(membership => membership.status === 'ACTIVE')
   );
 
   protected readonly departmentForm = signal<CreateAcademicDepartmentRequest>({ code: '', name: '' });
@@ -1085,6 +1163,20 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.academicApi.createClassGroupMembership(this.organizationId(), form),
       'Đã gán sinh viên vào lớp hành chính.',
       () => this.classGroupMembershipForm.set({ classGroupId: '', studentId: '' })
+    );
+  }
+
+  protected async transferClassGroupMembership(membership: AcademicClassGroupMembership): Promise<void> {
+    const classGroupId = this.transferTargetFor(membership.id);
+    if (!classGroupId || classGroupId === membership.classGroupId) {
+      this.error.set('Vui lòng chọn lớp hành chính mới cho sinh viên.');
+      return;
+    }
+
+    await this.mutate(
+      this.academicApi.transferClassGroupMembership(this.organizationId(), membership.id, { classGroupId }),
+      'Đã chuyển sinh viên sang lớp hành chính mới.',
+      () => this.clearTransferTarget(membership.id)
     );
   }
 
@@ -1395,6 +1487,15 @@ export class OrgAcademicCatalogComponent implements OnInit {
     return classGroupId ? this.classGroupLabel(classGroupId) : 'Mặc định';
   }
 
+  protected classGroupMembershipStatusLabel(membership: AcademicClassGroupMembership): string {
+    return membership.status === 'ACTIVE' ? 'Đang học' : 'Đã rời lớp';
+  }
+
+  protected canTransferMembership(membership: AcademicClassGroupMembership): boolean {
+    const targetClassGroupId = this.transferTargetFor(membership.id);
+    return Boolean(targetClassGroupId && targetClassGroupId !== membership.classGroupId);
+  }
+
   protected studentLabel(studentId: string): string {
     const student = this.studentUsers().find(item => item.id === studentId);
     return student ? `${student.name || student.email} - ${student.email}` : this.shortId(studentId);
@@ -1468,6 +1569,23 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected setPaymentReference(enrollmentId: string, event: Event): void {
     const value = this.text(event);
     this.packagePaymentReferences.update(current => ({ ...current, [enrollmentId]: value }));
+  }
+
+  protected transferTargetFor(membershipId: string): string {
+    return this.classGroupTransferTargets()[membershipId] ?? '';
+  }
+
+  protected setTransferTarget(membershipId: string, event: Event): void {
+    const value = this.text(event);
+    this.classGroupTransferTargets.update(current => ({ ...current, [membershipId]: value }));
+  }
+
+  protected clearTransferTarget(membershipId: string): void {
+    this.classGroupTransferTargets.update(current => {
+      const next = { ...current };
+      delete next[membershipId];
+      return next;
+    });
   }
 
   protected clearPaymentReference(enrollmentId: string): void {

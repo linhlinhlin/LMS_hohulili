@@ -47,4 +47,18 @@ public record AcademicClassGroupMembership(
                 now,
                 null);
     }
+
+    public AcademicClassGroupMembership leave(Instant leftAt) {
+        var effectiveLeftAt = leftAt == null ? Instant.now() : leftAt;
+        return new AcademicClassGroupMembership(
+                id,
+                organizationId,
+                classGroupId,
+                studentId,
+                "INACTIVE",
+                joinedAt,
+                effectiveLeftAt,
+                createdAt,
+                effectiveLeftAt);
+    }
 }

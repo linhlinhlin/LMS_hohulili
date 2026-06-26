@@ -104,6 +104,18 @@ public class AcademicCatalogControllerV3 {
                 .body(ApiResponse.success(useCase.assignClassGroupMembership(orgId, command)));
     }
 
+    @PatchMapping("/class-group-memberships/{membershipId}/transfer")
+    @Operation(summary = "Transfer an active student membership to another academic class group")
+    public ResponseEntity<ApiResponse<ClassGroupMembershipResponse>> transferClassGroupMembership(
+            @PathVariable UUID orgId,
+            @PathVariable UUID membershipId,
+            @Valid @RequestBody TransferClassGroupMembershipCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
+        return ResponseEntity.ok(ApiResponse.success(useCase.transferClassGroupMembership(orgId, membershipId, command)));
+    }
+
     @PostMapping("/subjects")
     @Operation(summary = "Create academic subject")
     public ResponseEntity<ApiResponse<SubjectResponse>> createSubject(

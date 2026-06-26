@@ -11,6 +11,8 @@ public interface AcademicClassGroupMembershipJpaRepository
         extends JpaRepository<AcademicClassGroupMembershipJpaEntity, UUID> {
     List<AcademicClassGroupMembershipJpaEntity> findByOrganizationIdOrderByJoinedAtDesc(UUID organizationId);
 
+    Optional<AcademicClassGroupMembershipJpaEntity> findByIdAndOrganizationId(UUID id, UUID organizationId);
+
     Optional<AcademicClassGroupMembershipJpaEntity> findFirstByOrganizationIdAndStudentIdAndStatusOrderByJoinedAtDesc(
             UUID organizationId,
             UUID studentId,

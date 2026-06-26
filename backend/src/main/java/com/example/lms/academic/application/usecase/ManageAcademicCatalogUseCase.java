@@ -14,6 +14,7 @@ import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -288,6 +289,29 @@ public class ManageAcademicCatalogUseCase {
         return toResponse(repository.saveClassGroupMembership(membership));
     }
 
+    public ClassGroupMembershipResponse transferClassGroupMembership(
+            UUID organizationId,
+            UUID membershipId,
+            TransferClassGroupMembershipCommand command) {
+        requireClassGroup(organizationId, command.classGroupId());
+        var current = repository.findClassGroupMembership(organizationId, membershipId)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicClassGroupMembership", membershipId));
+        if (!"ACTIVE".equals(current.status())) {
+            throw new ValidationException("membershipId", "Only active class group memberships can be transferred");
+        }
+        if (Objects.equals(current.classGroupId(), command.classGroupId())) {
+            throw new ValidationException("classGroupId", "Target class group must be different");
+        }
+
+        var now = Instant.now();
+        var previous = current.leave(now);
+        var next = AcademicClassGroupMembership.assign(
+                organizationId,
+                command.classGroupId(),
+                current.studentId());
+        return toResponse(repository.replaceClassGroupMembership(previous, next));
+    }
+
     private void requireDepartment(UUID organizationId, UUID id) {
         repository.findDepartment(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicDepartment", id));
@@ -442,6 +466,7 @@ public class ManageAcademicCatalogUseCase {
                 m.studentId(),
                 m.status(),
                 m.joinedAt(),
+                m.leftAt(),
                 m.createdAt());
     }
 }

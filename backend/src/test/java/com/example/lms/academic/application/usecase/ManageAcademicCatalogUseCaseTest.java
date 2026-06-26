@@ -7,6 +7,8 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateCurric
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageClassTargetCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LinkSubjectCourseCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.TransferClassGroupMembershipCommand;
+import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicClassGroup;
 import com.example.lms.academic.domain.model.AcademicCohort;
 import com.example.lms.academic.domain.model.AcademicCurriculumPlan;
@@ -336,6 +338,64 @@ class ManageAcademicCatalogUseCaseTest {
         verify(repository, never()).saveClassGroupMembership(any());
     }
 
+    @Test
+    @DisplayName("transferClassGroupMembership: closes current membership and creates active target membership")
+    void transferClassGroupMembership_transfersActiveMembership() {
+        UUID organizationId = UUID.randomUUID();
+        UUID membershipId = UUID.randomUUID();
+        UUID oldClassGroupId = UUID.randomUUID();
+        UUID newClassGroupId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+
+        when(repository.findClassGroup(organizationId, newClassGroupId))
+                .thenReturn(Optional.of(classGroup(newClassGroupId, organizationId)));
+        when(repository.findClassGroupMembership(organizationId, membershipId))
+                .thenReturn(Optional.of(classGroupMembership(membershipId, organizationId, oldClassGroupId, studentId, "ACTIVE")));
+        when(repository.replaceClassGroupMembership(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
+
+        var response = useCase.transferClassGroupMembership(
+                organizationId,
+                membershipId,
+                new TransferClassGroupMembershipCommand(newClassGroupId));
+
+        assertThat(response.organizationId()).isEqualTo(organizationId);
+        assertThat(response.classGroupId()).isEqualTo(newClassGroupId);
+        assertThat(response.studentId()).isEqualTo(studentId);
+        assertThat(response.status()).isEqualTo("ACTIVE");
+        verify(repository).replaceClassGroupMembership(
+                org.mockito.ArgumentMatchers.argThat(previous ->
+                        "INACTIVE".equals(previous.status())
+                                && oldClassGroupId.equals(previous.classGroupId())
+                                && previous.leftAt() != null),
+                org.mockito.ArgumentMatchers.argThat(next ->
+                        "ACTIVE".equals(next.status())
+                                && newClassGroupId.equals(next.classGroupId())
+                                && studentId.equals(next.studentId())));
+    }
+
+    @Test
+    @DisplayName("transferClassGroupMembership: rejects same target class group")
+    void transferClassGroupMembership_rejectsSameClassGroup() {
+        UUID organizationId = UUID.randomUUID();
+        UUID membershipId = UUID.randomUUID();
+        UUID classGroupId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+
+        when(repository.findClassGroup(organizationId, classGroupId))
+                .thenReturn(Optional.of(classGroup(classGroupId, organizationId)));
+        when(repository.findClassGroupMembership(organizationId, membershipId))
+                .thenReturn(Optional.of(classGroupMembership(membershipId, organizationId, classGroupId, studentId, "ACTIVE")));
+
+        assertThatThrownBy(() -> useCase.transferClassGroupMembership(
+                organizationId,
+                membershipId,
+                new TransferClassGroupMembershipCommand(classGroupId)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("different");
+
+        verify(repository, never()).replaceClassGroupMembership(any(), any());
+    }
+
     private AcademicSubject subject(UUID id, UUID organizationId) {
         return new AcademicSubject(
                 id,
@@ -384,6 +444,24 @@ class ManageAcademicCatalogUseCaseTest {
                 "CNT63DH",
                 "CNT63ĐH",
                 "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicClassGroupMembership classGroupMembership(
+            UUID id,
+            UUID organizationId,
+            UUID classGroupId,
+            UUID studentId,
+            String status) {
+        return new AcademicClassGroupMembership(
+                id,
+                organizationId,
+                classGroupId,
+                studentId,
+                status,
+                Instant.now(),
+                null,
                 Instant.now(),
                 null);
     }

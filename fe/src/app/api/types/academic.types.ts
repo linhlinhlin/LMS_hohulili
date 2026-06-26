@@ -160,6 +160,7 @@ export interface AcademicClassGroupMembership {
   studentId: string;
   status: string;
   joinedAt: string;
+  leftAt: string | null;
   createdAt: string;
 }
 
@@ -275,6 +276,10 @@ export interface CreateAcademicLearningPackageClassTargetRequest {
 export interface CreateAcademicClassGroupMembershipRequest {
   classGroupId: string;
   studentId: string;
+}
+
+export interface TransferAcademicClassGroupMembershipRequest {
+  classGroupId: string;
 }
 
 export interface ReviewAcademicLearningPackageEnrollmentRequest {

@@ -30,6 +30,7 @@ public interface AcademicCatalogRepository {
     Optional<AcademicTerm> findTerm(UUID organizationId, UUID id);
     Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id);
     Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id);
+    Optional<AcademicClassGroupMembership> findClassGroupMembership(UUID organizationId, UUID id);
     Optional<AcademicClassGroupMembership> findActiveClassGroupMembership(UUID organizationId, UUID studentId);
     Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id);
     Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId);
@@ -62,5 +63,8 @@ public interface AcademicCatalogRepository {
     AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item);
     AcademicLearningPackageClassTarget saveLearningPackageClassTarget(AcademicLearningPackageClassTarget target);
     AcademicClassGroupMembership saveClassGroupMembership(AcademicClassGroupMembership membership);
+    AcademicClassGroupMembership replaceClassGroupMembership(
+            AcademicClassGroupMembership previous,
+            AcademicClassGroupMembership next);
     AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment);
 }
