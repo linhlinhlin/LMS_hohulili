@@ -1142,3 +1142,20 @@ Debt còn lại sau Phase 4.1:
 - Cần thêm `organization_capabilities` để bật/tắt module như academic catalog, curriculum plan, learning packages theo từng ORG.
 - Cần thiết kế package enrollment/payment flow sau khi rule nghiệp vụ được chốt: miễn phí, cần ORG duyệt, invite-only, hoặc bắt buộc thanh toán.
 - Cần browser/API smoke sau khi branch được merge/deploy để xác nhận VMU package seed hiển thị trên review runtime.
+
+## 32. Phase 4.2 VMU learning package seed hotfix - 2026-06-26
+
+Production smoke sau khi merge Phase 4.1 cho thấy API mới hoạt động nhưng `learningPackages = 0`. Root cause là V146 chọn tổ chức theo `code = 'VMU'` hoặc tên chứa `Hàng hải`, trong khi dữ liệu academic demo đang nằm ở default organization từ V144.
+
+Thay đổi hotfix:
+
+- Thêm migration forward-only `V147__seed_vmu_learning_package_default_org_fix.sql`.
+- Chọn org từ chính `curriculum_plans.code = 'DKT-K63-CDIO'`, không phụ thuộc tên/code organization.
+- Insert/update package `VMU-DKT-K63-FOUNDATION`.
+- Insert sáu item subject thuộc cùng org với curriculum plan.
+
+Verification cần chạy trước khi coi vòng này xong:
+
+- Flyway migrate qua V147 trên DB tạm.
+- Merge/deploy lên review runtime.
+- Smoke catalog để xác nhận `learningPackages = 1` và `learningPackageItems = 6`.
