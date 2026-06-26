@@ -1159,3 +1159,28 @@ Verification cần chạy trước khi coi vòng này xong:
 - Flyway migrate qua V147 trên DB tạm.
 - Merge/deploy lên review runtime.
 - Smoke catalog để xác nhận `learningPackages = 1` và `learningPackageItems = 6`.
+
+Kết quả sau deploy:
+
+- PR `#523` đã merge vào main với merge commit `7e1029c9be80e3f0be18765b338aa60e350bf543`.
+- Main CI và `Build & Deploy` đều thành công.
+- Production health: `UP`.
+- ORG_ADMIN catalog smoke:
+  - `learningPackages = 1`;
+  - `learningPackageItems = 6`;
+  - seed package: `Gói nền tảng Điều khiển tàu biển K63`;
+  - policy: `ORG_APPROVAL`;
+  - price: `0 VND`;
+  - item count by `packageId`: `6`.
+- Browser smoke `/org-admin/academic`:
+  - metric `GÓI HỌC 1` hiển thị;
+  - metric `MỤC TRONG GÓI 6` hiển thị;
+  - package code/name hiển thị;
+  - console errors: `0`;
+  - screenshot: `artifacts/org-admin-learning-packages-production-debug.png`.
+
+Kết luận:
+
+- Phase 4.2 đã đóng xong lỗi seed rỗng.
+- Gói học VMU hiện đã tồn tại thật trên review runtime và được đọc qua org-admin academic catalog.
+- Bước tiếp theo của goal là `organization_capabilities` để bật/tắt academic/curriculum/package module theo từng tổ chức, trước khi nối package enrollment/payment.

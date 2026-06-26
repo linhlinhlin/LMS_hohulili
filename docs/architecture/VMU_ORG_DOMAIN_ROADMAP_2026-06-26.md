@@ -474,3 +474,67 @@ Why this is cleaner:
 - It avoids fragile dependence on organization display name/code.
 - It keeps the seed aligned to the academic plan that the package is meant to wrap.
 - It is forward-only and idempotent with `ON CONFLICT` guards.
+
+## 13. Phase B deploy and production smoke
+
+Status on 2026-06-26: merged, deployed, and smoke-tested on `https://holilihu.online`.
+
+GitHub flow:
+
+- PR `#522`: `feat(org): add VMU learning packages`.
+- Merge commit: `10277a045ac56d8f8607c3e6e416f1a33c429e9a`.
+- PR CI: backend, frontend, compose validation, Cloudflare Worker tests, and Docker smoke all passed.
+- Main `Build & Deploy`: completed successfully.
+- PR `#523`: `fix(org): seed VMU learning package from curriculum plan`.
+- Merge commit: `7e1029c9be80e3f0be18765b338aa60e350bf543`.
+- PR CI and main `Build & Deploy`: completed successfully.
+
+Production API smoke:
+
+```text
+GET https://holilihu.online/actuator/health -> UP
+POST /api/v3/auth/login as orgadmin@maritime.edu -> ORG_ADMIN
+GET /api/v3/organizations/{orgId}/academic/catalog -> 200
+```
+
+Catalog counts after V147:
+
+| Item | Count |
+| --- | ---: |
+| Departments | 4 |
+| Programs | 4 |
+| Cohorts | 3 |
+| Class groups | 4 |
+| Subjects | 9 |
+| Subject-course links | 9 |
+| Academic terms | 3 |
+| Curriculum plans | 1 |
+| Curriculum subjects | 6 |
+| Learning packages | 1 |
+| Learning package items | 6 |
+
+Seed package:
+
+```text
+code: VMU-DKT-K63-FOUNDATION
+name: Gói nền tảng Điều khiển tàu biển K63
+enrollmentPolicy: ORG_APPROVAL
+price: 0 VND
+package item count by packageId: 6
+```
+
+Production browser smoke:
+
+```text
+Route: https://holilihu.online/org-admin/academic
+Visible metrics: GÓI HỌC 1, MỤC TRONG GÓI 6
+Seed package visible: VMU-DKT-K63-FOUNDATION / Gói nền tảng Điều khiển tàu biển K63
+Console errors: 0
+Screenshot: artifacts/org-admin-learning-packages-production-debug.png
+```
+
+Conclusion:
+
+- Phase B is live on the review runtime.
+- VMU learning package data is now tied to the curriculum plan's organization, not fragile organization display names.
+- Package payment/enrollment remains intentionally separate until the exact VMU package checkout or assignment workflow is decided.
