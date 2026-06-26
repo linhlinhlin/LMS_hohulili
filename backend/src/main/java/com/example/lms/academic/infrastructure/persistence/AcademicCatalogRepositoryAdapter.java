@@ -29,6 +29,7 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private final AcademicLearningPackageClassTargetJpaRepository learningPackageClassTargets;
     private final AcademicClassGroupMembershipJpaRepository classGroupMemberships;
     private final AcademicLearningPackageEnrollmentJpaRepository learningPackageEnrollments;
+    private final AcademicLearningPackagePaymentEventJpaRepository learningPackagePaymentEvents;
 
     @Override
     public List<AcademicDepartment> findDepartments(UUID organizationId) {
@@ -110,6 +111,15 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 ? learningPackageEnrollments.findByOrganizationIdOrderByRequestedAtDesc(organizationId)
                 : learningPackageEnrollments.findByOrganizationIdAndStatusOrderByRequestedAtDesc(organizationId, safeStatus);
         return entities.stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<AcademicLearningPackagePaymentEvent> findLearningPackagePaymentEvents(UUID organizationId, UUID enrollmentId) {
+        return learningPackagePaymentEvents
+                .findByOrganizationIdAndEnrollmentIdOrderByOccurredAtAscCreatedAtAsc(organizationId, enrollmentId)
+                .stream()
+                .map(this::toDomain)
+                .toList();
     }
 
     @Override
@@ -331,6 +341,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
         return toDomain(learningPackageEnrollments.save(toEntity(enrollment)));
     }
 
+    @Override
+    public AcademicLearningPackagePaymentEvent saveLearningPackagePaymentEvent(AcademicLearningPackagePaymentEvent event) {
+        return toDomain(learningPackagePaymentEvents.save(toEntity(event)));
+    }
+
     private AcademicDepartment toDomain(AcademicDepartmentJpaEntity e) {
         return new AcademicDepartment(e.getId(), e.getOrganizationId(), e.getCode(), e.getName(), e.getStatus(), e.getCreatedAt(), e.getUpdatedAt());
     }
@@ -476,6 +491,23 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getUpdatedAt());
     }
 
+    private AcademicLearningPackagePaymentEvent toDomain(AcademicLearningPackagePaymentEventJpaEntity e) {
+        return new AcademicLearningPackagePaymentEvent(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getEnrollmentId(),
+                e.getPackageId(),
+                e.getStudentId(),
+                e.getEventType(),
+                e.getAmount(),
+                e.getCurrency(),
+                e.getReference(),
+                e.getActorId(),
+                e.getNote(),
+                e.getOccurredAt(),
+                e.getCreatedAt());
+    }
+
     private AcademicDepartmentJpaEntity toEntity(AcademicDepartment d) {
         return AcademicDepartmentJpaEntity.builder()
                 .id(d.id()).organizationId(d.organizationId()).code(d.code()).name(d.name())
@@ -577,5 +609,14 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 .paymentConfirmedBy(e.paymentConfirmedBy()).requestedAt(e.requestedAt())
                 .decidedAt(e.decidedAt()).decidedBy(e.decidedBy())
                 .createdAt(e.createdAt()).updatedAt(e.updatedAt()).build();
+    }
+
+    private AcademicLearningPackagePaymentEventJpaEntity toEntity(AcademicLearningPackagePaymentEvent e) {
+        return AcademicLearningPackagePaymentEventJpaEntity.builder()
+                .id(e.id()).organizationId(e.organizationId()).enrollmentId(e.enrollmentId())
+                .packageId(e.packageId()).studentId(e.studentId()).eventType(e.eventType())
+                .amount(e.amount()).currency(e.currency()).reference(e.reference())
+                .actorId(e.actorId()).note(e.note()).occurredAt(e.occurredAt())
+                .createdAt(e.createdAt()).build();
     }
 }

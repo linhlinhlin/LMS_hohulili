@@ -2,12 +2,14 @@ package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentEventResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
+import com.example.lms.academic.domain.model.AcademicLearningPackagePaymentEvent;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
 import com.example.lms.shared.application.port.SepayPaymentPort;
@@ -119,11 +121,16 @@ public class ManageLearningPackageEnrollmentUseCase {
                     "Số tiền thanh toán gói học phải lớn hơn 0");
         }
 
+        var qrUrl = sepayPayment.generateQrUrl(enrollment.id(), enrollment.paymentAmount());
+        var transferContent = sepayPayment.getTransferContent(enrollment.id());
+        repository.saveLearningPackagePaymentEvent(
+                AcademicLearningPackagePaymentEvent.qrCreated(enrollment, studentId, transferContent));
+
         return new LearningPackagePaymentQrResponse(
                 toResponse(enrollment),
                 enrollment.id(),
-                sepayPayment.generateQrUrl(enrollment.id(), enrollment.paymentAmount()),
-                sepayPayment.getTransferContent(enrollment.id()),
+                qrUrl,
+                transferContent,
                 sepayPayment.getBankCode(),
                 sepayPayment.getAccountNumber(),
                 sepayPayment.getAccountName(),
@@ -168,6 +175,12 @@ public class ManageLearningPackageEnrollmentUseCase {
                         confirmerId,
                         command == null ? null : command.note(),
                         command == null ? null : command.paymentReference()));
+        repository.saveLearningPackagePaymentEvent(
+                AcademicLearningPackagePaymentEvent.paymentConfirmed(
+                        completed,
+                        confirmerId,
+                        completed.paymentReference(),
+                        completed.decisionNote()));
         grantActivePackageCourses(completed);
         return toResponse(completed);
     }
@@ -202,8 +215,21 @@ public class ManageLearningPackageEnrollmentUseCase {
                 : gatewayTransactionCode.trim();
         var completed = repository.saveLearningPackageEnrollment(
                 enrollment.completeExternalPayment("SePay webhook xác nhận thanh toán gói học.", reference));
+        repository.saveLearningPackagePaymentEvent(
+                AcademicLearningPackagePaymentEvent.paymentConfirmed(
+                        completed,
+                        null,
+                        completed.paymentReference(),
+                        completed.decisionNote()));
         grantActivePackageCourses(completed);
         return Optional.of(toResponse(completed));
+    }
+
+    public List<LearningPackagePaymentEventResponse> listPaymentEvents(UUID organizationId, UUID enrollmentId) {
+        requireEnrollment(organizationId, enrollmentId);
+        return repository.findLearningPackagePaymentEvents(organizationId, enrollmentId).stream()
+                .map(this::toResponse)
+                .toList();
     }
 
     private AcademicLearningPackage requireLearningPackage(UUID organizationId, UUID packageId) {
@@ -317,6 +343,23 @@ public class ManageLearningPackageEnrollmentUseCase {
                 e.requestedAt(),
                 e.decidedAt(),
                 e.decidedBy(),
+                e.createdAt());
+    }
+
+    private LearningPackagePaymentEventResponse toResponse(AcademicLearningPackagePaymentEvent e) {
+        return new LearningPackagePaymentEventResponse(
+                e.id(),
+                e.organizationId(),
+                e.enrollmentId(),
+                e.packageId(),
+                e.studentId(),
+                e.eventType(),
+                e.amount(),
+                e.currency(),
+                e.reference(),
+                e.actorId(),
+                e.note(),
+                e.occurredAt(),
                 e.createdAt());
     }
 

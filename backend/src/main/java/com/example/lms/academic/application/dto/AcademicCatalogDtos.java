@@ -180,6 +180,22 @@ public final class AcademicCatalogDtos {
             UUID decidedBy,
             Instant createdAt) {}
 
+    public record LearningPackagePaymentEventResponse(
+            UUID id,
+            UUID organizationId,
+            UUID enrollmentId,
+            UUID packageId,
+            UUID studentId,
+            String eventType,
+            BigDecimal amount,
+            String currency,
+            String reference,
+            UUID actorId,
+            String note,
+            Instant occurredAt,
+            Instant createdAt
+    ) {}
+
     public record LearningPackageAvailabilityResponse(
             LearningPackageResponse learningPackage,
             LearningPackageEnrollmentResponse enrollment

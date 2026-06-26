@@ -21,6 +21,7 @@ public interface AcademicCatalogRepository {
     List<AcademicLearningPackageClassTarget> findLearningPackageClassTargets(UUID organizationId);
     List<AcademicClassGroupMembership> findClassGroupMemberships(UUID organizationId);
     List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status);
+    List<AcademicLearningPackagePaymentEvent> findLearningPackagePaymentEvents(UUID organizationId, UUID enrollmentId);
 
     Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id);
     Optional<AcademicProgram> findProgram(UUID organizationId, UUID id);
@@ -68,4 +69,5 @@ public interface AcademicCatalogRepository {
             AcademicClassGroupMembership previous,
             AcademicClassGroupMembership next);
     AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment);
+    AcademicLearningPackagePaymentEvent saveLearningPackagePaymentEvent(AcademicLearningPackagePaymentEvent event);
 }

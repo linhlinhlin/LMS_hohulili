@@ -2,6 +2,7 @@ package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentEventResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
@@ -123,6 +124,18 @@ public class LearningPackageEnrollmentControllerV3 {
         requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(
                 useCase.completePayment(orgId, enrollmentId, currentUser.getId(), command)));
+    }
+
+    @GetMapping("/learning-package-enrollments/{enrollmentId}/payment-events")
+    @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
+    @Operation(summary = "List payment audit events for a learning package enrollment")
+    public ResponseEntity<ApiResponse<List<LearningPackagePaymentEventResponse>>> listPaymentEvents(
+            @PathVariable UUID orgId,
+            @PathVariable UUID enrollmentId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
+        return ResponseEntity.ok(ApiResponse.success(useCase.listPaymentEvents(orgId, enrollmentId)));
     }
 
     private void verifyStudentAccess(UserJpaEntity currentUser, UUID orgId) {

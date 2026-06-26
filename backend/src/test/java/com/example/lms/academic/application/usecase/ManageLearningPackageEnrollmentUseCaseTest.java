@@ -6,6 +6,7 @@ import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageClassTarget;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
 import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
+import com.example.lms.academic.domain.model.AcademicLearningPackagePaymentEvent;
 import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -153,6 +155,11 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.txnId()).isEqualTo(response.enrollment().id());
         assertThat(response.qrUrl()).contains("qr.sepay.vn");
         assertThat(response.transferContent()).isEqualTo("LMSABC123");
+        var eventCaptor = ArgumentCaptor.forClass(AcademicLearningPackagePaymentEvent.class);
+        verify(repository).saveLearningPackagePaymentEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().eventType()).isEqualTo("QR_CREATED");
+        assertThat(eventCaptor.getValue().actorId()).isEqualTo(studentId);
+        assertThat(eventCaptor.getValue().reference()).isEqualTo("LMSABC123");
         assertThat(response.amount()).isEqualByComparingTo("1200000");
         assertThat(response.currency()).isEqualTo("VND");
         assertThat(response.packageName()).isEqualTo("Gói Điều khiển tàu biển K63");
@@ -316,6 +323,11 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.paymentReference()).isEqualTo("SEPAY-VMU-001");
         assertThat(response.paymentConfirmedBy()).isEqualTo(confirmerId);
         assertThat(response.paymentConfirmedAt()).isNotNull();
+        var eventCaptor = ArgumentCaptor.forClass(AcademicLearningPackagePaymentEvent.class);
+        verify(repository).saveLearningPackagePaymentEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().eventType()).isEqualTo("PAYMENT_CONFIRMED");
+        assertThat(eventCaptor.getValue().actorId()).isEqualTo(confirmerId);
+        assertThat(eventCaptor.getValue().reference()).isEqualTo("SEPAY-VMU-001");
         verify(courseAccessGrant).grant(orgId, courseId, studentId);
     }
 
@@ -380,6 +392,11 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.get().paymentReference()).isEqualTo("SEPAY-VMU-002");
         assertThat(response.get().paymentConfirmedAt()).isNotNull();
         assertThat(response.get().paymentConfirmedBy()).isNull();
+        var eventCaptor = ArgumentCaptor.forClass(AcademicLearningPackagePaymentEvent.class);
+        verify(repository).saveLearningPackagePaymentEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().eventType()).isEqualTo("PAYMENT_CONFIRMED");
+        assertThat(eventCaptor.getValue().actorId()).isNull();
+        assertThat(eventCaptor.getValue().reference()).isEqualTo("SEPAY-VMU-002");
         verify(courseAccessGrant).grant(orgId, courseId, studentId);
     }
 
@@ -406,6 +423,31 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("không khớp");
         verify(repository, never()).saveLearningPackageEnrollment(any());
+    }
+
+    @Test
+    @DisplayName("listPaymentEvents: returns tenant-scoped package payment ledger")
+    void listPaymentEvents_returnsTenantScopedLedger() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        var enrollment = enrollment(enrollmentId, orgId, packageId, studentId, "ACTIVE");
+        var event = AcademicLearningPackagePaymentEvent.paymentConfirmed(
+                enrollment,
+                UUID.randomUUID(),
+                "SEPAY-VMU-003",
+                "Confirmed by organization finance");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.findLearningPackagePaymentEvents(orgId, enrollmentId)).thenReturn(List.of(event));
+
+        var response = useCase.listPaymentEvents(orgId, enrollmentId);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).eventType()).isEqualTo("PAYMENT_CONFIRMED");
+        assertThat(response.get(0).reference()).isEqualTo("SEPAY-VMU-003");
+        assertThat(response.get(0).amount()).isEqualByComparingTo("1200000");
     }
 
     @Test

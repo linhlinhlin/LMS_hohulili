@@ -2168,3 +2168,49 @@ Debt còn lại sau Phase 4.17:
 
 - Package-level revenue split, refund, invoice/audit ledger vẫn cần thiết kế riêng trước khi coi package payment là production-grade tài chính.
 - Nếu muốn thanh toán thật ở local/demo offline, phải cấu hình SePay thật bằng `.env`/runtime env riêng; tuyệt đối không commit bank account hoặc webhook secret vào repo.
+
+## 48. Phase 4.18 learning package payment event ledger - 2026-06-27
+
+Mục tiêu của vòng này là đóng phần "audit ledger" tối thiểu cho học phí gói học mà không ép package payment vào `payment_transactions` vốn đang gắn chặt với course-level checkout, course revenue split và refund. Với VMU, luồng cần chứng minh được: học viên tạo QR, SePay hoặc ORG_ADMIN xác nhận thanh toán, và hệ thống có timeline sự kiện tài chính tenant-safe để đối soát lại.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V155__learning_package_payment_events.sql`.
+- Thêm bảng `learning_package_payment_events` dạng append-only, có `organization_id`, `enrollment_id`, `package_id`, `student_id`, `event_type`, `amount`, `currency`, `reference`, `actor_id`, `note`, `occurred_at`.
+- Thêm FK composite `(enrollment_id, organization_id)` để event không bị nối nhầm enrollment khác tổ chức.
+- Thêm domain model `AcademicLearningPackagePaymentEvent`.
+- Thêm JPA entity/repository và adapter mapping trong module `academic`.
+- `ManageLearningPackageEnrollmentUseCase#createPaymentQr(...)` ghi event `QR_CREATED` với transfer content SePay.
+- `completePayment(...)` và `completeExternalPayment(...)` ghi event `PAYMENT_CONFIRMED` khi ORG_ADMIN hoặc webhook SePay xác nhận thanh toán.
+- Thêm API đọc ledger:
+  - `GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/payment-events`
+  - Chỉ `ADMIN` hoặc `ORG_ADMIN` cùng tổ chức được xem.
+
+Quyết định thiết kế:
+
+- Không dùng chung `payment_transactions` cho package vì bảng đó vẫn là course-centric và đang kéo theo auto-enrollment, revenue split, refund theo course.
+- Không tự chia doanh thu package trong vòng này. Package có thể chứa nhiều subject/course/class target; nếu chia vội theo tỉ lệ đều sẽ sai nghiệp vụ tài chính. Khi cần payout package thật, phải có policy/weight rõ ràng theo org/package item.
+- Không thêm UI mới trong vòng này. Backend ledger/API là nền đối soát; UI timeline có thể thêm sau nếu ORG_ADMIN cần xem trực tiếp.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 34, Failures: 0, Errors: 0, Skipped: 0
+
+mvn "-Dtest=ProcessSepayWebhookUseCaseTest,PaymentControllerV3Test" test
+# Tests run: 16, Failures: 0, Errors: 0, Skipped: 0
+```
+
+Trạng thái sau Phase 4.18:
+
+- Package payment hiện có audit trail riêng cho QR và xác nhận thanh toán, không làm méo báo cáo course payment cũ.
+- Luồng VMU có thể giải thích chuyên nghiệp hơn: học phí gói học được snapshot trên enrollment, sự kiện thanh toán được ghi append-only, quyền học được cấp sau khi enrollment active.
+- Backend boundary vẫn theo `organization_id`; VMU là dữ liệu seed/cấu hình, không phải nhánh code.
+
+Debt còn lại sau Phase 4.18:
+
+- Package-level refund cần thiết kế riêng vì refund phải quyết định có thu hồi quyền course/class đã cấp hay chỉ ghi bút toán điều chỉnh.
+- Package-level revenue split/payout cần `organization_policies` hoặc package item allocation rule rõ ràng trước khi tự động chia tiền.
+- Nếu cần hóa đơn/biên nhận chính thức, thêm invoice document/numbering policy sau; không nên trộn vào ledger event hiện tại.
