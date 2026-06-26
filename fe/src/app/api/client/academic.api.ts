@@ -11,6 +11,7 @@ import {
   AcademicCohort,
   AcademicDepartment,
   AcademicLearningPackage,
+  AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
   AcademicProgram,
   AcademicSubject,
@@ -27,6 +28,7 @@ import {
   CreateAcademicSubjectRequest,
   CreateAcademicTermRequest,
   LinkAcademicSubjectCourseRequest,
+  ReviewAcademicLearningPackageEnrollmentRequest,
 } from '../types/academic.types';
 
 @Injectable({ providedIn: 'root' })
@@ -98,6 +100,42 @@ export class AcademicApi {
   addLearningPackageItem(orgId: string, request: AddAcademicLearningPackageItemRequest) {
     return this.api.postWithResponse<AcademicLearningPackageItem>(
       ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_ITEMS(orgId),
+      request
+    );
+  }
+
+  listLearningPackageEnrollments(orgId: string, status?: string) {
+    return this.api.getWithResponse<AcademicLearningPackageEnrollment[]>(
+      ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_ENROLLMENTS(orgId),
+      status ? { params: { status } } : undefined
+    );
+  }
+
+  requestLearningPackageEnrollment(orgId: string, packageId: string) {
+    return this.api.postWithResponse<AcademicLearningPackageEnrollment>(
+      ACADEMIC_ENDPOINTS.MY_LEARNING_PACKAGE_ENROLLMENT(orgId, packageId),
+      {}
+    );
+  }
+
+  approveLearningPackageEnrollment(
+    orgId: string,
+    enrollmentId: string,
+    request: ReviewAcademicLearningPackageEnrollmentRequest
+  ) {
+    return this.api.patchWithResponse<AcademicLearningPackageEnrollment>(
+      ACADEMIC_ENDPOINTS.APPROVE_LEARNING_PACKAGE_ENROLLMENT(orgId, enrollmentId),
+      request
+    );
+  }
+
+  rejectLearningPackageEnrollment(
+    orgId: string,
+    enrollmentId: string,
+    request: ReviewAcademicLearningPackageEnrollmentRequest
+  ) {
+    return this.api.patchWithResponse<AcademicLearningPackageEnrollment>(
+      ACADEMIC_ENDPOINTS.REJECT_LEARNING_PACKAGE_ENROLLMENT(orgId, enrollmentId),
       request
     );
   }

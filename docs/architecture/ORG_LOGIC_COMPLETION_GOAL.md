@@ -1251,3 +1251,67 @@ Debt còn lại sau Phase 4.3:
 - Cần PR/merge/deploy Phase C để production review runtime có V148.
 - Cần smoke browser `/org-admin/academic` sau deploy để xác nhận capability strip hiển thị.
 - Phase tiếp theo nên tập trung vào policy enforcement: package enrollment policy, tuition policy, hoặc package checkout chỉ khi rule nghiệp vụ VMU đã chốt rõ.
+
+## 34. Phase 4.4 learning package enrollment policy workflow - 2026-06-26
+
+Mục tiêu của vòng này là biến `learning_packages.enrollment_policy` từ dữ liệu cấu hình thành workflow nghiệp vụ thật. Trước thay đổi này, VMU đã có chương trình đào tạo, môn học, khung chương trình và gói học, nhưng chưa có trạng thái để học viên đăng ký gói và ORG_ADMIN duyệt/từ chối.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V149__learning_package_enrollments.sql`.
+- Thêm bảng `learning_package_enrollments` với:
+  - `organization_id`;
+  - `package_id`;
+  - `student_id`;
+  - `status`;
+  - `requested_at`;
+  - `decided_at`;
+  - `decided_by`;
+  - `decision_note`.
+- Enforce unique `(package_id, student_id)` để đăng ký gói là idempotent.
+- Thêm trạng thái:
+  - `PENDING_APPROVAL`;
+  - `PENDING_PAYMENT`;
+  - `ACTIVE`;
+  - `REJECTED`;
+  - `CANCELLED`.
+- Thêm migration `V150__seed_vmu_learning_package_enrollment_request.sql` để tạo một yêu cầu demo `PENDING_APPROVAL` cho package `VMU-DKT-K63-FOUNDATION` nếu có học viên cùng tổ chức.
+- Thêm domain model `AcademicLearningPackageEnrollment` với rule:
+  - `OPEN` -> `ACTIVE`;
+  - `ORG_APPROVAL` -> `PENDING_APPROVAL`;
+  - `PAYMENT_REQUIRED` -> `PENDING_PAYMENT`;
+  - `INVITE_ONLY` -> chặn đăng ký trực tiếp.
+- Thêm use case `ManageLearningPackageEnrollmentUseCase`.
+- Thêm API:
+  - `POST /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/enrollments/me` cho `STUDENT` cùng tổ chức;
+  - `GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments` cho `ADMIN` hoặc `ORG_ADMIN` cùng tổ chức;
+  - `PATCH /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/approve`;
+  - `PATCH /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/reject`.
+- Mở rộng `/org-admin/academic` bằng card "Yêu cầu gói học" để ORG_ADMIN xem, duyệt và từ chối yêu cầu gói học.
+
+Quyết định thiết kế:
+
+- Không tự động enroll vào từng course trong phase này. Package hiện có thể chứa `subject_id`; course enrollment hiện có rule riêng về delivery mode/payment. Nối vội sẽ dễ làm sai quyền truy cập hoặc thanh toán.
+- Không hardcode VMU trong code. VMU chỉ xuất hiện ở seed data và package code demo.
+- Không tạo microservice/plugin. Đây vẫn là modular monolith với workflow nhỏ, dễ kiểm thử.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 20, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Debt còn lại sau Phase 4.4:
+
+- Cần Docker/Flyway smoke để xác nhận V149/V150 migrate sạch trên DB runtime.
+- Cần browser smoke `/org-admin/academic` sau khi backend chạy để xác nhận hàng chờ package enrollment hiển thị và approve/reject gọi API 200.
+- Phase kế tiếp nên nối `ACTIVE` package enrollment sang quyền học thật:
+  - nếu item là `course_id`, enroll course theo rule hiện có;
+  - nếu item là `subject_id`, tìm primary `subject_course` trước khi enroll;
+  - nếu package `PAYMENT_REQUIRED`, cần package-level checkout hoặc mapping sang payment hiện có trước khi active.

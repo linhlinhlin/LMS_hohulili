@@ -140,6 +140,19 @@ export interface AcademicLearningPackageItem {
   createdAt: string;
 }
 
+export interface AcademicLearningPackageEnrollment {
+  id: string;
+  organizationId: string;
+  packageId: string;
+  studentId: string;
+  status: string;
+  decisionNote: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  createdAt: string;
+}
+
 export interface CreateAcademicDepartmentRequest {
   code: string;
   name: string;
@@ -222,4 +235,8 @@ export interface AddAcademicLearningPackageItemRequest {
   courseId: string | null;
   displayOrder: number;
   required: boolean;
+}
+
+export interface ReviewAcademicLearningPackageEnrollmentRequest {
+  note: string | null;
 }

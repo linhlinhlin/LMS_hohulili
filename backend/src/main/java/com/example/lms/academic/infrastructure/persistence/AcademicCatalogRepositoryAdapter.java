@@ -25,6 +25,7 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private final AcademicCurriculumSubjectJpaRepository curriculumSubjects;
     private final AcademicLearningPackageJpaRepository learningPackages;
     private final AcademicLearningPackageItemJpaRepository learningPackageItems;
+    private final AcademicLearningPackageEnrollmentJpaRepository learningPackageEnrollments;
 
     @Override
     public List<AcademicDepartment> findDepartments(UUID organizationId) {
@@ -86,6 +87,15 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status) {
+        var safeStatus = status == null || status.isBlank() ? null : status.trim().toUpperCase();
+        var entities = safeStatus == null
+                ? learningPackageEnrollments.findByOrganizationIdOrderByRequestedAtDesc(organizationId)
+                : learningPackageEnrollments.findByOrganizationIdAndStatusOrderByRequestedAtDesc(organizationId, safeStatus);
+        return entities.stream().map(this::toDomain).toList();
+    }
+
+    @Override
     public Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id) {
         return departments.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
@@ -118,6 +128,17 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id) {
         return learningPackages.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id) {
+        return learningPackageEnrollments.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
+        return learningPackageEnrollments.findByOrganizationIdAndPackageIdAndStudentId(organizationId, packageId, studentId)
+                .map(this::toDomain);
     }
 
     @Override
@@ -235,6 +256,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
         return toDomain(learningPackageItems.save(toEntity(item)));
     }
 
+    @Override
+    public AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment) {
+        return toDomain(learningPackageEnrollments.save(toEntity(enrollment)));
+    }
+
     private AcademicDepartment toDomain(AcademicDepartmentJpaEntity e) {
         return new AcademicDepartment(e.getId(), e.getOrganizationId(), e.getCode(), e.getName(), e.getStatus(), e.getCreatedAt(), e.getUpdatedAt());
     }
@@ -334,6 +360,21 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getUpdatedAt());
     }
 
+    private AcademicLearningPackageEnrollment toDomain(AcademicLearningPackageEnrollmentJpaEntity e) {
+        return new AcademicLearningPackageEnrollment(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getPackageId(),
+                e.getStudentId(),
+                e.getStatus(),
+                e.getDecisionNote(),
+                e.getRequestedAt(),
+                e.getDecidedAt(),
+                e.getDecidedBy(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
     private AcademicDepartmentJpaEntity toEntity(AcademicDepartment d) {
         return AcademicDepartmentJpaEntity.builder()
                 .id(d.id()).organizationId(d.organizationId()).code(d.code()).name(d.name())
@@ -409,5 +450,13 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 .id(i.id()).organizationId(i.organizationId()).packageId(i.packageId()).subjectId(i.subjectId())
                 .courseId(i.courseId()).displayOrder(i.displayOrder()).required(i.required()).status(i.status())
                 .createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
+    }
+
+    private AcademicLearningPackageEnrollmentJpaEntity toEntity(AcademicLearningPackageEnrollment e) {
+        return AcademicLearningPackageEnrollmentJpaEntity.builder()
+                .id(e.id()).organizationId(e.organizationId()).packageId(e.packageId()).studentId(e.studentId())
+                .status(e.status()).decisionNote(e.decisionNote()).requestedAt(e.requestedAt())
+                .decidedAt(e.decidedAt()).decidedBy(e.decidedBy())
+                .createdAt(e.createdAt()).updatedAt(e.updatedAt()).build();
     }
 }

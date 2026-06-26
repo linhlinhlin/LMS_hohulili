@@ -604,3 +604,54 @@ Debt after Phase C:
 - The next useful product slice is policy enforcement, not more UI decoration.
 - Package checkout/enrollment should be wired only after the business rule is explicit: free assignment, ORG approval, invite-only, or payment-required package purchase.
 - If two organizations require materially different behavior, use these capabilities and later add small typed policy tables; do not introduce a plugin system.
+
+## 15. Phase D implementation - learning package enrollment policy
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- turn VMU learning packages from catalog data into a real workflow;
+- let students request a package according to the package policy;
+- let ORG_ADMIN review package requests without creating a VMU-only code path.
+
+Backend scope:
+
+- `V149__learning_package_enrollments.sql`
+  - adds `learning_package_enrollments`;
+  - stores package request state per organization/package/student;
+  - enforces unique `(package_id, student_id)`;
+  - supports `PENDING_APPROVAL`, `PENDING_PAYMENT`, `ACTIVE`, `REJECTED`, and `CANCELLED`.
+- `V150__seed_vmu_learning_package_enrollment_request.sql`
+  - creates one safe demo request for `VMU-DKT-K63-FOUNDATION` when a same-org student exists;
+  - uses `ON CONFLICT DO NOTHING`.
+- Adds domain/usecase/API for policy evaluation:
+  - `OPEN` activates immediately;
+  - `ORG_APPROVAL` enters the approval queue;
+  - `PAYMENT_REQUIRED` waits for payment;
+  - `INVITE_ONLY` rejects direct self-request.
+
+Frontend scope:
+
+- Adds type-safe academic API methods for listing, requesting, approving, and rejecting package enrollments.
+- Adds a compact "Yêu cầu gói học" card to `/org-admin/academic`.
+- Keeps the UI intentionally small: list package request status and allow approve/reject for `PENDING_APPROVAL`.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 20, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Remaining product gap:
+
+- Active package enrollment is not yet course access. The next slice should activate course enrollments only after mapping package items safely:
+  - direct `course_id` item -> enroll that course;
+  - `subject_id` item -> resolve primary `subject_course`;
+  - `PAYMENT_REQUIRED` package -> package checkout/payment must complete first.

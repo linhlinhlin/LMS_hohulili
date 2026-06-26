@@ -12,6 +12,7 @@ import { AcademicApi } from '../../api/client/academic.api';
 import { ApiResponse } from '../../api/types/common.types';
 import {
   AcademicCatalog,
+  AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
@@ -425,6 +426,33 @@ const capabilityLabels: Record<string, string> = {
                 }
               </div>
             </article>
+
+            <article class="catalog-card">
+              <h2>Yêu cầu gói học</h2>
+              <p class="helper-text">
+                Theo dõi học viên đăng ký gói học theo chính sách của tổ chức. Gói cần ORG duyệt sẽ nằm ở trạng thái chờ duyệt trước khi kích hoạt.
+              </p>
+              <div class="compact-list">
+                @for (enrollment of packageEnrollments(); track enrollment.id) {
+                  <p>
+                    <strong>{{ learningPackageLabel(enrollment.packageId) }}</strong>
+                    <span>Học viên {{ shortId(enrollment.studentId) }} · {{ enrollmentStatusLabel(enrollment.status) }}</span>
+                    @if (enrollment.status === 'PENDING_APPROVAL') {
+                      <span class="action-row">
+                        <button type="button" class="secondary-button compact-action" [disabled]="saving()" (click)="rejectPackageEnrollment(enrollment)">
+                          Từ chối
+                        </button>
+                        <button type="button" class="primary-button compact-action" [disabled]="saving()" (click)="approvePackageEnrollment(enrollment)">
+                          Duyệt
+                        </button>
+                      </span>
+                    }
+                  </p>
+                } @empty {
+                  <p class="empty-text">Chưa có yêu cầu đăng ký gói học.</p>
+                }
+              </div>
+            </article>
           </div>
         }
       </div>
@@ -575,6 +603,18 @@ const capabilityLabels: Record<string, string> = {
       transform: none;
     }
 
+    .compact-action {
+      min-height: 2rem;
+      border-radius: 0.7rem;
+      padding: 0 0.75rem;
+      font-size: 0.8rem;
+    }
+
+    .action-row {
+      display: inline-flex;
+      gap: 0.5rem;
+    }
+
     .compact-list {
       margin-top: 1rem;
       display: grid;
@@ -635,6 +675,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly catalog = signal<AcademicCatalog>(emptyCatalog());
   protected readonly availableCourses = signal<AdminCourseSummary[]>([]);
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
+  protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -725,7 +766,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   }
 
   protected async reload(): Promise<void> {
-    await Promise.all([this.loadCatalog(), this.loadCourses(), this.loadCapabilities()]);
+    await Promise.all([this.loadCatalog(), this.loadCourses(), this.loadCapabilities(), this.loadPackageEnrollments()]);
   }
 
   protected async loadCatalog(): Promise<void> {
@@ -772,6 +813,21 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.capabilities.set(await firstValueFrom(this.organizationService.listCapabilities(orgId)));
     } catch {
       this.capabilities.set([]);
+    }
+  }
+
+  protected async loadPackageEnrollments(): Promise<void> {
+    const orgId = this.organizationId();
+    if (!orgId) {
+      this.packageEnrollments.set([]);
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.academicApi.listLearningPackageEnrollments(orgId));
+      this.packageEnrollments.set(response.data ?? []);
+    } catch {
+      this.packageEnrollments.set([]);
     }
   }
 
@@ -982,6 +1038,26 @@ export class OrgAcademicCatalogComponent implements OnInit {
     );
   }
 
+  protected async approvePackageEnrollment(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
+    await this.mutate(
+      this.academicApi.approveLearningPackageEnrollment(this.organizationId(), enrollment.id, {
+        note: 'Đã duyệt theo chính sách của tổ chức.',
+      }),
+      'Đã duyệt yêu cầu gói học.',
+      () => undefined
+    );
+  }
+
+  protected async rejectPackageEnrollment(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
+    await this.mutate(
+      this.academicApi.rejectLearningPackageEnrollment(this.organizationId(), enrollment.id, {
+        note: 'Chưa đủ điều kiện theo chính sách của tổ chức.',
+      }),
+      'Đã từ chối yêu cầu gói học.',
+      () => undefined
+    );
+  }
+
   protected selectPackageSubject(event: Event): void {
     const subjectId = this.nullableText(event);
     this.learningPackageItemForm.update(current => ({
@@ -1075,6 +1151,25 @@ export class OrgAcademicCatalogComponent implements OnInit {
     }
   }
 
+  protected enrollmentStatusLabel(status: string): string {
+    switch (status) {
+      case 'ACTIVE':
+        return 'Đã kích hoạt';
+      case 'PENDING_PAYMENT':
+        return 'Chờ thanh toán';
+      case 'REJECTED':
+        return 'Đã từ chối';
+      case 'CANCELLED':
+        return 'Đã hủy';
+      default:
+        return 'Chờ ORG duyệt';
+    }
+  }
+
+  protected shortId(id: string): string {
+    return id.length > 8 ? id.slice(0, 8) : id;
+  }
+
   protected formatPrice(price: number, currency: string): string {
     if (!price) {
       return 'Miễn phí';
@@ -1107,6 +1202,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
       reset();
       this.success.set(successMessage);
       await this.loadCatalog();
+      await this.loadPackageEnrollments();
     } catch (error) {
       this.error.set(this.errorMessage(error));
     } finally {

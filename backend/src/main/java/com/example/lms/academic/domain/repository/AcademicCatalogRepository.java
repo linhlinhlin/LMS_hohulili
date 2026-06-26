@@ -18,6 +18,7 @@ public interface AcademicCatalogRepository {
     List<AcademicCurriculumSubject> findCurriculumSubjects(UUID organizationId);
     List<AcademicLearningPackage> findLearningPackages(UUID organizationId);
     List<AcademicLearningPackageItem> findLearningPackageItems(UUID organizationId);
+    List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status);
 
     Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id);
     Optional<AcademicProgram> findProgram(UUID organizationId, UUID id);
@@ -26,6 +27,8 @@ public interface AcademicCatalogRepository {
     Optional<AcademicTerm> findTerm(UUID organizationId, UUID id);
     Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id);
     Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id);
+    Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id);
+    Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId);
 
     boolean departmentCodeExists(UUID organizationId, String code);
     boolean programCodeExists(UUID organizationId, String code);
@@ -51,4 +54,5 @@ public interface AcademicCatalogRepository {
     AcademicCurriculumSubject saveCurriculumSubject(AcademicCurriculumSubject subject);
     AcademicLearningPackage saveLearningPackage(AcademicLearningPackage learningPackage);
     AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item);
+    AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment);
 }
