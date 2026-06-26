@@ -3,6 +3,7 @@ package com.example.lms.academic.infrastructure.web;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -27,7 +28,10 @@ import java.util.UUID;
 @SecurityRequirement(name = "Bearer Authentication")
 @Tag(name = "Learning Package Enrollment", description = "Organization-scoped learning package enrollment workflow")
 public class LearningPackageEnrollmentControllerV3 {
+    private static final String LEARNING_PACKAGES = "learning_packages";
+
     private final ManageLearningPackageEnrollmentUseCase useCase;
+    private final ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
 
     @PostMapping("/learning-packages/{packageId}/enrollments/me")
     @PreAuthorize("hasRole('STUDENT')")
@@ -37,6 +41,7 @@ public class LearningPackageEnrollmentControllerV3 {
             @PathVariable UUID packageId,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyStudentAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.requestEnrollment(orgId, packageId, currentUser.getId())));
     }
@@ -49,6 +54,7 @@ public class LearningPackageEnrollmentControllerV3 {
             @RequestParam(required = false) String status,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(useCase.listEnrollments(orgId, status)));
     }
 
@@ -61,6 +67,7 @@ public class LearningPackageEnrollmentControllerV3 {
             @Valid @RequestBody(required = false) ReviewLearningPackageEnrollmentCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(useCase.approve(orgId, enrollmentId, currentUser.getId(), command)));
     }
 
@@ -73,6 +80,7 @@ public class LearningPackageEnrollmentControllerV3 {
             @Valid @RequestBody(required = false) ReviewLearningPackageEnrollmentCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(useCase.reject(orgId, enrollmentId, currentUser.getId(), command)));
     }
 
@@ -85,6 +93,7 @@ public class LearningPackageEnrollmentControllerV3 {
             @Valid @RequestBody(required = false) ReviewLearningPackageEnrollmentCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(
                 useCase.completePayment(orgId, enrollmentId, currentUser.getId(), command)));
     }
@@ -108,5 +117,11 @@ public class LearningPackageEnrollmentControllerV3 {
             return;
         }
         throw new AccessDeniedException("No access to this organization's learning package enrollments");
+    }
+
+    private void requireLearningPackages(UUID orgId) {
+        if (!capabilitiesUseCase.isEnabled(orgId, LEARNING_PACKAGES)) {
+            throw new AccessDeniedException("Organization capability is disabled: " + LEARNING_PACKAGES);
+        }
     }
 }

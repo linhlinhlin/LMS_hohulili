@@ -2,6 +2,7 @@ package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateDepartmentCommand;
 import com.example.lms.academic.application.usecase.ManageAcademicCatalogUseCase;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,6 +26,9 @@ class AcademicCatalogControllerV3Test {
     @Mock
     private ManageAcademicCatalogUseCase useCase;
 
+    @Mock
+    private ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
+
     @InjectMocks
     private AcademicCatalogControllerV3 controller;
 
@@ -47,10 +51,24 @@ class AcademicCatalogControllerV3Test {
         UUID organizationId = UUID.randomUUID();
         UserJpaEntity admin = user(UserJpaEntity.UserRole.ADMIN, null);
         var command = new CreateDepartmentCommand("VMU", "Vietnam Maritime University");
+        when(capabilitiesUseCase.isEnabled(organizationId, "academic_catalog")).thenReturn(true);
 
         controller.createDepartment(organizationId, command, admin);
 
         verify(useCase).createDepartment(organizationId, command);
+    }
+
+    @Test
+    @DisplayName("getCatalog: rejects disabled academic catalog capability")
+    void getCatalog_rejectsDisabledAcademicCatalogCapability() {
+        UUID organizationId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId);
+        when(capabilitiesUseCase.isEnabled(organizationId, "academic_catalog")).thenReturn(false);
+
+        assertThatThrownBy(() -> controller.getCatalog(organizationId, orgAdmin))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("academic_catalog");
+        verify(useCase, never()).getCatalog(organizationId);
     }
 
     private UserJpaEntity user(UserJpaEntity.UserRole role, UUID organizationId) {

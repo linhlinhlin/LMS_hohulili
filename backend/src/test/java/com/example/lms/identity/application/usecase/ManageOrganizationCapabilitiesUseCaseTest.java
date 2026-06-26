@@ -106,6 +106,28 @@ class ManageOrganizationCapabilitiesUseCaseTest {
     }
 
     @Test
+    @DisplayName("isEnabled: returns stored enabled state")
+    void isEnabled_returnsStoredEnabledState() {
+        UUID orgId = UUID.randomUUID();
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org(orgId)));
+        when(capabilityRepository.findByOrganizationIdAndKey(orgId, "learning_packages"))
+                .thenReturn(Optional.of(capability(orgId, "learning_packages", true)));
+
+        assertThat(useCase.isEnabled(orgId, "learning_packages")).isTrue();
+    }
+
+    @Test
+    @DisplayName("isEnabled: missing key is disabled by default")
+    void isEnabled_missingKeyIsDisabledByDefault() {
+        UUID orgId = UUID.randomUUID();
+        when(organizationRepository.findById(orgId)).thenReturn(Optional.of(org(orgId)));
+        when(capabilityRepository.findByOrganizationIdAndKey(orgId, "learning_packages"))
+                .thenReturn(Optional.empty());
+
+        assertThat(useCase.isEnabled(orgId, "learning_packages")).isFalse();
+    }
+
+    @Test
     @DisplayName("list: rejects missing organization")
     void list_rejectsMissingOrganization() {
         UUID orgId = UUID.randomUUID();

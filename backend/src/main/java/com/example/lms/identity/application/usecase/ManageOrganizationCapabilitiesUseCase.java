@@ -35,6 +35,14 @@ public class ManageOrganizationCapabilitiesUseCase {
         return OrganizationCapabilityResponse.from(capabilityRepository.save(capability));
     }
 
+    public boolean isEnabled(UUID organizationId, String rawKey) {
+        ensureOrganizationExists(organizationId);
+        String key = OrganizationCapability.normalizeKey(rawKey);
+        return capabilityRepository.findByOrganizationIdAndKey(organizationId, key)
+                .map(OrganizationCapability::isEnabled)
+                .orElse(false);
+    }
+
     private void ensureOrganizationExists(UUID organizationId) {
         if (organizationRepository.findById(organizationId).isEmpty()) {
             throw new EntityNotFoundException("Organization", organizationId);

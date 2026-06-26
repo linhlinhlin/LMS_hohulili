@@ -211,6 +211,15 @@
                 <div class="overview-action-sub">Tỷ lệ chia nền tảng / giảng viên / tổ chức</div>
               </div>
             </button>
+            <button type="button" class="overview-action-btn" (click)="selectTab('capabilities')">
+              <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7 4h10a2 2 0 012 2v12a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/>
+              </svg>
+              <div>
+                <div class="overview-action-title">Phân hệ tổ chức</div>
+                <div class="overview-action-sub">Bật/tắt workflow học vụ, gói học và payout theo ORG</div>
+              </div>
+            </button>
             <button type="button" class="overview-action-btn" (click)="selectTab('settings')">
               <svg class="icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
@@ -541,6 +550,71 @@
               <div class="stats-placeholder-bar"></div>
             </div>
           </div>
+        </div>
+      }
+
+      <!-- ==================== CAPABILITIES TAB ==================== -->
+      @if (activeTab() === 'capabilities') {
+        <div role="tabpanel" id="panel-capabilities" aria-labelledby="tab-capabilities" class="card card-body capabilities-card">
+          <div class="capabilities-header">
+            <div>
+              <p class="section-kicker">Tổ chức / phân hệ</p>
+              <h3>Phân hệ theo tổ chức</h3>
+              <p>
+                Bật hoặc tắt các workflow chuyên biệt. Backend sẽ chặn API tương ứng,
+                nên cấu hình này là rule vận hành thật chứ không chỉ là trạng thái hiển thị.
+              </p>
+            </div>
+            @if (canManageCapabilities()) {
+              <span class="capability-role-badge">ADMIN có quyền chỉnh sửa</span>
+            } @else {
+              <span class="capability-role-badge capability-role-badge--readonly">Chỉ xem</span>
+            }
+          </div>
+
+          @if (isLoadingCapabilities()) {
+            <div class="loading-center">
+              <div class="loading-spinner-sm"></div>
+            </div>
+          } @else {
+            <div class="capability-config-list">
+              @for (capability of capabilities(); track capability.key) {
+                <div class="capability-config-row">
+                  <div class="capability-config-main">
+                    <div class="capability-config-title">
+                      <span>{{ capabilityLabel(capability.key) }}</span>
+                      <code>{{ capability.key }}</code>
+                    </div>
+                    <p>{{ capabilityDescription(capability.key) }}</p>
+                  </div>
+                  <div class="capability-config-side">
+                    <span class="capability-state" [class.capability-state--enabled]="capability.enabled">
+                      {{ capability.enabled ? 'Đang bật' : 'Đang tắt' }}
+                    </span>
+                    <label class="capability-switch">
+                      <input
+                        type="checkbox"
+                        [checked]="capability.enabled"
+                        [disabled]="!canManageCapabilities() || savingCapabilityKey() === capability.key"
+                        (change)="toggleCapability(capability, $event)">
+                      <span></span>
+                    </label>
+                  </div>
+                </div>
+              } @empty {
+                <div class="capability-empty">
+                  Chưa có capability nào cho tổ chức này. Hãy kiểm tra seed/migration cấu hình tổ chức.
+                </div>
+              }
+            </div>
+
+            @if (!canManageCapabilities()) {
+              <p class="capabilities-note">
+                ORG_ADMIN chỉ xem cấu hình để biết tổ chức được bật những workflow nào.
+                Việc bật/tắt phân hệ thuộc quyền ADMIN hệ thống.
+              </p>
+            }
+          }
         </div>
       }
 

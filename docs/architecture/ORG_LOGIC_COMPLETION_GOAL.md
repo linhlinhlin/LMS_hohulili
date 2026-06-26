@@ -1558,3 +1558,96 @@ Debt còn lại sau Phase 4.8:
 - Public package checkout bằng SePay/VNPay vẫn là phase riêng.
 - Nếu bán gói học trực tiếp, cần mô hình doanh thu/refund package-level thay vì tái dùng vội course-level payment.
 - Có thể thêm auto class allocation theo cohort/class group nếu VMU cần phân lớp hàng loạt.
+
+## 39. Phase 4.9 organization capability enforcement - 2026-06-26
+
+Mục tiêu của vòng này là biến `organization_capabilities` từ dữ liệu hiển thị thành policy thật ở server boundary. Trước vòng này, ORG_ADMIN có thể thấy capability pill trên `/org-admin/academic`, nhưng backend chưa dùng capability để chặn workflow. Với mục tiêu “mỗi ORG có chức năng đặc thù riêng”, đây là điểm phải sửa trước khi mở rộng VMU.
+
+Thay đổi đã thực hiện:
+
+- `ManageOrganizationCapabilitiesUseCase` thêm `isEnabled(organizationId, key)`.
+- Capability thiếu được xem là chưa bật (`false`). Điều này giúp tổ chức mới không tự có module chuyên biệt nếu system ADMIN chưa cấu hình.
+- `AcademicCatalogControllerV3` enforce:
+  - `academic_catalog` cho catalog/học vụ cơ bản: khoa, chương trình, khóa, lớp hành chính, môn học, liên kết môn-course;
+  - `curriculum_plan` cho kỳ học, chương trình đào tạo, môn trong chương trình;
+  - `learning_packages` cho gói học, item trong gói, class target của gói.
+- `LearningPackageEnrollmentControllerV3` enforce `learning_packages` cho student request, ORG_ADMIN list/approve/reject/complete payment.
+- `OrgPaymentConfigControllerV3` enforce `org_payment_config` cho đọc/cập nhật cấu hình chia doanh thu.
+- `AdminRevenueControllerV3` enforce `org_payout_approval` cho ORG_ADMIN list/approve/reject payout của org. System ADMIN vẫn giữ quyền toàn hệ thống.
+
+Quyết định thiết kế:
+
+- Không thêm schema vì bảng `organization_capabilities` đã tồn tại từ V148.
+- Không hardcode VMU; VMU chỉ là org có các capability cần thiết được bật.
+- Không dùng FE-only hiding làm bảo mật. FE có thể hiển thị capability pill, nhưng backend mới là nguồn policy.
+- Không chặn system ADMIN ở payout list toàn hệ thống vì endpoint đó là quyền nền tảng, không thuộc một org cụ thể.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageOrganizationCapabilitiesUseCaseTest,AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,OrgPaymentConfigControllerV3Test,AdminRevenueControllerV3Test" test
+# Tests run: 27, Failures: 0, Errors: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+API smoke:
+
+```text
+ADMIN toggled academic_catalog off for local org 04f4775f-3334-40f7-b1be-8569808cb8ce -> 200.
+GET /api/v3/organizations/{orgId}/academic/catalog while disabled -> 403.
+ADMIN toggled academic_catalog back on -> 200.
+GET /api/v3/organizations/{orgId}/academic/catalog while enabled -> 200.
+```
+
+Debt còn lại sau Phase 4.9:
+
+- Có thể nâng cấp UX capability thành nhóm module/card lớn hơn nếu số capability tăng mạnh.
+- Public package checkout SePay/VNPay vẫn là phase riêng.
+
+## 40. Phase 4.10 organization capability settings UI - 2026-06-26
+
+Mục tiêu của vòng này là hoàn thiện đường vận hành cho system ADMIN: capability không chỉ được seed hoặc gọi API thủ công, mà có thể bật/tắt ngay trong trang chi tiết tổ chức. Backend vẫn là nơi enforce policy; UI chỉ là control plane cho dữ liệu capability.
+
+Thay đổi đã thực hiện:
+
+- `/admin/organizations/:id` và `/org-admin/organization` có thêm tab `Phân hệ`.
+- Tab hiển thị tất cả capability hiện có của tổ chức với tên nghiệp vụ và mô tả tiếng Việt:
+  - `academic_catalog`: Học vụ nền tảng;
+  - `curriculum_plan`: Chương trình đào tạo;
+  - `learning_packages`: Gói học;
+  - `org_payment_config`: Cấu hình doanh thu;
+  - `org_payout_approval`: Duyệt payout theo tổ chức.
+- System `ADMIN` có thể bật/tắt capability qua API `PUT /api/v3/organizations/{orgId}/capabilities/{key}`.
+- `ORG_ADMIN` chỉ xem trạng thái capability; không thể chỉnh sửa từ UI.
+- Overview tổ chức có thêm hành động nhanh `Phân hệ tổ chức`.
+- UI có trạng thái loading, empty, saving và responsive cho mobile/tablet.
+
+Quyết định thiết kế:
+
+- Không tạo màn hình mới vì trang chi tiết tổ chức đã là nơi quản trị org settings.
+- Không thêm dependency UI. Toggle dùng CSS/Sass và design token hiện có.
+- Không rely vào UI để bảo mật. Nếu user gọi API trực tiếp, backend Phase 4.9 vẫn chặn theo capability.
+- Không hardcode VMU. VMU chỉ là tổ chức được bật bộ capability phù hợp.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Ghi chú verification:
+
+- Build pass với các warning cũ của project: Angular optional-chain/nullish warnings ở admin-storage/Tiptap, Sass `@import` deprecated, CommonJS warnings từ mammoth.
+- `fe/public/sitemap-courses.xml` tiếp tục bị script SEO sinh lại khi build; không thuộc slice ORG và không được stage.
+
+Debt còn lại sau Phase 4.10:
+
+- Public package checkout SePay/VNPay vẫn là phase riêng.
+- Package-level revenue/refund model vẫn nên tách khỏi course-level payment hiện tại.
+- Nếu số capability tăng nhiều, có thể nhóm UI theo domain: Học vụ, Gói học, Thanh toán, Báo cáo.

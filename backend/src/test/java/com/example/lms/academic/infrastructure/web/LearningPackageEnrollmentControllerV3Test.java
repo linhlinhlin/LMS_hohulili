@@ -1,6 +1,7 @@
 package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,9 @@ class LearningPackageEnrollmentControllerV3Test {
     @Mock
     private ManageLearningPackageEnrollmentUseCase useCase;
 
+    @Mock
+    private ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
+
     @InjectMocks
     private LearningPackageEnrollmentControllerV3 controller;
 
@@ -46,6 +50,7 @@ class LearningPackageEnrollmentControllerV3Test {
         UUID organizationId = UUID.randomUUID();
         UUID packageId = UUID.randomUUID();
         UserJpaEntity student = user(UserJpaEntity.UserRole.STUDENT, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
 
         controller.requestMyEnrollment(organizationId, packageId, student);
 
@@ -69,6 +74,7 @@ class LearningPackageEnrollmentControllerV3Test {
     void listEnrollments_allowsSystemAdminForAnyOrganization() {
         UUID organizationId = UUID.randomUUID();
         UserJpaEntity admin = user(UserJpaEntity.UserRole.ADMIN, null, false);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
 
         controller.listEnrollments(organizationId, "PENDING_APPROVAL", admin);
 
@@ -81,6 +87,7 @@ class LearningPackageEnrollmentControllerV3Test {
         UUID organizationId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
         UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
 
         controller.completePayment(organizationId, enrollmentId, null, orgAdmin);
 
@@ -98,6 +105,20 @@ class LearningPackageEnrollmentControllerV3Test {
                 .isInstanceOf(AccessDeniedException.class)
                 .hasMessageContaining("No access");
         verify(useCase, never()).completePayment(organizationId, enrollmentId, orgAdmin.getId(), null);
+    }
+
+    @Test
+    @DisplayName("requestMyEnrollment: rejects disabled learning package capability")
+    void requestMyEnrollment_rejectsDisabledLearningPackageCapability() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UserJpaEntity student = user(UserJpaEntity.UserRole.STUDENT, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(false);
+
+        assertThatThrownBy(() -> controller.requestMyEnrollment(organizationId, packageId, student))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("learning_packages");
+        verify(useCase, never()).requestEnrollment(organizationId, packageId, student.getId());
     }
 
     private UserJpaEntity user(UserJpaEntity.UserRole role, UUID organizationId, boolean withId) {

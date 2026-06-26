@@ -860,3 +860,96 @@ Still intentionally not done:
 - Public SePay/VNPay package checkout.
 - Package-level revenue split/refund model.
 - Automatic cohort/class-group allocation.
+
+## 20. Phase I implementation - capability enforcement
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make organization capabilities a real backend policy, not only a UI label;
+- support different operating modes per ORG without VMU-specific branches;
+- prevent ORGs from using academic/package/payment workflows unless the platform has enabled those capabilities.
+
+Backend scope:
+
+- `ManageOrganizationCapabilitiesUseCase.isEnabled(...)` returns the stored enabled state.
+- Missing capability keys are treated as disabled.
+- Academic catalog endpoints require `academic_catalog`.
+- Curriculum plan endpoints require `academic_catalog` + `curriculum_plan`.
+- Learning package authoring and package enrollment endpoints require `learning_packages`.
+- Org payment config endpoints require `org_payment_config`.
+- ORG_ADMIN payout list/approve/reject requires `org_payout_approval`.
+- System ADMIN still keeps platform-wide payout visibility and operations.
+
+VMU fit:
+
+- VMU can run the full academic catalog, curriculum plan, learning package, payment config, and payout approval flow because those capabilities are enabled as data.
+- A smaller partner org can omit curriculum/package/payment capabilities and still use simpler LMS flows.
+- This keeps “VMU behavior” configurable through org data rather than hardcoded Java/Angular branches.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageOrganizationCapabilitiesUseCaseTest,AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,OrgPaymentConfigControllerV3Test,AdminRevenueControllerV3Test" test
+# Tests run: 27, Failures: 0, Errors: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Runtime smoke:
+
+```text
+Disable academic_catalog by ADMIN -> 200.
+Catalog request while disabled -> 403.
+Restore academic_catalog -> 200.
+Catalog request while enabled -> 200.
+```
+
+Still intentionally not done:
+
+- Advanced grouped capability UI if the number of capabilities grows.
+- Public package checkout with SePay/VNPay.
+- Package-level revenue split/refund workflow.
+
+## 21. Phase J implementation - capability settings UI
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- give system ADMIN a first-class control plane for ORG capabilities;
+- make VMU-specific operating scope configurable from organization data;
+- keep ORG_ADMIN aware of enabled workflows without allowing self-escalation.
+
+Frontend scope:
+
+- Adds a `Phân hệ` tab to the organization detail page.
+- Shows each capability with a Vietnamese business label, technical key, description, and enabled/disabled state.
+- Allows only system `ADMIN` to toggle capabilities.
+- Shows `ORG_ADMIN` the same list as read-only.
+- Adds an overview quick action so org setup flows can reach capability settings quickly.
+- Uses the existing `OrganizationService.listCapabilities` and `setCapability` APIs.
+
+VMU fit:
+
+- VMU can be configured with the full academic/payment package: học vụ nền tảng, chương trình đào tạo, gói học, cấu hình doanh thu, duyệt payout.
+- Another organization can be intentionally smaller without code changes.
+- This matches the target model: “ORG có đặc thù riêng” through capability data and policy enforcement, not hardcoded VMU branches.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Still intentionally not done:
+
+- Public package checkout with SePay/VNPay.
+- Package-level revenue split/refund workflow.
+- Grouped capability UX by domain if capability count grows beyond the current small set.

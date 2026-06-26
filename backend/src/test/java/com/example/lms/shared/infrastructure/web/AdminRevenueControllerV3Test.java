@@ -2,6 +2,7 @@ package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.shared.application.usecase.ProcessPayoutUseCase;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.model.TeacherBankAccount;
@@ -41,6 +42,7 @@ class AdminRevenueControllerV3Test {
     @Mock private PayoutRequestRepository payoutRepo;
     @Mock private UserJpaRepository userRepo;
     @Mock private TeacherBankAccountRepository bankAccountRepo;
+    @Mock private ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
 
     @InjectMocks
     private AdminRevenueControllerV3 controller;
@@ -90,6 +92,7 @@ class AdminRevenueControllerV3Test {
             PayoutRequest payout = payoutWithId(UUID.randomUUID(), orgId, teacherId, bankId, PayoutRequest.Status.APPROVED);
             TeacherBankAccount bank = bank(bankId, teacherId, "9876543210");
 
+            when(capabilitiesUseCase.isEnabled(orgId, "org_payout_approval")).thenReturn(true);
             when(payoutRepo.findAllByStatusAndOrganizationId(eq("APPROVED"), eq(orgId), any(PageRequest.class)))
                     .thenReturn(new PageImpl<>(List.of(payout), PageRequest.of(0, 20), 1));
             when(userRepo.findAllById(List.of(teacherId))).thenReturn(List.of(teacher));
@@ -151,6 +154,7 @@ class AdminRevenueControllerV3Test {
                     Instant.now().minusSeconds(3600)
             );
 
+            when(capabilitiesUseCase.isEnabled(orgId, "org_payout_approval")).thenReturn(true);
             when(processPayoutUseCase.approve(payoutId, orgAdmin.getId(), "ok")).thenReturn(payout);
             when(payoutRepo.findById(payoutId)).thenReturn(Optional.of(payout));
             when(userRepo.findById(payout.getTeacherId())).thenReturn(Optional.of(teacher));
@@ -179,6 +183,30 @@ class AdminRevenueControllerV3Test {
             assertThatThrownBy(() -> controller.approve(payoutId, new AdminRevenueControllerV3.AdminNoteBody("deny"), orgAdmin))
                     .isInstanceOf(AccessDeniedException.class)
                     .hasMessageContaining("tổ chức khác");
+
+            verify(processPayoutUseCase, never()).approve(any(), any(), any());
+        }
+
+        @Test
+        @DisplayName("ORG_ADMIN should not approve payout when payout approval capability is disabled")
+        void orgAdminShouldNotApproveWhenPayoutCapabilityDisabled() {
+            UUID orgId = UUID.randomUUID();
+            UUID payoutId = UUID.randomUUID();
+            UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, UUID.randomUUID(), "Org Admin", "orgadmin@maritime.edu");
+            orgAdmin.setOrganizationId(orgId);
+            PayoutRequest payout = payoutWithId(
+                    payoutId,
+                    orgId,
+                    UUID.randomUUID(),
+                    UUID.randomUUID(),
+                    PayoutRequest.Status.PENDING);
+
+            when(payoutRepo.findById(payoutId)).thenReturn(Optional.of(payout));
+            when(capabilitiesUseCase.isEnabled(orgId, "org_payout_approval")).thenReturn(false);
+
+            assertThatThrownBy(() -> controller.approve(payoutId, new AdminRevenueControllerV3.AdminNoteBody("ok"), orgAdmin))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessageContaining("org_payout_approval");
 
             verify(processPayoutUseCase, never()).approve(any(), any(), any());
         }
