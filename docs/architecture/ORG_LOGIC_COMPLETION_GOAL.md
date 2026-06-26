@@ -1926,3 +1926,76 @@ Debt còn lại sau Phase 4.14:
 - Nếu dữ liệu thật đến từ Excel, nên thêm bước import CSV/XLSX có preview trước khi ghi DB.
 - Public package checkout bằng SePay/VNPay vẫn là phase riêng.
 - Package-level revenue/refund/accounting vẫn chưa nên dùng chung vội với course-level payment.
+
+## 45. Phase 4.15 org payout demo seed and smoke - 2026-06-26
+
+Mục tiêu của vòng này là đóng debt demo tài chính còn treo từ Phase 3.9/3.10/3.12: ORG_ADMIN cần thấy được queue rút tiền thật, có đủ trạng thái để trình diễn duyệt, từ chối và chờ ADMIN hoàn tất chuyển khoản. Đây là dữ liệu demo có chủ ý, không phải thay đổi logic payout.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V154__seed_org_payout_demo_data.sql`.
+- Seed một tài khoản ngân hàng verified/default cho giảng viên demo trong organization mặc định.
+- Seed 4 payout org-scoped với UUID cố định:
+  - `PENDING`: dùng để ORG_ADMIN demo duyệt hoặc từ chối.
+  - `APPROVED`: dùng để ADMIN demo hoàn tất chuyển khoản.
+  - `COMPLETED`: dùng để xem lịch sử đã chuyển khoản.
+  - `REJECTED`: dùng để xem lịch sử bị từ chối.
+- `payout_requests.organization_id` luôn được điền từ organization mặc định, nên ORG_ADMIN chỉ nhìn thấy payout cùng tổ chức.
+- Không seed secret, không seed thông tin ngân hàng thật. Số tài khoản demo là `0123456789` và UI mask thành `****6789` cho ORG_ADMIN.
+
+Quyết định thiết kế:
+
+- Không sửa domain/use case payout trong vòng này vì rule quyền đã được khóa ở các phase trước.
+- Không dùng API tạo payout trong migration vì `RequestPayoutUseCase` phụ thuộc balance từ revenue split. Demo seed cần ổn định, độc lập với dữ liệu doanh thu biến động.
+- Không làm fake riêng cho VMU trong Java. VMU tiếp tục là dữ liệu của organization/capability/policy; payout demo nằm ở migration dữ liệu.
+- ORG_ADMIN chỉ approve/reject; `complete` vẫn là quyền `ADMIN`, đúng separation of duties cho tài chính.
+
+Verification:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T db psql -U lms -d lms -c "select version, description, success from flyway_schema_history where version = '154';"
+# 154 | seed org payout demo data | t
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T db psql -U lms -d lms -c "select status, count(*), sum(amount) from payout_requests where id::text like 'b1540000-0000-4000-8000-00000000010%' group by status;"
+# APPROVED=1, COMPLETED=1, PENDING=1, REJECTED=1
+
+cd backend
+mvn "-Dtest=AdminRevenueControllerV3Test,RequestPayoutUseCaseTest,ProcessPayoutUseCaseTest" test
+# Tests run: 10, Failures: 0, Errors: 0, Skipped: 0
+```
+
+API smoke:
+
+```text
+ORG_ADMIN GET /api/v3/admin/revenue/payouts?status=PENDING&page=0&size=5 -> total=1, accountNumber=****6789.
+ORG_ADMIN GET APPROVED/COMPLETED/REJECTED -> total=1 each, accountNumber=****6789.
+ADMIN GET APPROVED -> total=1, accountNumber=0123456789.
+```
+
+UI smoke:
+
+```text
+/org-admin/payouts desktop smoke -> labels rendered:
+Quản lý rút tiền, Chờ duyệt, Đã duyệt, Hoàn thành, Đã từ chối.
+teacher@maritime.edu rendered.
+masked account ****6789 rendered.
+Payout API calls: PENDING list + PENDING/APPROVED/COMPLETED/REJECTED counters all 200.
+Console errors 0, page errors 0.
+```
+
+Trạng thái sau Phase 4.15:
+
+- ORG/VMU demo hiện có dữ liệu học thuật và dữ liệu tài chính đủ thuyết phục hơn: catalog, lớp hành chính, roster import, package/class placement, payment config, payout queue.
+- Có thể trình diễn separation rõ:
+  - ORG_ADMIN vận hành trong tổ chức: xem payout, duyệt, từ chối.
+  - ADMIN hệ thống hoàn tất chuyển khoản sau khi đối soát ngân hàng.
+
+Debt còn lại sau Phase 4.15:
+
+- Public package checkout bằng SePay/VNPay vẫn là phase riêng.
+- Package-level revenue split/refund/accounting vẫn cần thiết kế riêng, không nên dùng tạm course-level payment nếu muốn báo cáo tài chính chuẩn.
+- Nếu đưa vào production demo dài ngày, nên quyết định có giữ seed payout demo hay chuyển sang script seed demo có thể bật/tắt theo môi trường.
