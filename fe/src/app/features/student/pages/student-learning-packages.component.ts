@@ -27,6 +27,9 @@ export class StudentLearningPackagesComponent implements OnInit {
   protected readonly qr = signal<AcademicLearningPackagePaymentQr | null>(null);
 
   protected readonly organizationId = computed(() => this.auth.currentUserSignal()?.organizationId ?? null);
+  protected readonly organizationName = computed(() =>
+    this.auth.currentUserSignal()?.organizationName || 'Tổ chức của bạn'
+  );
   protected readonly totalPackages = computed(() => this.packages().length);
   protected readonly activeEnrollments = computed(() =>
     this.packages().filter(item => item.enrollment?.status === 'ACTIVE').length

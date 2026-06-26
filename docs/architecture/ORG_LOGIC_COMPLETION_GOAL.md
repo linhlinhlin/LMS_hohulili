@@ -2098,6 +2098,7 @@ Thay đổi đã thực hiện:
 - Thêm menu sidebar học viên `Gói học`.
 - Thêm màn `StudentLearningPackagesComponent`:
   - hiển thị tổng số gói, số gói đã kích hoạt, số gói chờ thanh toán;
+  - hiển thị tên tổ chức từ session thay vì hardcode VMU;
   - hiển thị trạng thái theo tiếng Việt: chờ duyệt, chờ thanh toán, đã kích hoạt;
   - cho phép kích hoạt/yêu cầu duyệt/tạo QR theo `enrollmentPolicy`;
   - có QR panel với số tiền, ngân hàng, số tài khoản, nội dung chuyển khoản và nút sao chép.
@@ -2105,7 +2106,7 @@ Thay đổi đã thực hiện:
 Quyết định thiết kế:
 
 - Không tạo public marketplace/package detail vội. Student portal là lát cắt ngắn nhất để kiểm chứng nghiệp vụ package checkout end-to-end.
-- Không hardcode VMU trong code. Tên `VMU Academic Packages` chỉ là microcopy màn hiện tại; dữ liệu quyết định luồng vẫn là `organizationId`, `learningPackage`, `enrollmentPolicy`, `capability`.
+- Không hardcode VMU trong code. Header màn student package lấy `organizationName` từ session; dữ liệu quyết định luồng vẫn là `organizationId`, `learningPackage`, `enrollmentPolicy`, `capability`.
 - Không tự bật SePay thật trong local `.env`. QR chỉ hoạt động khi runtime có `SEPAY_ENABLED=true`, `SEPAY_BANK_CODE` và `SEPAY_ACCOUNT_NUMBER`.
 
 Verification:
@@ -2166,5 +2167,4 @@ Trạng thái sau Phase 4.17:
 Debt còn lại sau Phase 4.17:
 
 - Package-level revenue split, refund, invoice/audit ledger vẫn cần thiết kế riêng trước khi coi package payment là production-grade tài chính.
-- Cần thay microcopy `VMU Academic Packages` bằng wording phụ thuộc tên tổ chức hoặc text trung tính hơn nếu mở nhiều ORG ngoài VMU.
 - Nếu muốn thanh toán thật ở local/demo offline, phải cấu hình SePay thật bằng `.env`/runtime env riêng; tuyệt đối không commit bank account hoặc webhook secret vào repo.
