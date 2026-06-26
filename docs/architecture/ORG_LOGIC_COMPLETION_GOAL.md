@@ -1184,3 +1184,70 @@ Kết luận:
 - Phase 4.2 đã đóng xong lỗi seed rỗng.
 - Gói học VMU hiện đã tồn tại thật trên review runtime và được đọc qua org-admin academic catalog.
 - Bước tiếp theo của goal là `organization_capabilities` để bật/tắt academic/curriculum/package module theo từng tổ chức, trước khi nối package enrollment/payment.
+
+## 33. Phase 4.3 organization capabilities foundation - 2026-06-26
+
+Mục tiêu của vòng này là thêm lớp cấu hình module theo tổ chức trước khi đi sâu vào package enrollment/payment. Đây là bước nhỏ nhưng quan trọng để hệ thống có thể phục vụ nhiều ORG khác VMU mà không hardcode nhánh logic riêng.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V148__organization_capabilities.sql`.
+- Thêm bảng `organization_capabilities` với:
+  - `organization_id`;
+  - `capability_key`;
+  - `enabled`;
+  - unique `(organization_id, capability_key)`;
+  - check regex `^[a-z][a-z0-9_]{1,63}$`.
+- Seed default organization với 5 capability đang dùng cho luồng ORG hiện tại:
+  - `academic_catalog`;
+  - `curriculum_plan`;
+  - `learning_packages`;
+  - `org_payment_config`;
+  - `org_payout_approval`.
+- Thêm domain model `OrganizationCapability`, repository port, JPA entity/repository/adapter, DTO và use case `ManageOrganizationCapabilitiesUseCase`.
+- Thêm API:
+  - `GET /api/v3/organizations/{id}/capabilities`: `ADMIN` hoặc `ORG_ADMIN` cùng tổ chức;
+  - `PUT /api/v3/organizations/{id}/capabilities/{key}`: `ADMIN` only.
+- Mở rộng `/org-admin/academic` để đọc và hiển thị các capability đang bật cho ORG hiện tại.
+- Sửa default `APP_JWT_SECRET` trong `docker-compose.yml` về Base64 dev secret giống `.env.dev.example`, vì backend decode JWT secret bằng Base64 và local runtime không có `.env` sẽ bị lỗi login.
+
+Quyết định thiết kế:
+
+- Không tạo plugin system.
+- Không hardcode VMU.
+- Không ẩn workflow theo capability ở vòng đầu tiên, vì các ORG cũ chưa có seed capability sẽ có nguy cơ mất chức năng đột ngột. Phase này chỉ expose trạng thái cấu hình; enforcement sâu sẽ đi sau khi policy rule rõ ràng.
+- `ORG_ADMIN` chỉ đọc capability của org mình. Bật/tắt capability vẫn là quyền `ADMIN` để tránh ORG tự mở module chưa được vận hành/hợp đồng.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageOrganizationCapabilitiesUseCaseTest" test
+# Tests run: 5, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Local runtime/API smoke trước khi Docker Desktop bị treo daemon:
+
+```text
+Flyway V148 applied successfully.
+organization_capabilities has 5 default enabled capabilities.
+POST /api/v3/auth/login as orgadmin@maritime.edu -> ORG_ADMIN.
+GET /api/v3/organizations/{orgId}/capabilities -> 5 enabled capabilities:
+academic_catalog, curriculum_plan, learning_packages, org_payment_config, org_payout_approval.
+```
+
+Ghi chú runtime:
+
+- Browser smoke local `/org-admin/academic` chưa hoàn tất vì Docker Desktop daemon bị kẹt sau một lần build frontend Docker timeout.
+- Angular dev server build được và `curl -I http://127.0.0.1:4200/auth/login` trả `200`.
+- Docker service local cần được khôi phục thủ công hoặc smoke lại sau khi branch được deploy lên review runtime.
+
+Debt còn lại sau Phase 4.3:
+
+- Cần PR/merge/deploy Phase C để production review runtime có V148.
+- Cần smoke browser `/org-admin/academic` sau deploy để xác nhận capability strip hiển thị.
+- Phase tiếp theo nên tập trung vào policy enforcement: package enrollment policy, tuition policy, hoặc package checkout chỉ khi rule nghiệp vụ VMU đã chốt rõ.

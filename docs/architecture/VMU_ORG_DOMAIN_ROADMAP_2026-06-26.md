@@ -538,3 +538,69 @@ Conclusion:
 - Phase B is live on the review runtime.
 - VMU learning package data is now tied to the curriculum plan's organization, not fragile organization display names.
 - Package payment/enrollment remains intentionally separate until the exact VMU package checkout or assignment workflow is decided.
+
+## 14. Phase C implementation - organization capabilities
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- let each ORG expose only the modules it is configured to use;
+- keep VMU-specific behavior as organization data, not `if VMU` branches;
+- provide a small control layer before wiring deeper package enrollment/payment workflows.
+
+Backend scope:
+
+- `V148__organization_capabilities.sql`
+  - adds `organization_capabilities`;
+  - enforces one capability key per organization;
+  - validates capability keys with `^[a-z][a-z0-9_]{1,63}$`;
+  - seeds the default organization with:
+    - `academic_catalog`;
+    - `curriculum_plan`;
+    - `learning_packages`;
+    - `org_payment_config`;
+    - `org_payout_approval`.
+- Adds the minimal identity-domain model, repository port, JPA adapter, and use case for capabilities.
+- Adds:
+  - `GET /api/v3/organizations/{id}/capabilities` for `ADMIN` and same-org `ORG_ADMIN`;
+  - `PUT /api/v3/organizations/{id}/capabilities/{key}` for `ADMIN` only.
+
+Frontend scope:
+
+- `/org-admin/academic` loads the current ORG capabilities.
+- The page shows a compact "Năng lực đang bật" strip after the KPI cards.
+- The first UI pass is read-only on purpose: it exposes configuration state without hiding workflows yet, so older orgs without seeded capabilities do not lose access unexpectedly.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageOrganizationCapabilitiesUseCaseTest" test
+# Tests run: 5, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Local Docker/API smoke before Docker Desktop became unavailable:
+
+```text
+Flyway V148 applied successfully on local runtime.
+organization_capabilities contains 5 default enabled capabilities.
+POST /api/v3/auth/login as orgadmin@maritime.edu -> ORG_ADMIN.
+GET /api/v3/organizations/{orgId}/capabilities -> 5 enabled capabilities.
+```
+
+Runtime note:
+
+- Local browser smoke was blocked after a timed-out Docker frontend build left Docker Desktop's daemon unresponsive.
+- The code-level blocker found during smoke was fixed: root `docker-compose.yml` now uses the same Base64 dev JWT secret as `.env.dev.example` when no local `.env` exists.
+- Re-run `/org-admin/academic` browser smoke after Docker Desktop is manually healthy again or after the PR is deployed to the review runtime.
+
+Debt after Phase C:
+
+- The next useful product slice is policy enforcement, not more UI decoration.
+- Package checkout/enrollment should be wired only after the business rule is explicit: free assignment, ORG approval, invite-only, or payment-required package purchase.
+- If two organizations require materially different behavior, use these capabilities and later add small typed policy tables; do not introduce a plugin system.

@@ -4,7 +4,7 @@ import { map } from 'rxjs/operators';
 import { ApiClient } from '../../../../api/client/api-client';
 import { ORGANIZATION_ENDPOINTS, INVITE_ENDPOINTS } from '../../../../api/endpoints/organization.endpoints';
 import { ApiResponse } from '../../../../api/types/common.types';
-import { Organization, OrganizationInvite, OrganizationType, OrgMember } from '../../../../shared/types/user.types';
+import { Organization, OrganizationCapability, OrganizationInvite, OrganizationType, OrgMember } from '../../../../shared/types/user.types';
 
 @Injectable({ providedIn: 'root' })
 export class OrganizationService {
@@ -130,6 +130,19 @@ export class OrganizationService {
     return this.api.put<ApiResponse<{ userId: string; tokenExpiryDays: number | null; effectiveExpiryDays: number }>>(
       ORGANIZATION_ENDPOINTS.MEMBER_TOKEN_CONFIG(orgId, userId),
       { tokenExpiryDays }
+    ).pipe(map(res => res.data));
+  }
+
+  listCapabilities(orgId: string): Observable<OrganizationCapability[]> {
+    return this.api.get<ApiResponse<OrganizationCapability[]>>(ORGANIZATION_ENDPOINTS.CAPABILITIES(orgId)).pipe(
+      map(res => res.data)
+    );
+  }
+
+  setCapability(orgId: string, key: string, enabled: boolean): Observable<OrganizationCapability> {
+    return this.api.put<ApiResponse<OrganizationCapability>>(
+      ORGANIZATION_ENDPOINTS.CAPABILITY(orgId, key),
+      { enabled }
     ).pipe(map(res => res.data));
   }
 

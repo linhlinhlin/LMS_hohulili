@@ -26,7 +26,9 @@ import {
   LinkAcademicSubjectCourseRequest,
 } from '../../api/types/academic.types';
 import { AuthService } from '../../core/services/auth.service';
+import { OrganizationCapability } from '../../shared/types/user.types';
 import { AdminCourseSummary, AdminService } from '../admin/infrastructure/services/admin.service';
+import { OrganizationService } from '../admin/infrastructure/services/organization.service';
 
 const emptyCatalog = (): AcademicCatalog => ({
   departments: [],
@@ -41,6 +43,14 @@ const emptyCatalog = (): AcademicCatalog => ({
   learningPackages: [],
   learningPackageItems: [],
 });
+
+const capabilityLabels: Record<string, string> = {
+  academic_catalog: 'Cấu trúc đào tạo',
+  curriculum_plan: 'Khung chương trình',
+  learning_packages: 'Gói học',
+  org_payment_config: 'Cấu hình học phí',
+  org_payout_approval: 'Duyệt chi trả',
+};
 
 @Component({
   selector: 'app-org-academic-catalog',
@@ -93,6 +103,22 @@ const emptyCatalog = (): AcademicCatalog => ({
             <div class="metric-card"><span>Môn trong khung</span><strong>{{ catalog().curriculumSubjects.length }}</strong></div>
             <div class="metric-card"><span>Gói học</span><strong>{{ catalog().learningPackages.length }}</strong></div>
             <div class="metric-card"><span>Mục trong gói</span><strong>{{ catalog().learningPackageItems.length }}</strong></div>
+          </div>
+
+          <div class="capability-strip">
+            <div>
+              <span>Cấu hình theo tổ chức</span>
+              <strong>Năng lực đang bật cho ORG hiện tại</strong>
+            </div>
+            <div class="capability-list">
+              @for (capability of capabilityItems(); track capability.key) {
+                <span class="capability-pill" [class.disabled]="!capability.enabled">
+                  {{ capability.label }}
+                </span>
+              } @empty {
+                <span class="capability-pill disabled">Chưa có cấu hình capability</span>
+              }
+            </div>
           </div>
 
           <div class="grid gap-5 xl:grid-cols-2">
@@ -446,6 +472,53 @@ const emptyCatalog = (): AcademicCatalog => ({
       font-weight: 800;
     }
 
+    .capability-strip {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      border: 1px solid #bfdbfe;
+      border-radius: 1.5rem;
+      background: linear-gradient(135deg, #eff6ff, #ffffff);
+      padding: 1rem 1.25rem;
+    }
+
+    .capability-strip span {
+      color: #64748b;
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .capability-strip strong {
+      display: block;
+      margin-top: 0.25rem;
+      color: #0f172a;
+      font-size: 1rem;
+    }
+
+    .capability-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+
+    .capability-pill {
+      border: 1px solid rgba(0, 86, 210, 0.22);
+      border-radius: 999px;
+      background: #ffffff;
+      color: #0056D2 !important;
+      padding: 0.45rem 0.75rem;
+      letter-spacing: 0 !important;
+      text-transform: none !important;
+    }
+
+    .capability-pill.disabled {
+      border-color: #e2e8f0;
+      color: #94a3b8 !important;
+      text-decoration: line-through;
+    }
+
     .catalog-form {
       display: grid;
       gap: 0.75rem;
@@ -556,16 +629,25 @@ const emptyCatalog = (): AcademicCatalog => ({
 export class OrgAcademicCatalogComponent implements OnInit {
   private academicApi = inject(AcademicApi);
   private adminService = inject(AdminService);
+  private organizationService = inject(OrganizationService);
   private auth = inject(AuthService);
 
   protected readonly catalog = signal<AcademicCatalog>(emptyCatalog());
   protected readonly availableCourses = signal<AdminCourseSummary[]>([]);
+  protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
   protected readonly success = signal<string | null>(null);
 
   protected readonly organizationId = computed(() => this.auth.currentUserSignal()?.organizationId ?? '');
+  protected readonly capabilityItems = computed(() =>
+    this.capabilities().map(capability => ({
+      key: capability.key,
+      enabled: capability.enabled,
+      label: capabilityLabels[capability.key] ?? capability.key,
+    }))
+  );
 
   protected readonly departmentForm = signal<CreateAcademicDepartmentRequest>({ code: '', name: '' });
   protected readonly programForm = signal<CreateAcademicProgramRequest>({
@@ -643,7 +725,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   }
 
   protected async reload(): Promise<void> {
-    await Promise.all([this.loadCatalog(), this.loadCourses()]);
+    await Promise.all([this.loadCatalog(), this.loadCourses(), this.loadCapabilities()]);
   }
 
   protected async loadCatalog(): Promise<void> {
@@ -676,6 +758,20 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.availableCourses.set(response.data ?? []);
     } catch {
       this.availableCourses.set([]);
+    }
+  }
+
+  protected async loadCapabilities(): Promise<void> {
+    const orgId = this.organizationId();
+    if (!orgId) {
+      this.capabilities.set([]);
+      return;
+    }
+
+    try {
+      this.capabilities.set(await firstValueFrom(this.organizationService.listCapabilities(orgId)));
+    } catch {
+      this.capabilities.set([]);
     }
   }
 
