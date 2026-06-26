@@ -15,7 +15,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -310,6 +315,101 @@ public class ManageAcademicCatalogUseCase {
                 command.classGroupId(),
                 current.studentId());
         return toResponse(repository.replaceClassGroupMembership(previous, next));
+    }
+
+    public BulkClassGroupRosterResponse importClassGroupRoster(
+            UUID organizationId,
+            BulkClassGroupRosterCommand command) {
+        requireClassGroup(organizationId, command.classGroupId());
+        List<String> studentEmails = command.studentEmails() == null ? List.of() : command.studentEmails();
+        if (studentEmails.isEmpty()) {
+            throw new ValidationException("studentEmails", "Student email list is required");
+        }
+
+        List<BulkClassGroupRosterRowResponse> rows = new ArrayList<>();
+        Set<String> seenEmails = new HashSet<>();
+        int assigned = 0;
+        int transferred = 0;
+        int unchanged = 0;
+        int failed = 0;
+
+        for (String rawEmail : studentEmails) {
+            String email = normalizeRosterEmail(rawEmail);
+            if (email.isBlank()) {
+                failed++;
+                rows.add(new BulkClassGroupRosterRowResponse("", "FAILED", "Email sinh viên không hợp lệ.", null));
+                continue;
+            }
+            if (!seenEmails.add(email)) {
+                unchanged++;
+                rows.add(new BulkClassGroupRosterRowResponse(
+                        email,
+                        "UNCHANGED",
+                        "Email trùng trong danh sách nhập.",
+                        null));
+                continue;
+            }
+
+            var row = importRosterStudent(organizationId, command.classGroupId(), email);
+            rows.add(row);
+            switch (row.action()) {
+                case "ASSIGNED" -> assigned++;
+                case "TRANSFERRED" -> transferred++;
+                case "UNCHANGED" -> unchanged++;
+                default -> failed++;
+            }
+        }
+
+        return new BulkClassGroupRosterResponse(
+                rows.size(),
+                assigned,
+                transferred,
+                unchanged,
+                failed,
+                rows);
+    }
+
+    private BulkClassGroupRosterRowResponse importRosterStudent(UUID organizationId, UUID classGroupId, String email) {
+        var student = userRepository.findByEmail(email);
+        if (student.isEmpty()) {
+            return new BulkClassGroupRosterRowResponse(email, "FAILED", "Không tìm thấy học viên theo email.", null);
+        }
+        if (!Objects.equals(student.get().getOrganizationId(), organizationId)) {
+            return new BulkClassGroupRosterRowResponse(email, "FAILED", "Học viên không thuộc tổ chức này.", null);
+        }
+        if (student.get().getRole() != Role.STUDENT) {
+            return new BulkClassGroupRosterRowResponse(email, "FAILED", "Tài khoản không phải học viên.", null);
+        }
+
+        UUID studentId = student.get().getId().value();
+        var currentMembership = repository.findActiveClassGroupMembership(organizationId, studentId);
+        if (currentMembership.isEmpty()) {
+            var membership = AcademicClassGroupMembership.assign(organizationId, classGroupId, studentId);
+            return new BulkClassGroupRosterRowResponse(
+                    email,
+                    "ASSIGNED",
+                    "Đã gán học viên vào lớp hành chính.",
+                    toResponse(repository.saveClassGroupMembership(membership)));
+        }
+        if (Objects.equals(currentMembership.get().classGroupId(), classGroupId)) {
+            return new BulkClassGroupRosterRowResponse(
+                    email,
+                    "UNCHANGED",
+                    "Học viên đã thuộc lớp hành chính này.",
+                    toResponse(currentMembership.get()));
+        }
+
+        var previous = currentMembership.get().leave(Instant.now());
+        var next = AcademicClassGroupMembership.assign(organizationId, classGroupId, studentId);
+        return new BulkClassGroupRosterRowResponse(
+                email,
+                "TRANSFERRED",
+                "Đã chuyển học viên sang lớp hành chính mới.",
+                toResponse(repository.replaceClassGroupMembership(previous, next)));
+    }
+
+    private String normalizeRosterEmail(String rawEmail) {
+        return rawEmail == null ? "" : rawEmail.trim().toLowerCase(Locale.ROOT);
     }
 
     private void requireDepartment(UUID organizationId, UUID id) {

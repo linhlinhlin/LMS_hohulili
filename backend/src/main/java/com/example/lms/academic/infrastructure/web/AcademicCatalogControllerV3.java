@@ -116,6 +116,17 @@ public class AcademicCatalogControllerV3 {
         return ResponseEntity.ok(ApiResponse.success(useCase.transferClassGroupMembership(orgId, membershipId, command)));
     }
 
+    @PostMapping("/class-group-memberships/bulk-import")
+    @Operation(summary = "Bulk import students into an academic class group by email")
+    public ResponseEntity<ApiResponse<BulkClassGroupRosterResponse>> importClassGroupRoster(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody BulkClassGroupRosterCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
+        return ResponseEntity.ok(ApiResponse.success(useCase.importClassGroupRoster(orgId, command)));
+    }
+
     @PostMapping("/subjects")
     @Operation(summary = "Create academic subject")
     public ResponseEntity<ApiResponse<SubjectResponse>> createSubject(

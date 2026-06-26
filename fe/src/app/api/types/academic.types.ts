@@ -282,6 +282,27 @@ export interface TransferAcademicClassGroupMembershipRequest {
   classGroupId: string;
 }
 
+export interface BulkAcademicClassGroupRosterRequest {
+  classGroupId: string;
+  studentEmails: string[];
+}
+
+export interface BulkAcademicClassGroupRosterRow {
+  email: string;
+  action: 'ASSIGNED' | 'TRANSFERRED' | 'UNCHANGED' | 'FAILED';
+  message: string;
+  membership: AcademicClassGroupMembership | null;
+}
+
+export interface BulkAcademicClassGroupRosterResponse {
+  total: number;
+  assigned: number;
+  transferred: number;
+  unchanged: number;
+  failed: number;
+  rows: BulkAcademicClassGroupRosterRow[];
+}
+
 export interface ReviewAcademicLearningPackageEnrollmentRequest {
   note: string | null;
   paymentReference?: string | null;

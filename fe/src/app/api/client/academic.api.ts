@@ -21,6 +21,8 @@ import {
   AcademicTerm,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
+  BulkAcademicClassGroupRosterRequest,
+  BulkAcademicClassGroupRosterResponse,
   CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
@@ -80,6 +82,13 @@ export class AcademicApi {
   ) {
     return this.api.patchWithResponse<AcademicClassGroupMembership>(
       ACADEMIC_ENDPOINTS.TRANSFER_CLASS_GROUP_MEMBERSHIP(orgId, membershipId),
+      request
+    );
+  }
+
+  bulkImportClassGroupRoster(orgId: string, request: BulkAcademicClassGroupRosterRequest) {
+    return this.api.postWithResponse<BulkAcademicClassGroupRosterResponse>(
+      ACADEMIC_ENDPOINTS.BULK_CLASS_GROUP_ROSTER(orgId),
       request
     );
   }

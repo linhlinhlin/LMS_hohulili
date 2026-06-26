@@ -1854,3 +1854,75 @@ Debt còn lại sau Phase 4.13:
 - Bulk import/transfer roster cho danh sách sinh viên lớn vẫn là phase riêng.
 - Public package checkout bằng SePay/VNPay vẫn là phase riêng.
 - Package-level revenue/refund/accounting vẫn chưa nên dùng chung vội với course-level payment.
+
+## 44. Phase 4.14 bulk class-group roster import - 2026-06-26
+
+Mục tiêu của vòng này là biến workflow lớp hành chính thành luồng vận hành được với dữ liệu thật của VMU: ORG_ADMIN có thể dán danh sách email sinh viên từ Excel hoặc danh sách lớp, hệ thống tự gán sinh viên vào lớp, chuyển lớp nếu sinh viên đang thuộc lớp khác, bỏ qua dòng trùng hoặc đã đúng lớp, và trả về lỗi theo từng dòng thay vì fail cả lô.
+
+Thay đổi đã thực hiện:
+
+- Thêm DTO `BulkClassGroupRosterCommand`, `BulkClassGroupRosterRowResponse`, `BulkClassGroupRosterResponse`.
+- Thêm use case `importClassGroupRoster(...)` trong `ManageAcademicCatalogUseCase`.
+- API mới: `POST /api/v3/organizations/{orgId}/academic/class-group-memberships/bulk-import`.
+- Bulk import dùng lại invariant của Phase 4.13: mỗi sinh viên chỉ có một membership `ACTIVE` trong một tổ chức; chuyển lớp sẽ đóng membership cũ thành `INACTIVE` và tạo membership mới.
+- Mỗi email được xử lý độc lập với action rõ ràng:
+  - `ASSIGNED`: gán mới sinh viên vào lớp.
+  - `TRANSFERRED`: chuyển từ lớp cũ sang lớp được chọn.
+  - `UNCHANGED`: đã ở đúng lớp hoặc trùng trong danh sách nhập.
+  - `FAILED`: email rỗng, không tìm thấy học viên, sai tổ chức, hoặc tài khoản không phải học viên.
+- `/org-admin/academic` có form nhập danh sách lớp tối thiểu:
+  - Chọn lớp hành chính.
+  - Dán danh sách email, ngăn cách bằng xuống dòng, dấu phẩy hoặc chấm phẩy.
+  - Hiển thị tổng số dòng, số gán mới, số chuyển lớp, số bỏ qua và số lỗi.
+
+Quyết định thiết kế:
+
+- Không hardcode VMU. VMU vẫn được mô hình hóa bằng organization, class group, student, membership và capability đang bật.
+- Không thêm upload Excel trong vòng này. Paste danh sách email là đường ngắn nhất đủ dùng cho demo và vận hành đầu tiên; upload file/CSV có thể thêm sau khi xác nhận format dữ liệu thật.
+- Không fail cả request khi một vài email lỗi. Dữ liệu danh sách lớp thực tế thường có dòng sai; phản hồi theo từng dòng giúp ORG_ADMIN sửa dữ liệu nhanh hơn.
+- Không đổi package enrollment rule. Khi roster active đã đúng, Phase 4.12/4.13 tự dùng membership active để chọn class target cho package.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+API smoke:
+
+```text
+POST /api/v3/organizations/{orgId}/academic/class-group-memberships/bulk-import -> 200.
+Request: target classGroupId + ["nguyenvanan@sv.maritime.edu", "missing-student@example.com"].
+Response summary: total=2, assigned=1, transferred=0, unchanged=0, failed=1.
+Row actions: ASSIGNED, FAILED.
+```
+
+UI smoke:
+
+```text
+/org-admin/academic desktop smoke -> roster class select rendered, textarea rendered, submit rendered, result summary rendered.
+Smoke request with a missing email only -> total=1, assigned=0, transferred=0, unchanged=0, failed=1.
+Console errors 0, page errors 0, relevant academic API calls 200.
+```
+
+Trạng thái sau Phase 4.14:
+
+- VMU có thể trình diễn logic học thuật theo lớp hành chính ở mức vận hành thực tế hơn: chương trình/khoa/ngành/lớp/môn/gói học đã có nền, và danh sách sinh viên lớp có thể nhập hàng loạt.
+- ORG_ADMIN không tạo organization mới; họ vận hành dữ liệu trong organization hiện tại.
+- Workflow vẫn là modular monolith, đúng hướng clean architecture; chưa có lý do kỹ thuật đủ mạnh để tách microservice.
+
+Debt còn lại sau Phase 4.14:
+
+- Nếu dữ liệu thật đến từ Excel, nên thêm bước import CSV/XLSX có preview trước khi ghi DB.
+- Public package checkout bằng SePay/VNPay vẫn là phase riêng.
+- Package-level revenue/refund/accounting vẫn chưa nên dùng chung vội với course-level payment.

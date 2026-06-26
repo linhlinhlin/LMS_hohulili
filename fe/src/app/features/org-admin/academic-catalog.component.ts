@@ -17,6 +17,7 @@ import {
   AcademicLearningPackageItem,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
+  BulkAcademicClassGroupRosterResponse,
   CreateAcademicClassGroupMembershipRequest,
   CreateAcademicLearningPackageClassTargetRequest,
   CreateAcademicCurriculumPlanRequest,
@@ -454,6 +455,35 @@ const capabilityLabels: Record<string, string> = {
                 <p class="helper-text">Mỗi sinh viên chỉ có một lớp hành chính đang hoạt động. Khi duyệt gói học, hệ thống sẽ ưu tiên lớp triển khai theo lớp hành chính này.</p>
                 <button data-testid="class-group-membership-submit" class="primary-button" type="submit" [disabled]="saving() || !canCreateClassGroupMembership()">Gán sinh viên vào lớp</button>
               </form>
+              <form class="catalog-form roster-form" (submit)="importClassGroupRoster($event)">
+                <select data-testid="class-group-roster-class" aria-label="Lớp nhận danh sách sinh viên" [value]="classGroupRosterForm().classGroupId" (change)="patch(classGroupRosterForm, { classGroupId: text($event) })">
+                  <option value="">Chọn lớp để nhập danh sách</option>
+                  @for (classGroup of catalog().classGroups; track classGroup.id) {
+                    <option [value]="classGroup.id">{{ classGroup.code }} - {{ classGroup.name }}</option>
+                  }
+                </select>
+                <textarea
+                  data-testid="class-group-roster-emails"
+                  aria-label="Danh sách email sinh viên"
+                  rows="5"
+                  placeholder="Mỗi dòng một email sinh viên, ví dụ:&#10;nguyenvanan@sv.maritime.edu&#10;tranthibinh@sv.maritime.edu"
+                  [value]="classGroupRosterForm().rosterText"
+                  (input)="patch(classGroupRosterForm, { rosterText: textarea($event) })"></textarea>
+                <p class="helper-text">Dùng để nhập danh sách lớp từ Excel hoặc danh sách sinh viên VMU. Nếu sinh viên đang ở lớp khác, hệ thống sẽ chuyển lớp và lưu lịch sử lớp cũ.</p>
+                <button data-testid="class-group-roster-submit" class="secondary-button" type="submit" [disabled]="saving() || !canImportClassGroupRoster()">Nhập danh sách lớp</button>
+              </form>
+              @if (classGroupRosterResult(); as rosterResult) {
+                <div class="roster-result" data-testid="class-group-roster-result">
+                  <strong>Kết quả nhập danh sách</strong>
+                  <dl>
+                    <div><dt>Tổng</dt><dd>{{ rosterResult.total }}</dd></div>
+                    <div><dt>Gán mới</dt><dd>{{ rosterResult.assigned }}</dd></div>
+                    <div><dt>Chuyển lớp</dt><dd>{{ rosterResult.transferred }}</dd></div>
+                    <div><dt>Bỏ qua</dt><dd>{{ rosterResult.unchanged }}</dd></div>
+                    <div><dt>Lỗi</dt><dd>{{ rosterResult.failed }}</dd></div>
+                  </dl>
+                </div>
+              }
               <div class="compact-list">
                 @for (membership of catalog().classGroupMemberships; track membership.id) {
                   <div class="membership-row">
@@ -785,6 +815,58 @@ const capabilityLabels: Record<string, string> = {
       font-size: 0.9rem;
     }
 
+    .roster-form {
+      margin-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 1rem;
+    }
+
+    .roster-form textarea {
+      min-height: 8rem;
+      resize: vertical;
+    }
+
+    .roster-result {
+      margin-top: 1rem;
+      border-radius: 1rem;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      padding: 0.9rem;
+      color: #1e3a8a;
+      font-size: 0.85rem;
+    }
+
+    .roster-result strong {
+      display: block;
+      margin-bottom: 0.65rem;
+      color: #0f172a;
+    }
+
+    .roster-result dl {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(5.5rem, 1fr));
+      gap: 0.5rem;
+      margin: 0;
+    }
+
+    .roster-result div {
+      border-radius: 0.75rem;
+      background: rgba(255, 255, 255, 0.75);
+      padding: 0.5rem 0.65rem;
+    }
+
+    .roster-result dt {
+      color: #64748b;
+      font-weight: 700;
+    }
+
+    .roster-result dd {
+      margin: 0.15rem 0 0;
+      color: #0056D2;
+      font-size: 1.1rem;
+      font-weight: 900;
+    }
+
     .membership-row {
       display: grid;
       gap: 0.5rem;
@@ -917,6 +999,11 @@ export class OrgAcademicCatalogComponent implements OnInit {
     classGroupId: '',
     studentId: '',
   });
+  protected readonly classGroupRosterForm = signal({
+    classGroupId: '',
+    rosterText: '',
+  });
+  protected readonly classGroupRosterResult = signal<BulkAcademicClassGroupRosterResponse | null>(null);
   protected readonly subjectForm = signal<CreateAcademicSubjectRequest>({
     departmentId: null,
     code: '',
@@ -1001,6 +1088,10 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly canCreateClassGroupMembership = computed(() => {
     const form = this.classGroupMembershipForm();
     return Boolean(form.classGroupId && form.studentId);
+  });
+  protected readonly canImportClassGroupRoster = computed(() => {
+    const form = this.classGroupRosterForm();
+    return Boolean(form.classGroupId && this.rosterEmails().length > 0);
   });
 
   ngOnInit(): void {
@@ -1164,6 +1255,45 @@ export class OrgAcademicCatalogComponent implements OnInit {
       'Đã gán sinh viên vào lớp hành chính.',
       () => this.classGroupMembershipForm.set({ classGroupId: '', studentId: '' })
     );
+  }
+
+  protected async importClassGroupRoster(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = this.classGroupRosterForm();
+    const studentEmails = this.rosterEmails();
+    if (!form.classGroupId || studentEmails.length === 0) {
+      this.error.set('Vui lòng chọn lớp hành chính và nhập ít nhất một email sinh viên.');
+      return;
+    }
+    if (!this.organizationId()) {
+      this.error.set('Không tìm thấy tổ chức hiện tại.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    this.success.set(null);
+    this.classGroupRosterResult.set(null);
+    try {
+      const response = await firstValueFrom(this.academicApi.bulkImportClassGroupRoster(this.organizationId(), {
+        classGroupId: form.classGroupId,
+        studentEmails,
+      }));
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Không thể nhập danh sách lớp.');
+      }
+      this.classGroupRosterResult.set(response.data);
+      this.classGroupRosterForm.set({ classGroupId: form.classGroupId, rosterText: '' });
+      this.success.set(
+        `Đã xử lý ${response.data.total} dòng: ${response.data.assigned} gán mới, ${response.data.transferred} chuyển lớp, ${response.data.failed} lỗi.`
+      );
+      await this.loadCatalog();
+      await this.loadPackageEnrollments();
+    } catch (error) {
+      this.error.set(this.errorMessage(error));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected async transferClassGroupMembership(membership: AcademicClassGroupMembership): Promise<void> {
@@ -1449,6 +1579,10 @@ export class OrgAcademicCatalogComponent implements OnInit {
     return (event.target as HTMLInputElement | HTMLSelectElement).value;
   }
 
+  protected textarea(event: Event): string {
+    return (event.target as HTMLTextAreaElement).value;
+  }
+
   protected nullableText(event: Event): string | null {
     const value = this.text(event).trim();
     return value.length > 0 ? value : null;
@@ -1609,6 +1743,14 @@ export class OrgAcademicCatalogComponent implements OnInit {
       currency: currency || 'VND',
       maximumFractionDigits: 0,
     }).format(price);
+  }
+
+  private rosterEmails(): string[] {
+    return this.classGroupRosterForm()
+      .rosterText
+      .split(/[\n,;]+/)
+      .map(email => email.trim())
+      .filter(Boolean);
   }
 
   private async mutate<T>(

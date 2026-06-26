@@ -131,6 +131,11 @@ public final class AcademicCatalogDtos {
             @NotNull UUID classGroupId
     ) {}
 
+    public record BulkClassGroupRosterCommand(
+            @NotNull UUID classGroupId,
+            @NotNull @Size(max = 500) List<String> studentEmails
+    ) {}
+
     public record ReviewLearningPackageEnrollmentCommand(
             @Size(max = 1000) String note,
             @Size(max = 128) String paymentReference
@@ -149,6 +154,15 @@ public final class AcademicCatalogDtos {
     public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
     public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId, UUID learningClassId, String status, Instant createdAt) {}
     public record ClassGroupMembershipResponse(UUID id, UUID organizationId, UUID classGroupId, UUID studentId, String status, Instant joinedAt, Instant leftAt, Instant createdAt) {}
+    public record BulkClassGroupRosterRowResponse(String email, String action, String message, ClassGroupMembershipResponse membership) {}
+    public record BulkClassGroupRosterResponse(
+            int total,
+            int assigned,
+            int transferred,
+            int unchanged,
+            int failed,
+            List<BulkClassGroupRosterRowResponse> rows
+    ) {}
     public record LearningPackageEnrollmentResponse(
             UUID id,
             UUID organizationId,

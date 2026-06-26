@@ -6,6 +6,7 @@ export const ACADEMIC_ENDPOINTS = {
   CLASS_GROUPS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/class-groups`,
   CLASS_GROUP_MEMBERSHIPS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/class-group-memberships`,
   TRANSFER_CLASS_GROUP_MEMBERSHIP: (orgId: string, membershipId: string) => `/api/v3/organizations/${orgId}/academic/class-group-memberships/${membershipId}/transfer`,
+  BULK_CLASS_GROUP_ROSTER: (orgId: string) => `/api/v3/organizations/${orgId}/academic/class-group-memberships/bulk-import`,
   SUBJECTS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/subjects`,
   SUBJECT_COURSES: (orgId: string) => `/api/v3/organizations/${orgId}/academic/subject-courses`,
   TERMS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/terms`,

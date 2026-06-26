@@ -2,6 +2,7 @@ package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddCurriculumSubjectCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddLearningPackageItemCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.BulkClassGroupRosterCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateClassGroupMembershipCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateCurriculumPlanCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageClassTargetCommand;
@@ -394,6 +395,78 @@ class ManageAcademicCatalogUseCaseTest {
                 .hasMessageContaining("different");
 
         verify(repository, never()).replaceClassGroupMembership(any(), any());
+    }
+
+    @Test
+    @DisplayName("importClassGroupRoster: processes mixed roster rows independently")
+    void importClassGroupRoster_processesMixedRowsIndependently() {
+        UUID organizationId = UUID.randomUUID();
+        UUID targetClassGroupId = UUID.randomUUID();
+        UUID oldClassGroupId = UUID.randomUUID();
+        UUID newStudentId = UUID.randomUUID();
+        UUID transferStudentId = UUID.randomUUID();
+        UUID sameStudentId = UUID.randomUUID();
+        UUID teacherId = UUID.randomUUID();
+
+        when(repository.findClassGroup(organizationId, targetClassGroupId))
+                .thenReturn(Optional.of(classGroup(targetClassGroupId, organizationId)));
+        when(userRepository.findByEmail("new@maritime.edu"))
+                .thenReturn(Optional.of(user(newStudentId, organizationId, Role.STUDENT)));
+        when(userRepository.findByEmail("move@maritime.edu"))
+                .thenReturn(Optional.of(user(transferStudentId, organizationId, Role.STUDENT)));
+        when(userRepository.findByEmail("same@maritime.edu"))
+                .thenReturn(Optional.of(user(sameStudentId, organizationId, Role.STUDENT)));
+        when(userRepository.findByEmail("missing@maritime.edu")).thenReturn(Optional.empty());
+        when(userRepository.findByEmail("teacher@maritime.edu"))
+                .thenReturn(Optional.of(user(teacherId, organizationId, Role.TEACHER)));
+        when(repository.findActiveClassGroupMembership(organizationId, newStudentId))
+                .thenReturn(Optional.empty());
+        when(repository.findActiveClassGroupMembership(organizationId, transferStudentId))
+                .thenReturn(Optional.of(classGroupMembership(
+                        UUID.randomUUID(),
+                        organizationId,
+                        oldClassGroupId,
+                        transferStudentId,
+                        "ACTIVE")));
+        when(repository.findActiveClassGroupMembership(organizationId, sameStudentId))
+                .thenReturn(Optional.of(classGroupMembership(
+                        UUID.randomUUID(),
+                        organizationId,
+                        targetClassGroupId,
+                        sameStudentId,
+                        "ACTIVE")));
+        when(repository.saveClassGroupMembership(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.replaceClassGroupMembership(any(), any())).thenAnswer(invocation -> invocation.getArgument(1));
+
+        var response = useCase.importClassGroupRoster(
+                organizationId,
+                new BulkClassGroupRosterCommand(
+                        targetClassGroupId,
+                        java.util.List.of(
+                                " NEW@maritime.edu ",
+                                "move@maritime.edu",
+                                "same@maritime.edu",
+                                "missing@maritime.edu",
+                                "teacher@maritime.edu",
+                                "new@maritime.edu")));
+
+        assertThat(response.total()).isEqualTo(6);
+        assertThat(response.assigned()).isEqualTo(1);
+        assertThat(response.transferred()).isEqualTo(1);
+        assertThat(response.unchanged()).isEqualTo(2);
+        assertThat(response.failed()).isEqualTo(2);
+        assertThat(response.rows()).extracting(row -> row.action())
+                .containsExactly("ASSIGNED", "TRANSFERRED", "UNCHANGED", "FAILED", "FAILED", "UNCHANGED");
+        verify(repository).saveClassGroupMembership(any());
+        verify(repository).replaceClassGroupMembership(
+                org.mockito.ArgumentMatchers.argThat(previous ->
+                        "INACTIVE".equals(previous.status())
+                                && oldClassGroupId.equals(previous.classGroupId())
+                                && previous.leftAt() != null),
+                org.mockito.ArgumentMatchers.argThat(next ->
+                        "ACTIVE".equals(next.status())
+                                && targetClassGroupId.equals(next.classGroupId())
+                                && transferStudentId.equals(next.studentId())));
     }
 
     private AcademicSubject subject(UUID id, UUID organizationId) {

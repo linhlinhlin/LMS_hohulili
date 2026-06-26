@@ -1,5 +1,6 @@
 package com.example.lms.academic.infrastructure.web;
 
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.BulkClassGroupRosterCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateDepartmentCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.TransferClassGroupMembershipCommand;
 import com.example.lms.academic.application.usecase.ManageAcademicCatalogUseCase;
@@ -84,6 +85,21 @@ class AcademicCatalogControllerV3Test {
         controller.transferClassGroupMembership(organizationId, membershipId, command, orgAdmin);
 
         verify(useCase).transferClassGroupMembership(organizationId, membershipId, command);
+    }
+
+    @Test
+    @DisplayName("importClassGroupRoster: allows same-organization ORG_ADMIN when academic catalog is enabled")
+    void importClassGroupRoster_allowsSameOrgAdminWhenCapabilityEnabled() {
+        UUID organizationId = UUID.randomUUID();
+        var command = new BulkClassGroupRosterCommand(
+                UUID.randomUUID(),
+                java.util.List.of("student@maritime.edu"));
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId);
+        when(capabilitiesUseCase.isEnabled(organizationId, "academic_catalog")).thenReturn(true);
+
+        controller.importClassGroupRoster(organizationId, command, orgAdmin);
+
+        verify(useCase).importClassGroupRoster(organizationId, command);
     }
 
     private UserJpaEntity user(UserJpaEntity.UserRole role, UUID organizationId) {
