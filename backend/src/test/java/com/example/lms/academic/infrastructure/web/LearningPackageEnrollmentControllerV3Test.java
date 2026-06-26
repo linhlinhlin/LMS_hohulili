@@ -58,6 +58,33 @@ class LearningPackageEnrollmentControllerV3Test {
     }
 
     @Test
+    @DisplayName("createMyPackagePaymentQr: allows same-organization student")
+    void createMyPackagePaymentQr_allowsSameOrganizationStudent() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UserJpaEntity student = user(UserJpaEntity.UserRole.STUDENT, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
+
+        controller.createMyPackagePaymentQr(organizationId, packageId, student);
+
+        verify(useCase).createPaymentQr(organizationId, packageId, student.getId());
+    }
+
+    @Test
+    @DisplayName("createMyPackagePaymentQr: rejects disabled learning package capability")
+    void createMyPackagePaymentQr_rejectsDisabledLearningPackageCapability() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UserJpaEntity student = user(UserJpaEntity.UserRole.STUDENT, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(false);
+
+        assertThatThrownBy(() -> controller.createMyPackagePaymentQr(organizationId, packageId, student))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("learning_packages");
+        verify(useCase, never()).createPaymentQr(organizationId, packageId, student.getId());
+    }
+
+    @Test
     @DisplayName("listEnrollments: rejects ORG_ADMIN from another organization")
     void listEnrollments_rejectsOrgAdminFromAnotherOrganization() {
         UUID organizationId = UUID.randomUUID();

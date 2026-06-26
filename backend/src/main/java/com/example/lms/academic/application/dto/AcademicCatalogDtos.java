@@ -179,4 +179,17 @@ public final class AcademicCatalogDtos {
             Instant decidedAt,
             UUID decidedBy,
             Instant createdAt) {}
+
+    public record LearningPackagePaymentQrResponse(
+            LearningPackageEnrollmentResponse enrollment,
+            UUID txnId,
+            String qrUrl,
+            String transferContent,
+            String bankCode,
+            String accountNumber,
+            String accountName,
+            BigDecimal amount,
+            String currency,
+            String packageName
+    ) {}
 }

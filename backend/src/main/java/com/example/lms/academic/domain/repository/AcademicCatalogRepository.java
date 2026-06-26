@@ -32,6 +32,7 @@ public interface AcademicCatalogRepository {
     Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id);
     Optional<AcademicClassGroupMembership> findClassGroupMembership(UUID organizationId, UUID id);
     Optional<AcademicClassGroupMembership> findActiveClassGroupMembership(UUID organizationId, UUID studentId);
+    Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID id);
     Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id);
     Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId);
 

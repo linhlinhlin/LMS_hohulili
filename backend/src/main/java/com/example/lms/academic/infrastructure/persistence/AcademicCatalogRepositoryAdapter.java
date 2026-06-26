@@ -172,6 +172,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID id) {
+        return learningPackageEnrollments.findById(id).map(this::toDomain);
+    }
+
+    @Override
     public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
         return learningPackageEnrollments.findByOrganizationIdAndPackageIdAndStudentId(organizationId, packageId, studentId)
                 .map(this::toDomain);

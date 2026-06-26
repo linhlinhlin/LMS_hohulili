@@ -119,6 +119,19 @@ public record AcademicLearningPackageEnrollment(
                     "Only pending payment package enrollments can be completed");
         }
         Objects.requireNonNull(confirmerId, "confirmerId is required");
+        return complete(confirmerId, note, paymentReference);
+    }
+
+    public AcademicLearningPackageEnrollment completeExternalPayment(String note, String paymentReference) {
+        if (!"PENDING_PAYMENT".equals(status)) {
+            throw new BusinessRuleException(
+                    "PACKAGE_PAYMENT_NOT_COMPLETABLE",
+                    "Only pending payment package enrollments can be completed");
+        }
+        return complete(null, note, paymentReference);
+    }
+
+    private AcademicLearningPackageEnrollment complete(UUID confirmerId, String note, String paymentReference) {
         var now = Instant.now();
         return new AcademicLearningPackageEnrollment(
                 id,

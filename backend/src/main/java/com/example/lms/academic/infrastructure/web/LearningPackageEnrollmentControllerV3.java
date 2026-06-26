@@ -1,6 +1,7 @@
 package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
 import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
@@ -44,6 +45,19 @@ public class LearningPackageEnrollmentControllerV3 {
         requireLearningPackages(orgId);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.requestEnrollment(orgId, packageId, currentUser.getId())));
+    }
+
+    @PostMapping("/learning-packages/{packageId}/payment-qr/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "Create SePay QR for a payable learning package enrollment")
+    public ResponseEntity<ApiResponse<LearningPackagePaymentQrResponse>> createMyPackagePaymentQr(
+            @PathVariable UUID orgId,
+            @PathVariable UUID packageId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyStudentAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
+        return ResponseEntity.ok(ApiResponse.success(
+                useCase.createPaymentQr(orgId, packageId, currentUser.getId())));
     }
 
     @GetMapping("/learning-package-enrollments")

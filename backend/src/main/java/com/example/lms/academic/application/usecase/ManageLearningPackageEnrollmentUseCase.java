@@ -1,12 +1,14 @@
 package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
+import com.example.lms.shared.application.port.SepayPaymentPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
@@ -14,11 +16,13 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -26,6 +30,7 @@ import java.util.UUID;
 public class ManageLearningPackageEnrollmentUseCase {
     private final AcademicCatalogRepository repository;
     private final GrantCourseAccessUseCase courseAccessGrant;
+    private final SepayPaymentPort sepayPayment;
 
     @Transactional
     public LearningPackageEnrollmentResponse requestEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
@@ -59,6 +64,48 @@ public class ManageLearningPackageEnrollmentUseCase {
         return repository.findLearningPackageEnrollments(organizationId, safeStatus).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    @Transactional
+    public LearningPackagePaymentQrResponse createPaymentQr(UUID organizationId, UUID packageId, UUID studentId) {
+        var learningPackage = requireLearningPackage(organizationId, packageId);
+        if (!"ACTIVE".equals(learningPackage.status())) {
+            throw new BusinessRuleException(
+                    "PACKAGE_NOT_ACTIVE",
+                    "Only active learning packages can receive payments");
+        }
+        var enrollment = repository.findLearningPackageEnrollment(organizationId, packageId, studentId)
+                .orElseGet(() -> repository.saveLearningPackageEnrollment(
+                        AcademicLearningPackageEnrollment.request(
+                                organizationId,
+                                packageId,
+                                studentId,
+                                learningPackage.enrollmentPolicy(),
+                                learningPackage.price(),
+                                learningPackage.currency())));
+
+        if (!"PENDING_PAYMENT".equals(enrollment.status())) {
+            throw new BusinessRuleException(
+                    "PACKAGE_NOT_PAYABLE",
+                    "Gói học này chưa ở trạng thái chờ thanh toán");
+        }
+        if (enrollment.paymentAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleException(
+                    "PACKAGE_PAYMENT_AMOUNT_INVALID",
+                    "Số tiền thanh toán gói học phải lớn hơn 0");
+        }
+
+        return new LearningPackagePaymentQrResponse(
+                toResponse(enrollment),
+                enrollment.id(),
+                sepayPayment.generateQrUrl(enrollment.id(), enrollment.paymentAmount()),
+                sepayPayment.getTransferContent(enrollment.id()),
+                sepayPayment.getBankCode(),
+                sepayPayment.getAccountNumber(),
+                sepayPayment.getAccountName(),
+                enrollment.paymentAmount(),
+                enrollment.paymentCurrency(),
+                learningPackage.name());
     }
 
     @Transactional
@@ -99,6 +146,40 @@ public class ManageLearningPackageEnrollmentUseCase {
                         command == null ? null : command.paymentReference()));
         grantActivePackageCourses(completed);
         return toResponse(completed);
+    }
+
+    @Transactional
+    public Optional<LearningPackageEnrollmentResponse> completeExternalPayment(
+            UUID enrollmentId,
+            BigDecimal transferredAmount,
+            String gatewayTransactionCode) {
+        var enrollmentOpt = repository.findLearningPackageEnrollment(enrollmentId);
+        if (enrollmentOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        var enrollment = enrollmentOpt.get();
+        if ("ACTIVE".equals(enrollment.status()) && enrollment.paymentConfirmedAt() != null) {
+            return Optional.of(toResponse(enrollment));
+        }
+        if (!"PENDING_PAYMENT".equals(enrollment.status())) {
+            throw new BusinessRuleException(
+                    "PACKAGE_PAYMENT_NOT_COMPLETABLE",
+                    "Gói học không ở trạng thái chờ thanh toán");
+        }
+        if (transferredAmount != null && transferredAmount.compareTo(enrollment.paymentAmount()) != 0) {
+            throw new BusinessRuleException(
+                    "PACKAGE_PAYMENT_AMOUNT_MISMATCH",
+                    "Số tiền chuyển khoản không khớp học phí gói");
+        }
+
+        var reference = gatewayTransactionCode == null || gatewayTransactionCode.isBlank()
+                ? sepayPayment.getTransferContent(enrollment.id())
+                : gatewayTransactionCode.trim();
+        var completed = repository.saveLearningPackageEnrollment(
+                enrollment.completeExternalPayment("SePay webhook xác nhận thanh toán gói học.", reference));
+        grantActivePackageCourses(completed);
+        return Optional.of(toResponse(completed));
     }
 
     private AcademicLearningPackage requireLearningPackage(UUID organizationId, UUID packageId) {

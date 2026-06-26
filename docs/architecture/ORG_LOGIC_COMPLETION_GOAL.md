@@ -1999,3 +1999,82 @@ Debt còn lại sau Phase 4.15:
 - Public package checkout bằng SePay/VNPay vẫn là phase riêng.
 - Package-level revenue split/refund/accounting vẫn cần thiết kế riêng, không nên dùng tạm course-level payment nếu muốn báo cáo tài chính chuẩn.
 - Nếu đưa vào production demo dài ngày, nên quyết định có giữ seed payout demo hay chuyển sang script seed demo có thể bật/tắt theo môi trường.
+
+## 46. Phase 4.16 learning package SePay checkout bridge - 2026-06-27
+
+Mục tiêu của vòng này là mở đường thanh toán thật cho gói học VMU mà không phá mô hình payment course hiện có. Hệ thống hiện đã có `learning_package_enrollments` với trạng thái `PENDING_PAYMENT`, vì vậy cách sạch nhất là để package enrollment có QR/payment reference riêng và để webhook SePay thử complete target ngoài course payment khi UUID không thuộc `payment_transactions`.
+
+Thay đổi đã thực hiện:
+
+- Thêm DTO `LearningPackagePaymentQrResponse`.
+- Thêm use case `createPaymentQr(...)` cho gói học có `enrollmentPolicy=PAYMENT_REQUIRED`.
+- Nếu sinh viên chưa có enrollment, endpoint QR sẽ tạo enrollment `PENDING_PAYMENT` từ package price/currency.
+- Nếu enrollment không ở trạng thái `PENDING_PAYMENT`, hệ thống từ chối tạo QR để tránh thanh toán trùng hoặc sai workflow.
+- Thêm use case `completeExternalPayment(...)` để webhook SePay có thể xác nhận `learning_package_enrollments.id` trực tiếp.
+- Thêm port `ExternalPaymentCompletionPort` trong shared application layer.
+- `ProcessSepayWebhookUseCase` vẫn ưu tiên `payment_transactions` trước; nếu không tìm thấy course payment thì mới thử các external payment completion port.
+- Thêm adapter `LearningPackageExternalPaymentCompletionAdapter` ở tầng infrastructure của academic để bridge webhook -> package enrollment.
+- API mới: `POST /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/payment-qr/me`.
+
+Quyết định thiết kế:
+
+- Không nhét package checkout vào `payment_transactions.course_id`, vì package không phải course đơn lẻ và sẽ làm méo báo cáo doanh thu theo khóa học.
+- Không tạo abstraction payment lớn hơn lúc này. Một port nhỏ là đủ để SePay webhook xử lý thêm package enrollment mà shared payment không phụ thuộc ngược vào academic domain.
+- Không hardcode VMU. VMU chỉ dùng dữ liệu organization, learning package, enrollment policy, price/currency và capability.
+- Chưa làm package-level revenue split/refund/accounting trong vòng này. Đây là debt thật cần thiết kế riêng nếu muốn báo cáo tài chính chuẩn theo gói.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test,ProcessSepayWebhookUseCaseTest,PaymentControllerV3Test" test
+# Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Runtime smoke:
+
+```text
+Local default config:
+SEPAY_ENABLED=false.
+POST /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/payment-qr/me -> 422.
+Message: "Cổng thanh toán SePay chưa được kích hoạt. Vui lòng liên hệ quản trị viên."
+
+Dummy SePay smoke config injected through shell env only:
+SEPAY_ENABLED=true
+SEPAY_BANK_CODE=MBBank
+SEPAY_ACCOUNT_NUMBER=0123456789
+SEPAY_ACCOUNT_NAME=HOHOLIHU SMOKE
+SEPAY_WEBHOOK_API_KEY=smoke-local-key
+
+Student: nguyenvanan@sv.maritime.edu.
+Package: SMOKE-PAY-COURSE-20260626172129.
+POST /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/payment-qr/me -> 200.
+Response: txnId=96063a7a-e5e7-459d-9e6e-620fff9ea049, amount=1250000, transferContent=96063A7AE5E7459D9E6E620FFF9EA049, qrUrl starts with https://qr.sepay.vn/.
+
+POST /api/v3/payments/sepay/webhook with Authorization: Apikey smoke-local-key -> 200.
+Response message: Learning package payment confirmed.
+
+DB check:
+learning_package_enrollments.id=96063a7a-e5e7-459d-9e6e-620fff9ea049 -> status=ACTIVE, payment_reference=SMOKE-PACKAGE-SEP-001, payment_confirmed_at set.
+enrollments joined through learning_classes for course a4024de5-2c22-4203-9a3b-252d20af1b69 and student nguyenvanan@sv.maritime.edu -> status=COMPLETED.
+
+After smoke, backend was recreated without dummy env:
+SEPAY_ENABLED=false, SEPAY_ACCOUNT_NUMBER empty, SEPAY_WEBHOOK_API_KEY empty.
+curl http://localhost:8088/actuator/health -> {"status":"UP"}.
+```
+
+Trạng thái sau Phase 4.16:
+
+- Gói học VMU có đường thanh toán SePay backend tối thiểu: student tạo QR, SePay webhook xác nhận UUID enrollment, enrollment chuyển sang `ACTIVE`, và hệ thống cấp quyền các course/class target trong gói.
+- Course payment cũ không đổi hành vi chính: webhook vẫn xử lý `payment_transactions` trước.
+- Đây là nền để sau đó thêm UI checkout package public/student nếu cần demo end-to-end đẹp hơn.
+
+Debt còn lại sau Phase 4.16:
+
+- UI student/public cho package checkout SePay cần phase riêng nếu muốn người học tự mua gói từ màn hình browse/package detail.
+- Package-level revenue split, refund, invoice/audit ledger vẫn chưa hoàn chỉnh.
+- VNPay cho package chưa được nối; hiện bridge mới ưu tiên SePay vì production `.env.prod` đang bật SePay và QR transfer content phù hợp với enrollment UUID.

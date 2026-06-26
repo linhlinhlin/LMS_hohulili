@@ -9,6 +9,7 @@ import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
 import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
+import com.example.lms.shared.application.port.SepayPaymentPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.ValidationException;
 import org.junit.jupiter.api.DisplayName;
@@ -39,6 +40,9 @@ class ManageLearningPackageEnrollmentUseCaseTest {
 
     @Mock
     private GrantCourseAccessUseCase courseAccessGrant;
+
+    @Mock
+    private SepayPaymentPort sepayPayment;
 
     @InjectMocks
     private ManageLearningPackageEnrollmentUseCase useCase;
@@ -123,6 +127,35 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.status()).isEqualTo("PENDING_APPROVAL");
         verify(repository, never()).saveLearningPackageEnrollment(any());
         verify(courseAccessGrant, never()).grant(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("createPaymentQr: creates pending payment enrollment and returns SePay QR metadata")
+    void createPaymentQr_createsPendingPaymentEnrollmentAndReturnsQrMetadata() {
+        UUID orgId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(orgId, packageId))
+                .thenReturn(Optional.of(packageWithPolicy(orgId, packageId, "PAYMENT_REQUIRED")));
+        when(repository.findLearningPackageEnrollment(orgId, packageId, studentId)).thenReturn(Optional.empty());
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(sepayPayment.generateQrUrl(any(UUID.class), any(BigDecimal.class)))
+                .thenReturn("https://qr.sepay.vn/img?acc=0123456789");
+        when(sepayPayment.getTransferContent(any(UUID.class))).thenReturn("LMSABC123");
+        when(sepayPayment.getBankCode()).thenReturn("MBBank");
+        when(sepayPayment.getAccountNumber()).thenReturn("0123456789");
+        when(sepayPayment.getAccountName()).thenReturn("HOHOLIHU");
+
+        var response = useCase.createPaymentQr(orgId, packageId, studentId);
+
+        assertThat(response.enrollment().status()).isEqualTo("PENDING_PAYMENT");
+        assertThat(response.txnId()).isEqualTo(response.enrollment().id());
+        assertThat(response.qrUrl()).contains("qr.sepay.vn");
+        assertThat(response.transferContent()).isEqualTo("LMSABC123");
+        assertThat(response.amount()).isEqualByComparingTo("1200000");
+        assertThat(response.currency()).isEqualTo("VND");
+        assertThat(response.packageName()).isEqualTo("Gói Điều khiển tàu biển K63");
     }
 
     @Test
@@ -321,6 +354,61 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     @Test
+    @DisplayName("completeExternalPayment: pending payment enrollment becomes active and grants courses")
+    void completeExternalPayment_pendingPaymentBecomesActiveAndGrantsCourses() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        var enrollment = enrollment(enrollmentId, orgId, packageId, studentId, "PENDING_PAYMENT");
+
+        when(repository.findLearningPackageEnrollment(enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
+        when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
+
+        var response = useCase.completeExternalPayment(
+                enrollmentId,
+                new BigDecimal("1200000"),
+                "SEPAY-VMU-002");
+
+        assertThat(response).isPresent();
+        assertThat(response.get().status()).isEqualTo("ACTIVE");
+        assertThat(response.get().paymentReference()).isEqualTo("SEPAY-VMU-002");
+        assertThat(response.get().paymentConfirmedAt()).isNotNull();
+        assertThat(response.get().paymentConfirmedBy()).isNull();
+        verify(courseAccessGrant).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("completeExternalPayment: returns empty for non-package payment reference")
+    void completeExternalPayment_returnsEmptyForUnknownReference() {
+        UUID enrollmentId = UUID.randomUUID();
+        when(repository.findLearningPackageEnrollment(enrollmentId)).thenReturn(Optional.empty());
+
+        var response = useCase.completeExternalPayment(enrollmentId, new BigDecimal("1200000"), "SEPAY-UNKNOWN");
+
+        assertThat(response).isEmpty();
+        verify(repository, never()).saveLearningPackageEnrollment(any());
+    }
+
+    @Test
+    @DisplayName("completeExternalPayment: rejects amount mismatch")
+    void completeExternalPayment_rejectsAmountMismatch() {
+        UUID enrollmentId = UUID.randomUUID();
+        var enrollment = enrollment(enrollmentId, UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), "PENDING_PAYMENT");
+        when(repository.findLearningPackageEnrollment(enrollmentId)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> useCase.completeExternalPayment(enrollmentId, new BigDecimal("1100000"), "SEPAY-LOW"))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("không khớp");
+        verify(repository, never()).saveLearningPackageEnrollment(any());
+    }
+
+    @Test
     @DisplayName("listEnrollments: rejects unsupported status filter")
     void listEnrollments_rejectsUnsupportedStatus() {
         assertThatThrownBy(() -> useCase.listEnrollments(UUID.randomUUID(), "unknown"))
@@ -357,8 +445,17 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     private AcademicLearningPackageEnrollment enrollment(UUID orgId, UUID packageId, UUID studentId, String status) {
+        return enrollment(UUID.randomUUID(), orgId, packageId, studentId, status);
+    }
+
+    private AcademicLearningPackageEnrollment enrollment(
+            UUID enrollmentId,
+            UUID orgId,
+            UUID packageId,
+            UUID studentId,
+            String status) {
         return new AcademicLearningPackageEnrollment(
-                UUID.randomUUID(),
+                enrollmentId,
                 orgId,
                 packageId,
                 studentId,
