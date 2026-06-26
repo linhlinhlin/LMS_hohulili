@@ -15,6 +15,11 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class AcademicCatalogRepositoryAdapter implements AcademicCatalogRepository {
+    private static final List<String> CURRENT_LEARNING_PACKAGE_ENROLLMENT_STATUSES = List.of(
+            "PENDING_APPROVAL",
+            "PENDING_PAYMENT",
+            "ACTIVE");
+
     private final AcademicDepartmentJpaRepository departments;
     private final AcademicProgramJpaRepository programs;
     private final AcademicCohortJpaRepository cohorts;
@@ -198,7 +203,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
 
     @Override
     public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
-        return learningPackageEnrollments.findByOrganizationIdAndPackageIdAndStudentId(organizationId, packageId, studentId)
+        return learningPackageEnrollments.findFirstByOrganizationIdAndPackageIdAndStudentIdAndStatusInOrderByRequestedAtDesc(
+                        organizationId,
+                        packageId,
+                        studentId,
+                        CURRENT_LEARNING_PACKAGE_ENROLLMENT_STATUSES)
                 .map(this::toDomain);
     }
 

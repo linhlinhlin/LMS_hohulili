@@ -2661,3 +2661,56 @@ Debt còn lại sau Phase 4.24:
 - Re-enrollment sau refund chưa mở vì DB hiện có unique `(package_id, student_id)`. Nếu nghiệp vụ yêu cầu mua lại/gia hạn cùng package, cần thêm attempt model hoặc partial unique index theo trạng thái.
 - Teacher revenue history vẫn cần read model hợp nhất nếu muốn hiển thị package/refund detail ở dashboard giảng viên.
 - Invoice/receipt chính thức và export đối soát kế toán nên làm sau khi chốt policy re-enrollment/refund adjustment.
+
+## 55. Phase 4.25 re-enrollment after terminal package enrollment - 2026-06-27
+
+Mục tiêu của vòng này là đóng debt trực tiếp sau refund: khi học viên VMU đã bị `REJECTED`, `CANCELLED`, hoặc đã được `REFUNDED`, trạng thái đó phải được giữ lại để audit nhưng không được khóa việc đăng ký/mua lại cùng gói học. Đây là enrollment policy tối thiểu cho mô hình học phí/gói học: mỗi học viên chỉ có một enrollment gói học đang hiệu lực, nhưng có thể có nhiều enrollment lịch sử theo thời gian.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V159__learning_package_reenrollment_after_terminal_status.sql`.
+- Bỏ unique constraint tuyệt đối `uq_learning_package_enrollments_package_student`.
+- Thêm partial unique index `ux_learning_package_enrollments_current_package_student` trên `(package_id, student_id)` chỉ khi `status IN ('PENDING_APPROVAL', 'PENDING_PAYMENT', 'ACTIVE')`.
+- `AcademicCatalogRepositoryAdapter.findLearningPackageEnrollment(organizationId, packageId, studentId)` giờ chỉ trả enrollment hiện hành, không trả các row terminal `REJECTED`, `CANCELLED`, `REFUNDED`.
+- Thêm test adapter xác nhận repository query luôn lọc theo các trạng thái current.
+
+Quyết định thiết kế:
+
+- Không thêm bảng `attempt` trong vòng này vì partial unique index đã đủ cho rule hiện tại và ít rủi ro hơn.
+- Không xóa row terminal. Các row này là audit history cho tài chính/học vụ.
+- Không hardcode VMU. Đây là policy chung cho mọi ORG dùng learning package.
+- Không đổi UI vì luồng request/QR hiện tại tự tạo enrollment mới khi backend không tìm thấy enrollment current.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=AcademicCatalogRepositoryAdapterTest,ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+
+mvn test
+# Tests run: 1255, Failures: 0, Errors: 0, Skipped: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Runtime smoke:
+
+```text
+Flyway local Docker:
+V159 learning package reenrollment after terminal status -> success
+
+DB invariant:
+uq_learning_package_enrollments_package_student -> dropped
+ux_learning_package_enrollments_current_package_student -> unique partial index on package_id/student_id where status is PENDING_APPROVAL, PENDING_PAYMENT, or ACTIVE
+
+Student API smoke:
+seeded temporary package + one REFUNDED history enrollment for student@maritime.edu
+POST /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/enrollments/me
+# success true
+# new enrollment status PENDING_APPROVAL
+# DB before cleanup: PENDING_APPROVAL:1; REFUNDED:1
+# temporary package deleted after smoke
+```

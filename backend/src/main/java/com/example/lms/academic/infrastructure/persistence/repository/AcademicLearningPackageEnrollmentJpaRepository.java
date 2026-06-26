@@ -11,5 +11,9 @@ public interface AcademicLearningPackageEnrollmentJpaRepository extends JpaRepos
     List<AcademicLearningPackageEnrollmentJpaEntity> findByOrganizationIdOrderByRequestedAtDesc(UUID organizationId);
     List<AcademicLearningPackageEnrollmentJpaEntity> findByOrganizationIdAndStatusOrderByRequestedAtDesc(UUID organizationId, String status);
     Optional<AcademicLearningPackageEnrollmentJpaEntity> findByIdAndOrganizationId(UUID id, UUID organizationId);
-    Optional<AcademicLearningPackageEnrollmentJpaEntity> findByOrganizationIdAndPackageIdAndStudentId(UUID organizationId, UUID packageId, UUID studentId);
+    Optional<AcademicLearningPackageEnrollmentJpaEntity> findFirstByOrganizationIdAndPackageIdAndStudentIdAndStatusInOrderByRequestedAtDesc(
+            UUID organizationId,
+            UUID packageId,
+            UUID studentId,
+            List<String> statuses);
 }
