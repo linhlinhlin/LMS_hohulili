@@ -18,6 +18,7 @@ import {
   AcademicLearningPackageItem,
   AcademicLearningPackagePaymentQr,
   AcademicLearningPackageRevenueAllocation,
+  AcademicLearningPackageRevenueSplit,
   AcademicProgram,
   AcademicSubject,
   AcademicSubjectCourse,
@@ -212,6 +213,12 @@ export class AcademicApi {
     return this.api.patchWithResponse<AcademicLearningPackageEnrollment>(
       ACADEMIC_ENDPOINTS.COMPLETE_LEARNING_PACKAGE_PAYMENT(orgId, enrollmentId),
       request
+    );
+  }
+
+  listLearningPackageRevenueSplits(orgId: string, enrollmentId: string) {
+    return this.api.getWithResponse<AcademicLearningPackageRevenueSplit[]>(
+      ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_REVENUE_SPLITS(orgId, enrollmentId)
     );
   }
 }

@@ -16,6 +16,7 @@ import {
   AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
   AcademicLearningPackageRevenueAllocation,
+  AcademicLearningPackageRevenueSplit,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
   BulkAcademicClassGroupRosterResponse,
@@ -633,7 +634,33 @@ const capabilityLabels: Record<string, string> = {
                         </button>
                       </span>
                     }
+                    @if (enrollment.status === 'ACTIVE') {
+                      <span class="action-row">
+                        <button type="button" class="secondary-button compact-action" [disabled]="saving()" (click)="loadPackageRevenueSplits(enrollment)">
+                          Xem doanh thu
+                        </button>
+                      </span>
+                    }
                   </p>
+                  @if (revenueSplitsFor(enrollment.id); as splits) {
+                    <div class="split-panel" data-testid="package-revenue-split-panel">
+                      <strong>Đối soát doanh thu gói học</strong>
+                      <div class="compact-list">
+                        @for (split of splits; track split.id) {
+                          <p>
+                            <strong>{{ packageRevenueSplitLabel(split) }}</strong>
+                            <span>GV {{ shortId(split.teacherId) }} · tổng {{ formatPrice(split.grossAmount, split.currency) }}</span>
+                            <span>Giảng viên {{ formatPrice(split.teacherAmount, split.currency) }} · ORG {{ formatPrice(split.orgAmount, split.currency) }} · nền tảng {{ formatPrice(split.platformAmount, split.currency) }}</span>
+                            @if (split.paymentReference) {
+                              <span class="payment-chip muted">Mã: {{ split.paymentReference }}</span>
+                            }
+                          </p>
+                        } @empty {
+                          <p class="empty-text">Chưa có dòng doanh thu nào cho enrollment này.</p>
+                        }
+                      </div>
+                    </div>
+                  }
                 } @empty {
                   <p class="empty-text">Chưa có yêu cầu đăng ký gói học.</p>
                 }
@@ -867,6 +894,23 @@ const capabilityLabels: Record<string, string> = {
       background: rgba(255, 255, 255, 0.78);
     }
 
+    .split-panel {
+      border-radius: 1rem;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      padding: 1rem;
+    }
+
+    .split-panel > strong {
+      display: block;
+      color: #0f172a;
+      font-size: 0.9rem;
+    }
+
+    .split-panel .compact-list p {
+      background: rgba(255, 255, 255, 0.82);
+    }
+
     .roster-form textarea {
       min-height: 8rem;
       resize: vertical;
@@ -1002,6 +1046,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
   protected readonly packageRevenueAllocations = signal<Record<string, AcademicLearningPackageRevenueAllocation>>({});
+  protected readonly packageRevenueSplits = signal<Record<string, AcademicLearningPackageRevenueSplit[]>>({});
   protected readonly selectedRevenuePackageId = signal('');
   protected readonly packagePaymentReferences = signal<Record<string, string>>({});
   protected readonly classGroupTransferTargets = signal<Record<string, string>>({});
@@ -1593,6 +1638,36 @@ export class OrgAcademicCatalogComponent implements OnInit {
       'Đã xác nhận thanh toán và kích hoạt gói học.',
       () => this.clearPaymentReference(enrollment.id)
     );
+    if (this.packageRevenueSplits()[enrollment.id]) {
+      await this.loadPackageRevenueSplits(enrollment);
+    }
+  }
+
+  protected async loadPackageRevenueSplits(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
+    const orgId = this.organizationId();
+    if (!orgId) {
+      this.error.set('Không tìm thấy tổ chức hiện tại.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      const response = await firstValueFrom(
+        this.academicApi.listLearningPackageRevenueSplits(orgId, enrollment.id)
+      );
+      if (!response.success) {
+        throw new Error(response.message || 'Không tải được dữ liệu đối soát doanh thu.');
+      }
+      this.packageRevenueSplits.update(current => ({
+        ...current,
+        [enrollment.id]: response.data ?? [],
+      }));
+    } catch (error) {
+      this.error.set(this.errorMessage(error));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected selectPackageSubject(event: Event): void {
@@ -1755,6 +1830,13 @@ export class OrgAcademicCatalogComponent implements OnInit {
     return row.courseId ? this.courseLabel(row.courseId) : this.shortId(row.itemId);
   }
 
+  protected packageRevenueSplitLabel(split: AcademicLearningPackageRevenueSplit): string {
+    if (split.subjectId) {
+      return this.subjectLabel(split.subjectId);
+    }
+    return split.courseId ? this.courseLabel(split.courseId) : this.shortId(split.packageItemId);
+  }
+
   protected enrollmentPolicyLabel(policy: string): string {
     switch (policy) {
       case 'OPEN':
@@ -1789,6 +1871,10 @@ export class OrgAcademicCatalogComponent implements OnInit {
 
   protected paymentReferenceFor(enrollmentId: string): string {
     return this.packagePaymentReferences()[enrollmentId] ?? '';
+  }
+
+  protected revenueSplitsFor(enrollmentId: string): AcademicLearningPackageRevenueSplit[] | null {
+    return this.packageRevenueSplits()[enrollmentId] ?? null;
   }
 
   protected setPaymentReference(enrollmentId: string, event: Event): void {

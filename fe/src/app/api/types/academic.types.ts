@@ -220,6 +220,27 @@ export interface AcademicLearningPackageRevenueAllocationItem {
   allocatedAmount: number;
 }
 
+export interface AcademicLearningPackageRevenueSplit {
+  id: string;
+  organizationId: string;
+  enrollmentId: string;
+  packageId: string;
+  packageItemId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  teacherId: string;
+  grossAmount: number;
+  currency: string;
+  platformFeePct: number;
+  teacherSharePct: number;
+  orgSharePct: number;
+  platformAmount: number;
+  teacherAmount: number;
+  orgAmount: number;
+  paymentReference: string | null;
+  createdAt: string;
+}
+
 export interface CreateAcademicDepartmentRequest {
   code: string;
   name: string;

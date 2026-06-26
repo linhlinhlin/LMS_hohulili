@@ -2500,3 +2500,69 @@ Debt còn lại sau Phase 4.22:
 - Package refund vẫn cần policy riêng về thu hồi quyền học hoặc bút toán điều chỉnh.
 - Org-admin UI chưa có màn đối soát package revenue split theo enrollment, dù backend endpoint đã có.
 - Invoice/receipt chính thức nên làm sau khi refund và package payout ledger ổn định.
+
+## 53. Phase 4.23 org-admin package revenue split reconciliation UI - 2026-06-27
+
+Mục tiêu của vòng này là đóng debt UI nhỏ sau Phase 4.21/4.22: backend đã có ledger `learning_package_revenue_splits`, teacher payout và admin analytics đã cộng được package revenue, nhưng ORG_ADMIN vẫn chưa nhìn trực tiếp được các dòng phân bổ doanh thu của một enrollment gói học. Với VMU, màn này giúp giải thích rõ học phí gói được chia cho giảng viên, ORG và nền tảng như thế nào.
+
+Thay đổi đã thực hiện:
+
+- Thêm endpoint FE `LEARNING_PACKAGE_REVENUE_SPLITS`.
+- Thêm type `AcademicLearningPackageRevenueSplit` khớp DTO backend.
+- Thêm `AcademicApi.listLearningPackageRevenueSplits(orgId, enrollmentId)`.
+- Trong `/org-admin/academic`, enrollment gói học trạng thái `ACTIVE` có nút `Xem doanh thu`.
+- Khi ORG_ADMIN bấm nút, UI lazy-load revenue split theo enrollment và hiển thị:
+  - môn/course tương ứng;
+  - mã giảng viên;
+  - tổng học phí phân bổ;
+  - phần giảng viên;
+  - phần ORG;
+  - phần nền tảng;
+  - mã đối soát thanh toán nếu có.
+
+Quyết định thiết kế:
+
+- Không tạo route hoặc dashboard tài chính mới vì endpoint đã gắn tự nhiên với enrollment gói học trong màn academic.
+- Không tự load revenue split cho mọi enrollment lúc vào trang để tránh làm màn ORG academic nặng hơn.
+- Không hardcode VMU. UI đọc theo enrollment/package hiện tại của organization đang đăng nhập.
+- Không làm refund/invoice trong vòng này; đó là nghiệp vụ tài chính riêng cần policy rõ hơn.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# build success; các warning còn lại là warning cũ ở admin-storage/tiptap/Sass/CommonJS/Node odd-version.
+```
+
+Browser smoke trên runtime local:
+
+```text
+Backend Docker: actuator health UP
+Frontend dev server: http://localhost:4200
+Login: orgadmin@maritime.edu / orgadmin123
+Route: /org-admin/academic
+
+Click: Xem doanh thu
+Panel: Đối soát doanh thu gói học
+# SAF-101 - Huấn Luyện An Toàn Cơ Bản STCW
+# tổng 1,250,000 VND
+# giảng viên 875,000 VND
+# ORG 125,000 VND
+# nền tảng 250,000 VND
+# mã SMOKE-PACKAGE-REV-001
+# API 4xx/5xx: 0
+# console/page errors: 0
+```
+
+Trạng thái sau Phase 4.23:
+
+- ORG_ADMIN có thể đối soát package enrollment từ UI, không cần gọi API thủ công.
+- VMU demo hiện trình bày được chuỗi nghiệp vụ: gói học -> thanh toán -> enrollment active -> revenue split -> teacher payout/admin analytics -> UI đối soát.
+- ORG logic vẫn là dữ liệu/capability/policy theo tổ chức, không có nhánh code hardcode VMU.
+
+Debt còn lại sau Phase 4.23:
+
+- Teacher revenue history vẫn là course-level `revenue_splits`; nếu cần xem lịch sử chi tiết package ở dashboard teacher thì thêm endpoint/list riêng hoặc hợp nhất read model sau.
+- Package refund vẫn cần policy riêng về thu hồi quyền học hoặc bút toán điều chỉnh.
+- Invoice/receipt chính thức nên làm sau khi refund và package payout ledger ổn định.
