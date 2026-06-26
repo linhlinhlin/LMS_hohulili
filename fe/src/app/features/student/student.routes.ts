@@ -58,6 +58,11 @@ export const studentRoutes: Routes = [
         title: 'Khóa Học Mô Phỏng (Beta)'
       },
       {
+        path: 'packages',
+        loadComponent: () => import('./pages/student-learning-packages.component').then(m => m.StudentLearningPackagesComponent),
+        title: 'Gói học'
+      },
+      {
         path: 'lesson-viewer',
         redirectTo: 'courses',
         pathMatch: 'full'

@@ -28,6 +28,12 @@ export const studentSidebarConfig: SidebarConfig = {
       group: 'Học tập'
     },
     {
+      label: 'Gói học',
+      route: '/student/packages',
+      icon: 'briefcase',
+      group: 'Học tập'
+    },
+    {
       label: 'Bài cần làm',
       route: '/student/tasks',
       icon: 'blog',

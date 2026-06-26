@@ -182,6 +182,24 @@ export interface AcademicLearningPackageEnrollment {
   createdAt: string;
 }
 
+export interface AcademicLearningPackageAvailability {
+  learningPackage: AcademicLearningPackage;
+  enrollment: AcademicLearningPackageEnrollment | null;
+}
+
+export interface AcademicLearningPackagePaymentQr {
+  enrollment: AcademicLearningPackageEnrollment;
+  txnId: string;
+  qrUrl: string;
+  transferContent: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  amount: number;
+  currency: string;
+  packageName: string;
+}
+
 export interface CreateAcademicDepartmentRequest {
   code: string;
   name: string;

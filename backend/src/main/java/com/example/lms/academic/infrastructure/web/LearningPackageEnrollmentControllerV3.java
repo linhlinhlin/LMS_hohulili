@@ -1,5 +1,6 @@
 package com.example.lms.academic.infrastructure.web;
 
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
@@ -33,6 +34,18 @@ public class LearningPackageEnrollmentControllerV3 {
 
     private final ManageLearningPackageEnrollmentUseCase useCase;
     private final ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
+
+    @GetMapping("/learning-packages/available/me")
+    @PreAuthorize("hasRole('STUDENT')")
+    @Operation(summary = "List active learning packages available to current student")
+    public ResponseEntity<ApiResponse<List<LearningPackageAvailabilityResponse>>> listMyAvailablePackages(
+            @PathVariable UUID orgId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyStudentAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
+        return ResponseEntity.ok(ApiResponse.success(
+                useCase.listAvailablePackagesForStudent(orgId, currentUser.getId())));
+    }
 
     @PostMapping("/learning-packages/{packageId}/enrollments/me")
     @PreAuthorize("hasRole('STUDENT')")

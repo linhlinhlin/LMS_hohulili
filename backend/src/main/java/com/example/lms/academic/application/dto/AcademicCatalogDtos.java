@@ -180,6 +180,11 @@ public final class AcademicCatalogDtos {
             UUID decidedBy,
             Instant createdAt) {}
 
+    public record LearningPackageAvailabilityResponse(
+            LearningPackageResponse learningPackage,
+            LearningPackageEnrollmentResponse enrollment
+    ) {}
+
     public record LearningPackagePaymentQrResponse(
             LearningPackageEnrollmentResponse enrollment,
             UUID txnId,

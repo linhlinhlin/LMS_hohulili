@@ -2078,3 +2078,93 @@ Debt còn lại sau Phase 4.16:
 - UI student/public cho package checkout SePay cần phase riêng nếu muốn người học tự mua gói từ màn hình browse/package detail.
 - Package-level revenue split, refund, invoice/audit ledger vẫn chưa hoàn chỉnh.
 - VNPay cho package chưa được nối; hiện bridge mới ưu tiên SePay vì production `.env.prod` đang bật SePay và QR transfer content phù hợp với enrollment UUID.
+
+## 47. Phase 4.17 student learning package portal - 2026-06-27
+
+Mục tiêu của vòng này là đóng debt UI trực tiếp sau Phase 4.16: học viên cần một nơi nhìn thấy các gói học mà tổ chức mở cho mình, trạng thái enrollment, chính sách kích hoạt và QR SePay nếu gói cần thanh toán. Vòng này vẫn giữ nguyên nguyên tắc không hardcode VMU; VMU chỉ là dữ liệu tổ chức/gói học/capability.
+
+Thay đổi đã thực hiện:
+
+- Thêm DTO `LearningPackageAvailabilityResponse` để trả về một cặp `{ learningPackage, enrollment }`.
+- Thêm endpoint student:
+  - `GET /api/v3/organizations/{orgId}/academic/learning-packages/available/me`
+  - Chỉ `STUDENT` cùng `organizationId` được truy cập.
+  - Chỉ trả gói `ACTIVE`.
+  - Gói `INVITE_ONLY` chỉ hiện khi học viên đã có enrollment/lời mời.
+- FE academic API có client/type/endpoint cho:
+  - danh sách gói khả dụng của học viên;
+  - tạo QR thanh toán gói học của học viên.
+- Thêm route `/student/packages`.
+- Thêm menu sidebar học viên `Gói học`.
+- Thêm màn `StudentLearningPackagesComponent`:
+  - hiển thị tổng số gói, số gói đã kích hoạt, số gói chờ thanh toán;
+  - hiển thị trạng thái theo tiếng Việt: chờ duyệt, chờ thanh toán, đã kích hoạt;
+  - cho phép kích hoạt/yêu cầu duyệt/tạo QR theo `enrollmentPolicy`;
+  - có QR panel với số tiền, ngân hàng, số tài khoản, nội dung chuyển khoản và nút sao chép.
+
+Quyết định thiết kế:
+
+- Không tạo public marketplace/package detail vội. Student portal là lát cắt ngắn nhất để kiểm chứng nghiệp vụ package checkout end-to-end.
+- Không hardcode VMU trong code. Tên `VMU Academic Packages` chỉ là microcopy màn hiện tại; dữ liệu quyết định luồng vẫn là `organizationId`, `learningPackage`, `enrollmentPolicy`, `capability`.
+- Không tự bật SePay thật trong local `.env`. QR chỉ hoạt động khi runtime có `SEPAY_ENABLED=true`, `SEPAY_BANK_CODE` và `SEPAY_ACCOUNT_NUMBER`.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 31, Failures: 0, Errors: 0, Skipped: 0
+
+cd fe
+npm run build
+# Build success. Existing Angular/Sass/CommonJS warnings remain outside this slice.
+```
+
+Runtime smoke:
+
+```text
+Docker backend image rebuilt and recreated.
+GET http://localhost:8088/actuator/health -> UP.
+
+Student API smoke:
+student@maritime.edu / student123
+GET /api/v3/organizations/a0000000-0000-0000-0000-000000000001/academic/learning-packages/available/me -> 200.
+Visible packages -> 4.
+Includes PAYMENT_REQUIRED packages and VMU-DKT-K63-FOUNDATION.
+
+Local default SePay config:
+SEPAY_ENABLED=false.
+POST /payment-qr/me -> 422 with message "Cổng thanh toán SePay chưa được kích hoạt. Vui lòng liên hệ quản trị viên."
+
+Dummy local SePay env injected through shell only for smoke:
+SEPAY_ENABLED=true
+SEPAY_BANK_CODE=MBBank
+SEPAY_ACCOUNT_NUMBER=1234567890
+SEPAY_ACCOUNT_NAME=LMS MARITIME DEMO
+
+POST /payment-qr/me -> 200.
+Response includes qrUrl starting with https://qr.sepay.vn/img and transfer content based on enrollment UUID.
+
+Playwright mobile smoke:
+Viewport 390x820.
+Route /student/packages rendered.
+Package cards -> 4.
+QR button click rendered QR image.
+Console errors -> 0.
+Page errors -> 0.
+
+After QR smoke, backend was recreated without dummy SePay shell env.
+GET http://localhost:8088/actuator/health -> UP.
+```
+
+Trạng thái sau Phase 4.17:
+
+- Học viên đã có luồng tối thiểu để xem gói học theo tổ chức, yêu cầu/kích hoạt enrollment và tạo QR SePay khi runtime đã bật cấu hình thanh toán.
+- Backend giữ source of truth cho org/capability/policy; FE chỉ điều hướng và hiển thị trạng thái.
+- Luồng VMU hiện có thể demo rõ hơn: ORG_ADMIN cấu hình academic/package, student thấy package, SePay xác nhận package enrollment, hệ thống cấp quyền course/class target.
+
+Debt còn lại sau Phase 4.17:
+
+- Package-level revenue split, refund, invoice/audit ledger vẫn cần thiết kế riêng trước khi coi package payment là production-grade tài chính.
+- Cần thay microcopy `VMU Academic Packages` bằng wording phụ thuộc tên tổ chức hoặc text trung tính hơn nếu mở nhiều ORG ngoài VMU.
+- Nếu muốn thanh toán thật ở local/demo offline, phải cấu hình SePay thật bằng `.env`/runtime env riêng; tuyệt đối không commit bank account hoặc webhook secret vào repo.

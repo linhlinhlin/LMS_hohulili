@@ -12,9 +12,11 @@ import {
   AcademicCohort,
   AcademicDepartment,
   AcademicLearningPackage,
+  AcademicLearningPackageAvailability,
   AcademicLearningPackageClassTarget,
   AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
+  AcademicLearningPackagePaymentQr,
   AcademicProgram,
   AcademicSubject,
   AcademicSubjectCourse,
@@ -153,9 +155,22 @@ export class AcademicApi {
     );
   }
 
+  listMyAvailableLearningPackages(orgId: string) {
+    return this.api.getWithResponse<AcademicLearningPackageAvailability[]>(
+      ACADEMIC_ENDPOINTS.MY_AVAILABLE_LEARNING_PACKAGES(orgId)
+    );
+  }
+
   requestLearningPackageEnrollment(orgId: string, packageId: string) {
     return this.api.postWithResponse<AcademicLearningPackageEnrollment>(
       ACADEMIC_ENDPOINTS.MY_LEARNING_PACKAGE_ENROLLMENT(orgId, packageId),
+      {}
+    );
+  }
+
+  createMyLearningPackagePaymentQr(orgId: string, packageId: string) {
+    return this.api.postWithResponse<AcademicLearningPackagePaymentQr>(
+      ACADEMIC_ENDPOINTS.MY_LEARNING_PACKAGE_PAYMENT_QR(orgId, packageId),
       {}
     );
   }

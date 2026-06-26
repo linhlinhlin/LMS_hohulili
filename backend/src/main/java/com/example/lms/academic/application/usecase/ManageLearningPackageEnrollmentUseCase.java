@@ -1,7 +1,9 @@
 package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
@@ -64,6 +66,28 @@ public class ManageLearningPackageEnrollmentUseCase {
         return repository.findLearningPackageEnrollments(organizationId, safeStatus).stream()
                 .map(this::toResponse)
                 .toList();
+    }
+
+    public List<LearningPackageAvailabilityResponse> listAvailablePackagesForStudent(
+            UUID organizationId,
+            UUID studentId) {
+        List<LearningPackageAvailabilityResponse> responses = new ArrayList<>();
+        for (var learningPackage : repository.findLearningPackages(organizationId)) {
+            if (!"ACTIVE".equals(learningPackage.status())) {
+                continue;
+            }
+            var enrollment = repository.findLearningPackageEnrollment(
+                    organizationId,
+                    learningPackage.id(),
+                    studentId);
+            if ("INVITE_ONLY".equals(learningPackage.enrollmentPolicy()) && enrollment.isEmpty()) {
+                continue;
+            }
+            responses.add(new LearningPackageAvailabilityResponse(
+                    toPackageResponse(learningPackage),
+                    enrollment.map(this::toResponse).orElse(null)));
+        }
+        return responses;
     }
 
     @Transactional
@@ -294,5 +318,21 @@ public class ManageLearningPackageEnrollmentUseCase {
                 e.decidedAt(),
                 e.decidedBy(),
                 e.createdAt());
+    }
+
+    private LearningPackageResponse toPackageResponse(AcademicLearningPackage p) {
+        return new LearningPackageResponse(
+                p.id(),
+                p.organizationId(),
+                p.curriculumPlanId(),
+                p.code(),
+                p.name(),
+                p.description(),
+                p.packageType(),
+                p.price(),
+                p.currency(),
+                p.enrollmentPolicy(),
+                p.status(),
+                p.createdAt());
     }
 }

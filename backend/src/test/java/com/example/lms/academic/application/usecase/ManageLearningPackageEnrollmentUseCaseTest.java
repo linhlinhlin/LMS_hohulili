@@ -427,6 +427,58 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         verify(repository).findLearningPackageEnrollments(orgId, "PENDING_APPROVAL");
     }
 
+    @Test
+    @DisplayName("listAvailablePackagesForStudent: returns active packages with current enrollment")
+    void listAvailablePackagesForStudent_returnsActivePackagesWithEnrollment() {
+        UUID orgId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID payablePackageId = UUID.randomUUID();
+        UUID inactivePackageId = UUID.randomUUID();
+        var payablePackage = packageWithPolicy(orgId, payablePackageId, "PAYMENT_REQUIRED");
+        var inactivePackage = new AcademicLearningPackage(
+                inactivePackageId,
+                orgId,
+                null,
+                "VMU-OLD",
+                "Gói cũ",
+                null,
+                "COURSE_BUNDLE",
+                BigDecimal.ZERO,
+                "VND",
+                "OPEN",
+                "ARCHIVED",
+                Instant.now(),
+                null);
+        var existing = enrollment(orgId, payablePackageId, studentId, "PENDING_PAYMENT");
+
+        when(repository.findLearningPackages(orgId)).thenReturn(List.of(payablePackage, inactivePackage));
+        when(repository.findLearningPackageEnrollment(orgId, payablePackageId, studentId))
+                .thenReturn(Optional.of(existing));
+
+        var response = useCase.listAvailablePackagesForStudent(orgId, studentId);
+
+        assertThat(response).hasSize(1);
+        assertThat(response.get(0).learningPackage().id()).isEqualTo(payablePackageId);
+        assertThat(response.get(0).enrollment().status()).isEqualTo("PENDING_PAYMENT");
+    }
+
+    @Test
+    @DisplayName("listAvailablePackagesForStudent: hides invite-only packages without enrollment")
+    void listAvailablePackagesForStudent_hidesInviteOnlyPackagesWithoutEnrollment() {
+        UUID orgId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID inviteOnlyPackageId = UUID.randomUUID();
+
+        when(repository.findLearningPackages(orgId))
+                .thenReturn(List.of(packageWithPolicy(orgId, inviteOnlyPackageId, "INVITE_ONLY")));
+        when(repository.findLearningPackageEnrollment(orgId, inviteOnlyPackageId, studentId))
+                .thenReturn(Optional.empty());
+
+        var response = useCase.listAvailablePackagesForStudent(orgId, studentId);
+
+        assertThat(response).isEmpty();
+    }
+
     private AcademicLearningPackage packageWithPolicy(UUID orgId, UUID packageId, String policy) {
         return new AcademicLearningPackage(
                 packageId,

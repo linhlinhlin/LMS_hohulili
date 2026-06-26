@@ -58,6 +58,30 @@ class LearningPackageEnrollmentControllerV3Test {
     }
 
     @Test
+    @DisplayName("listMyAvailablePackages: allows same-organization student")
+    void listMyAvailablePackages_allowsSameOrganizationStudent() {
+        UUID organizationId = UUID.randomUUID();
+        UserJpaEntity student = user(UserJpaEntity.UserRole.STUDENT, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
+
+        controller.listMyAvailablePackages(organizationId, student);
+
+        verify(useCase).listAvailablePackagesForStudent(organizationId, student.getId());
+    }
+
+    @Test
+    @DisplayName("listMyAvailablePackages: rejects student from another organization")
+    void listMyAvailablePackages_rejectsStudentFromAnotherOrganization() {
+        UUID organizationId = UUID.randomUUID();
+        UserJpaEntity student = user(UserJpaEntity.UserRole.STUDENT, UUID.randomUUID(), true);
+
+        assertThatThrownBy(() -> controller.listMyAvailablePackages(organizationId, student))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("No access");
+        verify(useCase, never()).listAvailablePackagesForStudent(organizationId, student.getId());
+    }
+
+    @Test
     @DisplayName("createMyPackagePaymentQr: allows same-organization student")
     void createMyPackagePaymentQr_allowsSameOrganizationStudent() {
         UUID organizationId = UUID.randomUUID();

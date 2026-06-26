@@ -1,0 +1,123 @@
+<div class="packages-page">
+  <header class="packages-header">
+    <div>
+      <p class="eyebrow">VMU Academic Packages</p>
+      <h1>Gói học của tôi</h1>
+      <p class="subtitle">Theo dõi gói học, học phí và trạng thái kích hoạt quyền học theo tổ chức.</p>
+    </div>
+    <button type="button" class="ghost-button" [disabled]="isLoading()" (click)="loadPackages()">
+      Làm mới
+    </button>
+  </header>
+
+  <section class="summary-grid" aria-label="Tổng quan gói học">
+    <article>
+      <span>Gói khả dụng</span>
+      <strong>{{ totalPackages() }}</strong>
+    </article>
+    <article>
+      <span>Đã kích hoạt</span>
+      <strong>{{ activeEnrollments() }}</strong>
+    </article>
+    <article>
+      <span>Chờ thanh toán</span>
+      <strong>{{ pendingPayments() }}</strong>
+    </article>
+  </section>
+
+  @if (notice()) {
+    <div class="notice success">{{ notice() }}</div>
+  }
+
+  @if (error()) {
+    <div class="notice error">{{ error() }}</div>
+  }
+
+  @if (qr()) {
+    <section class="qr-panel" aria-label="Thông tin chuyển khoản gói học">
+      <div class="qr-copy">
+        <p class="eyebrow">SePay QR</p>
+        <h2>{{ qr()!.packageName }}</h2>
+        <p>Quét QR hoặc chuyển khoản đúng số tiền và nội dung bên dưới. Hệ thống sẽ tự động kích hoạt sau khi webhook ngân hàng xác nhận.</p>
+      </div>
+      <div class="qr-card">
+        <img [src]="qr()!.qrUrl" alt="QR thanh toán gói học">
+        <dl>
+          <div>
+            <dt>Số tiền</dt>
+            <dd>{{ formatAmount(qr()!.amount, qr()!.currency) }}</dd>
+          </div>
+          <div>
+            <dt>Ngân hàng</dt>
+            <dd>{{ qr()!.bankCode }}</dd>
+          </div>
+          <div>
+            <dt>Số tài khoản</dt>
+            <dd>
+              {{ qr()!.accountNumber }}
+              <button type="button" (click)="copy(qr()!.accountNumber)">Sao chép</button>
+            </dd>
+          </div>
+          <div>
+            <dt>Nội dung</dt>
+            <dd>
+              {{ qr()!.transferContent }}
+              <button type="button" (click)="copy(qr()!.transferContent)">Sao chép</button>
+            </dd>
+          </div>
+        </dl>
+        <button type="button" class="ghost-button full" (click)="closeQr()">Đóng QR</button>
+      </div>
+    </section>
+  }
+
+  @if (isLoading()) {
+    <div class="empty-card">Đang tải gói học...</div>
+  } @else if (packages().length === 0) {
+    <div class="empty-card">
+      <h2>Chưa có gói học khả dụng</h2>
+      <p>Nhà trường chưa mở gói học cho tài khoản của bạn, hoặc gói học đang ở chế độ theo lời mời.</p>
+      <a routerLink="/student/browse">Khám phá khóa học</a>
+    </div>
+  } @else {
+    <section class="package-grid" aria-label="Danh sách gói học">
+      @for (item of packages(); track item.learningPackage.id) {
+        <article class="package-card">
+          <div class="card-top">
+            <span class="status-chip">{{ statusLabel(item) }}</span>
+            <span class="price">{{ formatAmount(item.learningPackage.price, item.learningPackage.currency) }}</span>
+          </div>
+          <h2>{{ item.learningPackage.name }}</h2>
+          <p>{{ item.learningPackage.description || 'Gói học theo chương trình đào tạo của tổ chức.' }}</p>
+          <dl class="meta-list">
+            <div>
+              <dt>Mã gói</dt>
+              <dd>{{ item.learningPackage.code }}</dd>
+            </div>
+            <div>
+              <dt>Chính sách</dt>
+              <dd>{{ policyLabel(item.learningPackage.enrollmentPolicy) }}</dd>
+            </div>
+            <div>
+              <dt>Yêu cầu gần nhất</dt>
+              <dd>{{ formatDate(item.enrollment?.requestedAt ?? null) }}</dd>
+            </div>
+          </dl>
+          <div class="card-actions">
+            @if (item.enrollment?.status === 'ACTIVE') {
+              <a class="primary-link" routerLink="/student/courses/library">Vào học</a>
+            } @else if (isPaymentPackage(item)) {
+              <button type="button" class="primary-button" [disabled]="isBusy(item.learningPackage.id)" (click)="createPaymentQr(item)">
+                {{ isBusy(item.learningPackage.id) ? 'Đang xử lý...' : actionLabel(item) }}
+              </button>
+            } @else {
+              <button type="button" class="primary-button" [disabled]="!canAct(item) || isBusy(item.learningPackage.id)" (click)="requestEnrollment(item)">
+                {{ isBusy(item.learningPackage.id) ? 'Đang xử lý...' : actionLabel(item) }}
+              </button>
+            }
+          </div>
+        </article>
+      }
+    </section>
+  }
+</div>
