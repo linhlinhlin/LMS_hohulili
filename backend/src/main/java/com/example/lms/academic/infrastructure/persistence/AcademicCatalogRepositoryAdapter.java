@@ -20,6 +20,9 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private final AcademicClassGroupJpaRepository classGroups;
     private final AcademicSubjectJpaRepository subjects;
     private final AcademicSubjectCourseJpaRepository subjectCourses;
+    private final AcademicTermJpaRepository terms;
+    private final AcademicCurriculumPlanJpaRepository curriculumPlans;
+    private final AcademicCurriculumSubjectJpaRepository curriculumSubjects;
 
     @Override
     public List<AcademicDepartment> findDepartments(UUID organizationId) {
@@ -52,6 +55,23 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public List<AcademicTerm> findTerms(UUID organizationId) {
+        return terms.findByOrganizationIdOrderByAcademicYearAscTermNumberAsc(organizationId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<AcademicCurriculumPlan> findCurriculumPlans(UUID organizationId) {
+        return curriculumPlans.findByOrganizationIdOrderByNameAsc(organizationId).stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<AcademicCurriculumSubject> findCurriculumSubjects(UUID organizationId) {
+        return curriculumSubjects.findByOrganizationIdOrderByDisplayOrderAscCreatedAtAsc(organizationId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id) {
         return departments.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
@@ -69,6 +89,16 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public Optional<AcademicSubject> findSubject(UUID organizationId, UUID id) {
         return subjects.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicTerm> findTerm(UUID organizationId, UUID id) {
+        return terms.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id) {
+        return curriculumPlans.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
 
     @Override
@@ -102,6 +132,21 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public boolean termCodeExists(UUID organizationId, String code) {
+        return terms.existsByOrganizationIdAndCodeIgnoreCase(organizationId, code);
+    }
+
+    @Override
+    public boolean curriculumPlanCodeExists(UUID organizationId, String code) {
+        return curriculumPlans.existsByOrganizationIdAndCodeIgnoreCase(organizationId, code);
+    }
+
+    @Override
+    public boolean curriculumSubjectExists(UUID organizationId, UUID curriculumPlanId, UUID subjectId) {
+        return curriculumSubjects.existsByOrganizationIdAndCurriculumPlanIdAndSubjectId(organizationId, curriculumPlanId, subjectId);
+    }
+
+    @Override
     public AcademicDepartment saveDepartment(AcademicDepartment department) {
         return toDomain(departments.save(toEntity(department)));
     }
@@ -131,6 +176,21 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
         return toDomain(subjectCourses.save(toEntity(subjectCourse)));
     }
 
+    @Override
+    public AcademicTerm saveTerm(AcademicTerm term) {
+        return toDomain(terms.save(toEntity(term)));
+    }
+
+    @Override
+    public AcademicCurriculumPlan saveCurriculumPlan(AcademicCurriculumPlan plan) {
+        return toDomain(curriculumPlans.save(toEntity(plan)));
+    }
+
+    @Override
+    public AcademicCurriculumSubject saveCurriculumSubject(AcademicCurriculumSubject subject) {
+        return toDomain(curriculumSubjects.save(toEntity(subject)));
+    }
+
     private AcademicDepartment toDomain(AcademicDepartmentJpaEntity e) {
         return new AcademicDepartment(e.getId(), e.getOrganizationId(), e.getCode(), e.getName(), e.getStatus(), e.getCreatedAt(), e.getUpdatedAt());
     }
@@ -153,6 +213,50 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
 
     private AcademicSubjectCourse toDomain(AcademicSubjectCourseJpaEntity e) {
         return new AcademicSubjectCourse(e.getId(), e.getOrganizationId(), e.getSubjectId(), e.getCourseId(), e.isPrimary(), e.getStatus(), e.getCreatedAt(), e.getUpdatedAt());
+    }
+
+    private AcademicTerm toDomain(AcademicTermJpaEntity e) {
+        return new AcademicTerm(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getCode(),
+                e.getName(),
+                e.getAcademicYear(),
+                e.getTermNumber(),
+                e.getStartsOn(),
+                e.getEndsOn(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
+    private AcademicCurriculumPlan toDomain(AcademicCurriculumPlanJpaEntity e) {
+        return new AcademicCurriculumPlan(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getProgramId(),
+                e.getCohortId(),
+                e.getCode(),
+                e.getName(),
+                e.getTotalCredits(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
+    private AcademicCurriculumSubject toDomain(AcademicCurriculumSubjectJpaEntity e) {
+        return new AcademicCurriculumSubject(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getCurriculumPlanId(),
+                e.getSubjectId(),
+                e.getTermId(),
+                e.getDisplayOrder(),
+                e.isRequired(),
+                e.getCreditsOverride(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
     }
 
     private AcademicDepartmentJpaEntity toEntity(AcademicDepartment d) {
@@ -193,5 +297,27 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
         return AcademicSubjectCourseJpaEntity.builder()
                 .id(s.id()).organizationId(s.organizationId()).subjectId(s.subjectId()).courseId(s.courseId())
                 .primary(s.primary()).status(s.status()).createdAt(s.createdAt()).updatedAt(s.updatedAt()).build();
+    }
+
+    private AcademicTermJpaEntity toEntity(AcademicTerm t) {
+        return AcademicTermJpaEntity.builder()
+                .id(t.id()).organizationId(t.organizationId()).code(t.code()).name(t.name())
+                .academicYear(t.academicYear()).termNumber(t.termNumber()).startsOn(t.startsOn()).endsOn(t.endsOn())
+                .status(t.status()).createdAt(t.createdAt()).updatedAt(t.updatedAt()).build();
+    }
+
+    private AcademicCurriculumPlanJpaEntity toEntity(AcademicCurriculumPlan p) {
+        return AcademicCurriculumPlanJpaEntity.builder()
+                .id(p.id()).organizationId(p.organizationId()).programId(p.programId()).cohortId(p.cohortId())
+                .code(p.code()).name(p.name()).totalCredits(p.totalCredits()).status(p.status())
+                .createdAt(p.createdAt()).updatedAt(p.updatedAt()).build();
+    }
+
+    private AcademicCurriculumSubjectJpaEntity toEntity(AcademicCurriculumSubject s) {
+        return AcademicCurriculumSubjectJpaEntity.builder()
+                .id(s.id()).organizationId(s.organizationId()).curriculumPlanId(s.curriculumPlanId())
+                .subjectId(s.subjectId()).termId(s.termId()).displayOrder(s.displayOrder()).required(s.required())
+                .creditsOverride(s.creditsOverride()).status(s.status()).createdAt(s.createdAt()).updatedAt(s.updatedAt())
+                .build();
     }
 }

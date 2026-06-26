@@ -1,12 +1,19 @@
 package com.example.lms.academic.application.usecase;
 
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddCurriculumSubjectCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateCurriculumPlanCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LinkSubjectCourseCommand;
+import com.example.lms.academic.domain.model.AcademicCohort;
+import com.example.lms.academic.domain.model.AcademicCurriculumPlan;
 import com.example.lms.academic.domain.model.AcademicSubject;
+import com.example.lms.academic.domain.model.AcademicTerm;
+import com.example.lms.academic.domain.model.AcademicProgram;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import com.example.lms.shared.exception.BusinessRuleException;
+import com.example.lms.shared.exception.EntityNotFoundException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -82,6 +89,58 @@ class ManageAcademicCatalogUseCaseTest {
         assertThat(response.primary()).isTrue();
     }
 
+    @Test
+    @DisplayName("createCurriculumPlan: creates plan for same-organization program and cohort")
+    void createCurriculumPlan_allowsSameOrganizationProgramAndCohort() {
+        UUID organizationId = UUID.randomUUID();
+        UUID programId = UUID.randomUUID();
+        UUID cohortId = UUID.randomUUID();
+
+        when(repository.findProgram(organizationId, programId))
+                .thenReturn(Optional.of(program(programId, organizationId)));
+        when(repository.findCohort(organizationId, cohortId))
+                .thenReturn(Optional.of(cohort(cohortId, organizationId)));
+        when(repository.curriculumPlanCodeExists(organizationId, "CNTT-K63")).thenReturn(false);
+        when(repository.saveCurriculumPlan(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.createCurriculumPlan(
+                organizationId,
+                new CreateCurriculumPlanCommand(
+                        programId,
+                        cohortId,
+                        "cntt-k63",
+                        "Khung chương trình CNTT hàng hải K63",
+                        128));
+
+        assertThat(response.organizationId()).isEqualTo(organizationId);
+        assertThat(response.programId()).isEqualTo(programId);
+        assertThat(response.cohortId()).isEqualTo(cohortId);
+        assertThat(response.code()).isEqualTo("CNTT-K63");
+        assertThat(response.totalCredits()).isEqualTo(128);
+    }
+
+    @Test
+    @DisplayName("addCurriculumSubject: rejects term outside organization")
+    void addCurriculumSubject_rejectsTermOutsideOrganization() {
+        UUID organizationId = UUID.randomUUID();
+        UUID planId = UUID.randomUUID();
+        UUID subjectId = UUID.randomUUID();
+        UUID termId = UUID.randomUUID();
+
+        when(repository.findCurriculumPlan(organizationId, planId))
+                .thenReturn(Optional.of(curriculumPlan(planId, organizationId)));
+        when(repository.findSubject(organizationId, subjectId))
+                .thenReturn(Optional.of(subject(subjectId, organizationId)));
+        when(repository.findTerm(organizationId, termId)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> useCase.addCurriculumSubject(
+                organizationId,
+                new AddCurriculumSubjectCommand(planId, subjectId, termId, 10, true, null)))
+                .isInstanceOf(EntityNotFoundException.class)
+                .hasMessageContaining("AcademicTerm");
+        verify(repository, never()).saveCurriculumSubject(any());
+    }
+
     private AcademicSubject subject(UUID id, UUID organizationId) {
         return new AcademicSubject(
                 id,
@@ -90,6 +149,62 @@ class ManageAcademicCatalogUseCaseTest {
                 "NAV101",
                 "Navigation",
                 3,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicProgram program(UUID id, UUID organizationId) {
+        return new AcademicProgram(
+                id,
+                organizationId,
+                null,
+                "CNTT-HH",
+                "Maritime IT",
+                "Đại học",
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicCohort cohort(UUID id, UUID organizationId) {
+        return new AcademicCohort(
+                id,
+                organizationId,
+                "K63",
+                "Khóa 63",
+                2022,
+                2026,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicCurriculumPlan curriculumPlan(UUID id, UUID organizationId) {
+        return new AcademicCurriculumPlan(
+                id,
+                organizationId,
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "CNTT-K63",
+                "Khung chương trình CNTT hàng hải K63",
+                128,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    @SuppressWarnings("unused")
+    private AcademicTerm term(UUID id, UUID organizationId) {
+        return new AcademicTerm(
+                id,
+                organizationId,
+                "2022-HK1",
+                "Học kỳ 1",
+                "2022-2023",
+                1,
+                null,
+                null,
                 "ACTIVE",
                 Instant.now(),
                 null);

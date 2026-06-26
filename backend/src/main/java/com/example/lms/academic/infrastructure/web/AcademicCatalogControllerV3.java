@@ -103,6 +103,39 @@ public class AcademicCatalogControllerV3 {
                 .body(ApiResponse.success(useCase.linkSubjectCourse(orgId, command)));
     }
 
+    @PostMapping("/terms")
+    @Operation(summary = "Create academic term")
+    public ResponseEntity<ApiResponse<TermResponse>> createTerm(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody CreateTermCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.createTerm(orgId, command)));
+    }
+
+    @PostMapping("/curriculum-plans")
+    @Operation(summary = "Create curriculum plan")
+    public ResponseEntity<ApiResponse<CurriculumPlanResponse>> createCurriculumPlan(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody CreateCurriculumPlanCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.createCurriculumPlan(orgId, command)));
+    }
+
+    @PostMapping("/curriculum-subjects")
+    @Operation(summary = "Add subject to curriculum plan")
+    public ResponseEntity<ApiResponse<CurriculumSubjectResponse>> addCurriculumSubject(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody AddCurriculumSubjectCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.addCurriculumSubject(orgId, command)));
+    }
+
     private void verifyOrgAccess(UserJpaEntity currentUser, UUID orgId) {
         if (currentUser == null) {
             throw new AccessDeniedException("Authentication is required");

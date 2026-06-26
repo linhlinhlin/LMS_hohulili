@@ -26,7 +26,10 @@ public class ManageAcademicCatalogUseCase {
                 repository.findCohorts(organizationId).stream().map(this::toResponse).toList(),
                 repository.findClassGroups(organizationId).stream().map(this::toResponse).toList(),
                 repository.findSubjects(organizationId).stream().map(this::toResponse).toList(),
-                repository.findSubjectCourses(organizationId).stream().map(this::toResponse).toList()
+                repository.findSubjectCourses(organizationId).stream().map(this::toResponse).toList(),
+                repository.findTerms(organizationId).stream().map(this::toResponse).toList(),
+                repository.findCurriculumPlans(organizationId).stream().map(this::toResponse).toList(),
+                repository.findCurriculumSubjects(organizationId).stream().map(this::toResponse).toList()
         );
     }
 
@@ -116,6 +119,59 @@ public class ManageAcademicCatalogUseCase {
         return toResponse(repository.saveSubjectCourse(link));
     }
 
+    public TermResponse createTerm(UUID organizationId, CreateTermCommand command) {
+        var term = AcademicTerm.create(
+                organizationId,
+                command.code(),
+                command.name(),
+                command.academicYear(),
+                command.termNumber(),
+                command.startsOn(),
+                command.endsOn());
+        if (repository.termCodeExists(organizationId, term.code())) {
+            throw new ValidationException("code", "Term code already exists");
+        }
+        return toResponse(repository.saveTerm(term));
+    }
+
+    public CurriculumPlanResponse createCurriculumPlan(UUID organizationId, CreateCurriculumPlanCommand command) {
+        requireProgram(organizationId, command.programId());
+        if (command.cohortId() != null) {
+            requireCohort(organizationId, command.cohortId());
+        }
+        var plan = AcademicCurriculumPlan.create(
+                organizationId,
+                command.programId(),
+                command.cohortId(),
+                command.code(),
+                command.name(),
+                command.totalCredits());
+        if (repository.curriculumPlanCodeExists(organizationId, plan.code())) {
+            throw new ValidationException("code", "Curriculum plan code already exists");
+        }
+        return toResponse(repository.saveCurriculumPlan(plan));
+    }
+
+    public CurriculumSubjectResponse addCurriculumSubject(UUID organizationId, AddCurriculumSubjectCommand command) {
+        requireCurriculumPlan(organizationId, command.curriculumPlanId());
+        requireSubject(organizationId, command.subjectId());
+        if (command.termId() != null) {
+            requireTerm(organizationId, command.termId());
+        }
+        if (repository.curriculumSubjectExists(organizationId, command.curriculumPlanId(), command.subjectId())) {
+            throw new ValidationException("subjectId", "Subject is already in this curriculum plan");
+        }
+        var subject = AcademicCurriculumSubject.create(
+                organizationId,
+                command.curriculumPlanId(),
+                command.subjectId(),
+                command.termId(),
+                command.displayOrder(),
+                command.required(),
+                command.creditsOverride());
+        return toResponse(repository.saveCurriculumSubject(subject));
+    }
+
     private void requireDepartment(UUID organizationId, UUID id) {
         repository.findDepartment(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicDepartment", id));
@@ -134,6 +190,16 @@ public class ManageAcademicCatalogUseCase {
     private void requireSubject(UUID organizationId, UUID id) {
         repository.findSubject(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicSubject", id));
+    }
+
+    private void requireTerm(UUID organizationId, UUID id) {
+        repository.findTerm(organizationId, id)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicTerm", id));
+    }
+
+    private void requireCurriculumPlan(UUID organizationId, UUID id) {
+        repository.findCurriculumPlan(organizationId, id)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicCurriculumPlan", id));
     }
 
     private DepartmentResponse toResponse(AcademicDepartment d) {
@@ -158,5 +224,46 @@ public class ManageAcademicCatalogUseCase {
 
     private SubjectCourseResponse toResponse(AcademicSubjectCourse sc) {
         return new SubjectCourseResponse(sc.id(), sc.organizationId(), sc.subjectId(), sc.courseId(), sc.primary(), sc.status(), sc.createdAt());
+    }
+
+    private TermResponse toResponse(AcademicTerm t) {
+        return new TermResponse(
+                t.id(),
+                t.organizationId(),
+                t.code(),
+                t.name(),
+                t.academicYear(),
+                t.termNumber(),
+                t.startsOn(),
+                t.endsOn(),
+                t.status(),
+                t.createdAt());
+    }
+
+    private CurriculumPlanResponse toResponse(AcademicCurriculumPlan p) {
+        return new CurriculumPlanResponse(
+                p.id(),
+                p.organizationId(),
+                p.programId(),
+                p.cohortId(),
+                p.code(),
+                p.name(),
+                p.totalCredits(),
+                p.status(),
+                p.createdAt());
+    }
+
+    private CurriculumSubjectResponse toResponse(AcademicCurriculumSubject s) {
+        return new CurriculumSubjectResponse(
+                s.id(),
+                s.organizationId(),
+                s.curriculumPlanId(),
+                s.subjectId(),
+                s.termId(),
+                s.displayOrder(),
+                s.required(),
+                s.creditsOverride(),
+                s.status(),
+                s.createdAt());
     }
 }

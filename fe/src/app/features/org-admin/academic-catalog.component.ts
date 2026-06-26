@@ -12,11 +12,14 @@ import { AcademicApi } from '../../api/client/academic.api';
 import { ApiResponse } from '../../api/types/common.types';
 import {
   AcademicCatalog,
+  AddAcademicCurriculumSubjectRequest,
+  CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
   CreateAcademicDepartmentRequest,
   CreateAcademicProgramRequest,
   CreateAcademicSubjectRequest,
+  CreateAcademicTermRequest,
   LinkAcademicSubjectCourseRequest,
 } from '../../api/types/academic.types';
 import { AuthService } from '../../core/services/auth.service';
@@ -29,6 +32,9 @@ const emptyCatalog = (): AcademicCatalog => ({
   classGroups: [],
   subjects: [],
   subjectCourses: [],
+  terms: [],
+  curriculumPlans: [],
+  curriculumSubjects: [],
 });
 
 @Component({
@@ -70,13 +76,16 @@ const emptyCatalog = (): AcademicCatalog => ({
             Tài khoản hiện tại chưa có mã tổ chức. ORG_ADMIN cần thuộc một tổ chức cụ thể trước khi quản lý cấu trúc đào tạo.
           </div>
         } @else {
-          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-9">
             <div class="metric-card"><span>Khoa</span><strong>{{ catalog().departments.length }}</strong></div>
             <div class="metric-card"><span>Ngành</span><strong>{{ catalog().programs.length }}</strong></div>
             <div class="metric-card"><span>Khóa</span><strong>{{ catalog().cohorts.length }}</strong></div>
             <div class="metric-card"><span>Lớp</span><strong>{{ catalog().classGroups.length }}</strong></div>
             <div class="metric-card"><span>Môn học</span><strong>{{ catalog().subjects.length }}</strong></div>
             <div class="metric-card"><span>Course map</span><strong>{{ catalog().subjectCourses.length }}</strong></div>
+            <div class="metric-card"><span>Học kỳ</span><strong>{{ catalog().terms.length }}</strong></div>
+            <div class="metric-card"><span>Khung CT</span><strong>{{ catalog().curriculumPlans.length }}</strong></div>
+            <div class="metric-card"><span>Môn trong khung</span><strong>{{ catalog().curriculumSubjects.length }}</strong></div>
           </div>
 
           <div class="grid gap-5 xl:grid-cols-2">
@@ -217,6 +226,90 @@ const emptyCatalog = (): AcademicCatalog => ({
                   <p><strong>{{ subjectLabel(link.subjectId) }}</strong><span>{{ courseLabel(link.courseId) }}{{ link.primary ? ' · chính' : '' }}</span></p>
                 } @empty {
                   <p class="empty-text">Chưa có liên kết môn - khóa học.</p>
+                }
+              </div>
+            </article>
+
+            <article class="catalog-card">
+              <h2>Học kỳ / năm học</h2>
+              <form class="catalog-form" (submit)="createTerm($event)">
+                <input aria-label="Mã học kỳ" placeholder="Mã học kỳ, ví dụ: 2022-HK1" [value]="termForm().code" (input)="patch(termForm, { code: text($event) })">
+                <input aria-label="Tên học kỳ" placeholder="Tên học kỳ" [value]="termForm().name" (input)="patch(termForm, { name: text($event) })">
+                <input aria-label="Năm học" placeholder="Năm học, ví dụ: 2022-2023" [value]="termForm().academicYear" (input)="patch(termForm, { academicYear: text($event) })">
+                <input aria-label="Số thứ tự học kỳ" type="number" placeholder="Số thứ tự học kỳ" [value]="termForm().termNumber" (input)="patch(termForm, { termNumber: numberValue($event) })">
+                <button class="primary-button" type="submit" [disabled]="saving()">Tạo học kỳ</button>
+              </form>
+              <div class="compact-list">
+                @for (term of catalog().terms; track term.id) {
+                  <p><strong>{{ term.code }}</strong><span>{{ term.name }} · {{ term.academicYear }}</span></p>
+                } @empty {
+                  <p class="empty-text">Chưa có học kỳ.</p>
+                }
+              </div>
+            </article>
+
+            <article class="catalog-card">
+              <h2>Khung chương trình</h2>
+              <form class="catalog-form" (submit)="createCurriculumPlan($event)">
+                <select aria-label="Ngành của khung chương trình" [value]="curriculumPlanForm().programId" (change)="patch(curriculumPlanForm, { programId: text($event) })">
+                  <option value="">Chọn ngành</option>
+                  @for (program of catalog().programs; track program.id) {
+                    <option [value]="program.id">{{ program.code }} - {{ program.name }}</option>
+                  }
+                </select>
+                <select aria-label="Khóa áp dụng" [value]="curriculumPlanForm().cohortId ?? ''" (change)="patch(curriculumPlanForm, { cohortId: nullableText($event) })">
+                  <option value="">Áp dụng chung</option>
+                  @for (cohort of catalog().cohorts; track cohort.id) {
+                    <option [value]="cohort.id">{{ cohort.code }} - {{ cohort.name }}</option>
+                  }
+                </select>
+                <input aria-label="Mã khung chương trình" placeholder="Mã khung, ví dụ: DKT-K63-CDIO" [value]="curriculumPlanForm().code" (input)="patch(curriculumPlanForm, { code: text($event) })">
+                <input aria-label="Tên khung chương trình" placeholder="Tên khung chương trình" [value]="curriculumPlanForm().name" (input)="patch(curriculumPlanForm, { name: text($event) })">
+                <input aria-label="Tổng tín chỉ" type="number" placeholder="Tổng tín chỉ" [value]="curriculumPlanForm().totalCredits" (input)="patch(curriculumPlanForm, { totalCredits: numberValue($event) })">
+                <button class="primary-button" type="submit" [disabled]="saving()">Tạo khung</button>
+              </form>
+              <div class="compact-list">
+                @for (plan of catalog().curriculumPlans; track plan.id) {
+                  <p><strong>{{ plan.code }}</strong><span>{{ plan.name }} · {{ plan.totalCredits }} tín chỉ</span></p>
+                } @empty {
+                  <p class="empty-text">Chưa có khung chương trình.</p>
+                }
+              </div>
+            </article>
+
+            <article class="catalog-card">
+              <h2>Môn trong khung chương trình</h2>
+              <form class="catalog-form" (submit)="addCurriculumSubject($event)">
+                <select aria-label="Khung chương trình" [value]="curriculumSubjectForm().curriculumPlanId" (change)="patch(curriculumSubjectForm, { curriculumPlanId: text($event) })">
+                  <option value="">Chọn khung chương trình</option>
+                  @for (plan of catalog().curriculumPlans; track plan.id) {
+                    <option [value]="plan.id">{{ plan.code }} - {{ plan.name }}</option>
+                  }
+                </select>
+                <select aria-label="Môn học trong khung" [value]="curriculumSubjectForm().subjectId" (change)="patch(curriculumSubjectForm, { subjectId: text($event) })">
+                  <option value="">Chọn môn học</option>
+                  @for (subject of catalog().subjects; track subject.id) {
+                    <option [value]="subject.id">{{ subject.code }} - {{ subject.name }}</option>
+                  }
+                </select>
+                <select aria-label="Học kỳ gợi ý" [value]="curriculumSubjectForm().termId ?? ''" (change)="patch(curriculumSubjectForm, { termId: nullableText($event) })">
+                  <option value="">Chưa gán học kỳ</option>
+                  @for (term of catalog().terms; track term.id) {
+                    <option [value]="term.id">{{ term.code }} - {{ term.name }}</option>
+                  }
+                </select>
+                <input aria-label="Thứ tự trong khung" type="number" placeholder="Thứ tự" [value]="curriculumSubjectForm().displayOrder" (input)="patch(curriculumSubjectForm, { displayOrder: numberValue($event) })">
+                <label class="inline-check">
+                  <input type="checkbox" [checked]="curriculumSubjectForm().required" (change)="patch(curriculumSubjectForm, { required: checked($event) })">
+                  Môn bắt buộc
+                </label>
+                <button class="primary-button" type="submit" [disabled]="saving()">Thêm vào khung</button>
+              </form>
+              <div class="compact-list">
+                @for (item of catalog().curriculumSubjects; track item.id) {
+                  <p><strong>{{ curriculumPlanLabel(item.curriculumPlanId) }}</strong><span>{{ subjectLabel(item.subjectId) }} · {{ termLabel(item.termId) }}</span></p>
+                } @empty {
+                  <p class="empty-text">Chưa có môn trong khung chương trình.</p>
                 }
               </div>
             </article>
@@ -418,6 +511,29 @@ export class OrgAcademicCatalogComponent implements OnInit {
     courseId: '',
     primary: true,
   });
+  protected readonly termForm = signal<CreateAcademicTermRequest>({
+    code: '',
+    name: '',
+    academicYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+    termNumber: 1,
+    startsOn: null,
+    endsOn: null,
+  });
+  protected readonly curriculumPlanForm = signal<CreateAcademicCurriculumPlanRequest>({
+    programId: '',
+    cohortId: null,
+    code: '',
+    name: '',
+    totalCredits: 0,
+  });
+  protected readonly curriculumSubjectForm = signal<AddAcademicCurriculumSubjectRequest>({
+    curriculumPlanId: '',
+    subjectId: '',
+    termId: null,
+    displayOrder: 0,
+    required: true,
+    creditsOverride: null,
+  });
 
   ngOnInit(): void {
     void this.reload();
@@ -547,6 +663,76 @@ export class OrgAcademicCatalogComponent implements OnInit {
     );
   }
 
+  protected async createTerm(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = this.termForm();
+    await this.mutate(
+      this.academicApi.createTerm(this.organizationId(), {
+        code: form.code.trim(),
+        name: form.name.trim(),
+        academicYear: form.academicYear.trim(),
+        termNumber: form.termNumber,
+        startsOn: form.startsOn,
+        endsOn: form.endsOn,
+      }),
+      'Đã tạo học kỳ.',
+      () => this.termForm.set({
+        code: '',
+        name: '',
+        academicYear: `${new Date().getFullYear()}-${new Date().getFullYear() + 1}`,
+        termNumber: 1,
+        startsOn: null,
+        endsOn: null,
+      })
+    );
+  }
+
+  protected async createCurriculumPlan(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = this.curriculumPlanForm();
+    await this.mutate(
+      this.academicApi.createCurriculumPlan(this.organizationId(), {
+        programId: form.programId,
+        cohortId: form.cohortId,
+        code: form.code.trim(),
+        name: form.name.trim(),
+        totalCredits: form.totalCredits,
+      }),
+      'Đã tạo khung chương trình.',
+      () => this.curriculumPlanForm.set({
+        programId: '',
+        cohortId: null,
+        code: '',
+        name: '',
+        totalCredits: 0,
+      })
+    );
+  }
+
+  protected async addCurriculumSubject(event: Event): Promise<void> {
+    event.preventDefault();
+    const form = this.curriculumSubjectForm();
+    await this.mutate(
+      this.academicApi.addCurriculumSubject(this.organizationId(), {
+        curriculumPlanId: form.curriculumPlanId,
+        subjectId: form.subjectId,
+        termId: form.termId,
+        displayOrder: form.displayOrder,
+        required: form.required,
+        creditsOverride: form.creditsOverride,
+      }),
+      'Đã thêm môn vào khung chương trình.',
+      () => this.curriculumSubjectForm.set({
+        curriculumPlanId: '',
+        subjectId: '',
+        termId: null,
+        displayOrder: 0,
+        required: true,
+        creditsOverride: null,
+      })
+    );
+  }
+
   protected patch<T extends object>(target: WritableSignal<T>, value: Partial<T>): void {
     target.update(current => ({ ...current, ...value }));
   }
@@ -582,6 +768,19 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected courseLabel(courseId: string): string {
     const course = this.availableCourses().find(item => item.id === courseId);
     return course ? `${course.code} - ${course.title}` : courseId;
+  }
+
+  protected termLabel(termId: string | null): string {
+    if (!termId) {
+      return 'Chưa gán học kỳ';
+    }
+    const term = this.catalog().terms.find(item => item.id === termId);
+    return term ? `${term.code} - ${term.name}` : termId;
+  }
+
+  protected curriculumPlanLabel(planId: string): string {
+    const plan = this.catalog().curriculumPlans.find(item => item.id === planId);
+    return plan ? plan.code : planId;
   }
 
   private async mutate<T>(
