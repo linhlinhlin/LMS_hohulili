@@ -16,6 +16,7 @@ import {
   AcademicLearningPackageItem,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
+  CreateAcademicLearningPackageClassTargetRequest,
   CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
@@ -28,8 +29,10 @@ import {
 } from '../../api/types/academic.types';
 import { AuthService } from '../../core/services/auth.service';
 import { OrganizationCapability } from '../../shared/types/user.types';
+import { ClassSummary } from '../../shared/types/course.types';
 import { AdminCourseSummary, AdminService } from '../admin/infrastructure/services/admin.service';
 import { OrganizationService } from '../admin/infrastructure/services/organization.service';
+import { ClassService } from '../../state/class.service';
 
 const emptyCatalog = (): AcademicCatalog => ({
   departments: [],
@@ -43,6 +46,7 @@ const emptyCatalog = (): AcademicCatalog => ({
   curriculumSubjects: [],
   learningPackages: [],
   learningPackageItems: [],
+  learningPackageClassTargets: [],
 });
 
 const capabilityLabels: Record<string, string> = {
@@ -92,7 +96,7 @@ const capabilityLabels: Record<string, string> = {
             Tài khoản hiện tại chưa có mã tổ chức. ORG_ADMIN cần thuộc một tổ chức cụ thể trước khi quản lý cấu trúc đào tạo.
           </div>
         } @else {
-          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-11">
+          <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-12">
             <div class="metric-card"><span>Khoa</span><strong>{{ catalog().departments.length }}</strong></div>
             <div class="metric-card"><span>Ngành</span><strong>{{ catalog().programs.length }}</strong></div>
             <div class="metric-card"><span>Khóa</span><strong>{{ catalog().cohorts.length }}</strong></div>
@@ -104,6 +108,7 @@ const capabilityLabels: Record<string, string> = {
             <div class="metric-card"><span>Môn trong khung</span><strong>{{ catalog().curriculumSubjects.length }}</strong></div>
             <div class="metric-card"><span>Gói học</span><strong>{{ catalog().learningPackages.length }}</strong></div>
             <div class="metric-card"><span>Mục trong gói</span><strong>{{ catalog().learningPackageItems.length }}</strong></div>
+            <div class="metric-card"><span>Lớp trong gói</span><strong>{{ catalog().learningPackageClassTargets.length }}</strong></div>
           </div>
 
           <div class="capability-strip">
@@ -427,6 +432,42 @@ const capabilityLabels: Record<string, string> = {
               </div>
             </article>
 
+            <article class="catalog-card" data-testid="package-class-target-card">
+              <h2>Lớp triển khai trong gói học</h2>
+              <form class="catalog-form" (submit)="createLearningPackageClassTarget($event)">
+                <select data-testid="package-class-target-package" aria-label="Gói học cần gắn lớp" [value]="classTargetForm().packageId" (change)="selectClassTargetPackage($event)">
+                  <option value="">Chọn gói học</option>
+                  @for (learningPackage of catalog().learningPackages; track learningPackage.id) {
+                    <option [value]="learningPackage.id">{{ learningPackage.code }} - {{ learningPackage.name }}</option>
+                  }
+                </select>
+                <select data-testid="package-class-target-course" aria-label="Course trong gói cần gắn lớp" [value]="classTargetForm().courseId" (change)="selectClassTargetCourse($event)">
+                  <option value="">Chọn course thuộc gói</option>
+                  @for (course of packageTargetCourseOptions(); track course.id) {
+                    <option [value]="course.id">{{ course.code }} - {{ course.title }}</option>
+                  }
+                </select>
+                <select data-testid="package-class-target-class" aria-label="Lớp triển khai của course" [value]="classTargetForm().learningClassId" (change)="patch(classTargetForm, { learningClassId: text($event) })">
+                  <option value="">Chọn lớp triển khai</option>
+                  @for (learningClass of learningClasses(); track learningClass.id) {
+                    <option [value]="learningClass.id">{{ learningClass.code }} - {{ learningClass.name }}</option>
+                  }
+                </select>
+                <p class="helper-text">Dùng khi VMU hoặc một ORG cần duyệt gói học rồi đưa học viên vào đúng lớp triển khai của từng course.</p>
+                <button data-testid="package-class-target-submit" class="primary-button" type="submit" [disabled]="saving() || !canCreateClassTarget()">Gắn lớp cho gói</button>
+              </form>
+              <div class="compact-list">
+                @for (target of catalog().learningPackageClassTargets; track target.id) {
+                  <p>
+                    <strong>{{ learningPackageLabel(target.packageId) }}</strong>
+                    <span>{{ courseLabel(target.courseId) }} → {{ learningClassLabel(target.learningClassId) }}</span>
+                  </p>
+                } @empty {
+                  <p class="empty-text">Chưa có lớp triển khai nào được gắn với gói học.</p>
+                }
+              </div>
+            </article>
+
             <article class="catalog-card">
               <h2>Yêu cầu gói học</h2>
               <p class="helper-text">
@@ -670,12 +711,15 @@ export class OrgAcademicCatalogComponent implements OnInit {
   private academicApi = inject(AcademicApi);
   private adminService = inject(AdminService);
   private organizationService = inject(OrganizationService);
+  private classService = inject(ClassService);
   private auth = inject(AuthService);
 
   protected readonly catalog = signal<AcademicCatalog>(emptyCatalog());
   protected readonly availableCourses = signal<AdminCourseSummary[]>([]);
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
+  protected readonly learningClasses = signal<ClassSummary[]>([]);
+  private readonly classNameCache = signal<Record<string, string>>({});
   protected readonly loading = signal(false);
   protected readonly saving = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -760,6 +804,35 @@ export class OrgAcademicCatalogComponent implements OnInit {
     displayOrder: 0,
     required: true,
   });
+  protected readonly classTargetForm = signal<CreateAcademicLearningPackageClassTargetRequest>({
+    packageId: '',
+    courseId: '',
+    learningClassId: '',
+  });
+  protected readonly packageTargetCourseOptions = computed(() => {
+    const packageId = this.classTargetForm().packageId;
+    if (!packageId) {
+      return [];
+    }
+
+    const courseIds = new Set<string>();
+    for (const item of this.catalog().learningPackageItems.filter(item => item.packageId === packageId)) {
+      if (item.courseId) {
+        courseIds.add(item.courseId);
+      }
+      if (item.subjectId) {
+        this.catalog().subjectCourses
+          .filter(link => link.subjectId === item.subjectId)
+          .forEach(link => courseIds.add(link.courseId));
+      }
+    }
+
+    return this.availableCourses().filter(course => courseIds.has(course.id));
+  });
+  protected readonly canCreateClassTarget = computed(() => {
+    const form = this.classTargetForm();
+    return Boolean(form.packageId && form.courseId && form.learningClassId);
+  });
 
   ngOnInit(): void {
     void this.reload();
@@ -780,7 +853,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
     this.error.set(null);
     try {
       const response = await firstValueFrom(this.academicApi.getCatalog(orgId));
-      this.catalog.set(response.data ?? emptyCatalog());
+      this.catalog.set({ ...emptyCatalog(), ...(response.data ?? {}) });
     } catch (error) {
       this.error.set(this.errorMessage(error));
     } finally {
@@ -1038,6 +1111,24 @@ export class OrgAcademicCatalogComponent implements OnInit {
     );
   }
 
+  protected async createLearningPackageClassTarget(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.canCreateClassTarget()) {
+      this.error.set('Vui lòng chọn đủ gói học, course và lớp triển khai.');
+      return;
+    }
+
+    const form = this.classTargetForm();
+    await this.mutate(
+      this.academicApi.createLearningPackageClassTarget(this.organizationId(), form),
+      'Đã gắn gói học với lớp triển khai.',
+      () => {
+        this.classTargetForm.set({ packageId: '', courseId: '', learningClassId: '' });
+        this.learningClasses.set([]);
+      }
+    );
+  }
+
   protected async approvePackageEnrollment(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
     await this.mutate(
       this.academicApi.approveLearningPackageEnrollment(this.organizationId(), enrollment.id, {
@@ -1076,6 +1167,47 @@ export class OrgAcademicCatalogComponent implements OnInit {
     }));
   }
 
+  protected selectClassTargetPackage(event: Event): void {
+    this.classTargetForm.set({
+      packageId: this.text(event),
+      courseId: '',
+      learningClassId: '',
+    });
+    this.learningClasses.set([]);
+  }
+
+  protected async selectClassTargetCourse(event: Event): Promise<void> {
+    const courseId = this.text(event);
+    this.classTargetForm.update(current => ({
+      ...current,
+      courseId,
+      learningClassId: '',
+    }));
+    await this.loadLearningClasses(courseId);
+  }
+
+  private async loadLearningClasses(courseId: string): Promise<void> {
+    if (!courseId) {
+      this.learningClasses.set([]);
+      return;
+    }
+
+    try {
+      const classes = await firstValueFrom(this.classService.getClassesByCourse(courseId));
+      this.learningClasses.set(classes);
+      this.rememberClasses(classes);
+    } catch {
+      this.learningClasses.set([]);
+    }
+  }
+
+  private rememberClasses(classes: ClassSummary[]): void {
+    this.classNameCache.update(current => ({
+      ...current,
+      ...Object.fromEntries(classes.map(item => [item.id, `${item.code} - ${item.name}`])),
+    }));
+  }
+
   protected patch<T extends object>(target: WritableSignal<T>, value: Partial<T>): void {
     target.update(current => ({ ...current, ...value }));
   }
@@ -1111,6 +1243,10 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected courseLabel(courseId: string): string {
     const course = this.availableCourses().find(item => item.id === courseId);
     return course ? `${course.code} - ${course.title}` : courseId;
+  }
+
+  protected learningClassLabel(learningClassId: string): string {
+    return this.classNameCache()[learningClassId] ?? this.shortId(learningClassId);
   }
 
   protected termLabel(termId: string | null): string {

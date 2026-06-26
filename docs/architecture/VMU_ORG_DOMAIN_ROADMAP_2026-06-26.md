@@ -752,3 +752,51 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build bac
 curl http://localhost:8088/actuator/health
 # {"status":"UP"}
 ```
+
+## 18. Phase G implementation - org-admin package class-target UI
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make Phase F usable by ORG_ADMIN from `/org-admin/academic`;
+- allow VMU package operators to place a package course into a concrete learning class;
+- keep course choices constrained to the selected package content;
+- keep VMU as configured data rather than VMU-specific code.
+
+Frontend scope:
+
+- Academic API types/endpoints/client now support `learningPackageClassTargets`.
+- `/org-admin/academic` now shows the `Lớp trong gói` metric.
+- Added a package -> course -> class form for class-target placement.
+- Reuses `ClassService.getClassesByCourse(courseId)` instead of adding a duplicate API.
+- Course options come from direct package course items plus subject-derived courses through `subject_courses`.
+- Added stable ASCII `data-testid` hooks for smoke tests.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Browser smoke:
+
+```text
+Route: http://localhost:4200/org-admin/academic
+Login: orgadmin@maritime.edu / orgadmin123
+Created or verified package -> course -> class mapping:
+packageId: 6ccee955-cc2d-4bed-b1cc-aa46f9fa0a72
+courseId: f6bfe202-c0cd-40d6-ae60-7066a5e5aaec
+classId: d360f383-31dc-4c67-ac6a-d12c5007ad66
+classCode: ECDIS-2026A
+5xx: 0
+console errors: 0
+page errors: 0
+```
+
+Still intentionally not done:
+
+- `PAYMENT_REQUIRED` package checkout and payment completion.
+- Automatic class allocation by cohort/class group. This should be added only if VMU needs rule-based placement beyond explicit target selection.

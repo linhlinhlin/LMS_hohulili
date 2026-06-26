@@ -10,6 +10,7 @@ export interface AcademicCatalog {
   curriculumSubjects: AcademicCurriculumSubject[];
   learningPackages: AcademicLearningPackage[];
   learningPackageItems: AcademicLearningPackageItem[];
+  learningPackageClassTargets: AcademicLearningPackageClassTarget[];
 }
 
 export interface AcademicDepartment {
@@ -140,6 +141,16 @@ export interface AcademicLearningPackageItem {
   createdAt: string;
 }
 
+export interface AcademicLearningPackageClassTarget {
+  id: string;
+  organizationId: string;
+  packageId: string;
+  courseId: string;
+  learningClassId: string;
+  status: string;
+  createdAt: string;
+}
+
 export interface AcademicLearningPackageEnrollment {
   id: string;
   organizationId: string;
@@ -235,6 +246,12 @@ export interface AddAcademicLearningPackageItemRequest {
   courseId: string | null;
   displayOrder: number;
   required: boolean;
+}
+
+export interface CreateAcademicLearningPackageClassTargetRequest {
+  packageId: string;
+  courseId: string;
+  learningClassId: string;
 }
 
 export interface ReviewAcademicLearningPackageEnrollmentRequest {

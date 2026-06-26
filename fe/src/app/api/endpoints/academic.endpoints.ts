@@ -11,6 +11,7 @@ export const ACADEMIC_ENDPOINTS = {
   CURRICULUM_SUBJECTS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/curriculum-subjects`,
   LEARNING_PACKAGES: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages`,
   LEARNING_PACKAGE_ITEMS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-items`,
+  LEARNING_PACKAGE_CLASS_TARGETS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-class-targets`,
   LEARNING_PACKAGE_ENROLLMENTS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments`,
   MY_LEARNING_PACKAGE_ENROLLMENT: (orgId: string, packageId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages/${packageId}/enrollments/me`,
   APPROVE_LEARNING_PACKAGE_ENROLLMENT: (orgId: string, enrollmentId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments/${enrollmentId}/approve`,

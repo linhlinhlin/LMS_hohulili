@@ -11,6 +11,7 @@ import {
   AcademicCohort,
   AcademicDepartment,
   AcademicLearningPackage,
+  AcademicLearningPackageClassTarget,
   AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
   AcademicProgram,
@@ -23,6 +24,7 @@ import {
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
   CreateAcademicDepartmentRequest,
+  CreateAcademicLearningPackageClassTargetRequest,
   CreateAcademicLearningPackageRequest,
   CreateAcademicProgramRequest,
   CreateAcademicSubjectRequest,
@@ -100,6 +102,16 @@ export class AcademicApi {
   addLearningPackageItem(orgId: string, request: AddAcademicLearningPackageItemRequest) {
     return this.api.postWithResponse<AcademicLearningPackageItem>(
       ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_ITEMS(orgId),
+      request
+    );
+  }
+
+  createLearningPackageClassTarget(
+    orgId: string,
+    request: CreateAcademicLearningPackageClassTargetRequest
+  ) {
+    return this.api.postWithResponse<AcademicLearningPackageClassTarget>(
+      ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_CLASS_TARGETS(orgId),
       request
     );
   }

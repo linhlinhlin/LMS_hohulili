@@ -1433,3 +1433,57 @@ Debt còn lại sau Phase 4.6:
 
 - Cần FE nhỏ cho ORG_ADMIN chọn class target từ `/org-admin/academic`.
 - `PAYMENT_REQUIRED` package vẫn cần checkout/payment completion trước khi auto-grant.
+
+## 37. Phase 4.7 org-admin package class-target UI - 2026-06-26
+
+Mục tiêu của vòng này là làm cho Phase 4.6 dùng được trực tiếp trong giao diện ORG_ADMIN: người quản trị tổ chức có thể chọn gói học, chọn course thuộc gói, rồi gắn course đó vào một lớp học cụ thể. Với VMU, đây là bước nối nghiệp vụ gói/môn/lớp: ví dụ gói đào tạo có course ECDIS và được triển khai cho lớp `ECDIS-2026A`.
+
+Thay đổi đã thực hiện:
+
+- Mở rộng FE academic API type bằng `learningPackageClassTargets`.
+- Thêm endpoint client `POST /api/v3/organizations/{orgId}/academic/learning-package-class-targets`.
+- Thêm chỉ số `Lớp trong gói` trên `/org-admin/academic`.
+- Thêm card `Lớp triển khai trong gói học`.
+- Dropdown course chỉ hiện course thuộc gói: course item trực tiếp trong package, hoặc course được map từ subject item thông qua `subject_courses`.
+- Dropdown lớp học dùng lại `ClassService.getClassesByCourse(courseId)`, không tạo API mới khi API hiện có đã đủ.
+- Thêm `data-testid` ASCII cho smoke test ổn định, không ảnh hưởng UX thật.
+
+Quyết định thiết kế:
+
+- Không hardcode VMU. VMU vẫn là dữ liệu seed/config gồm organization, subject, package, course, class.
+- Không thêm schema hoặc backend API mới trong vòng này vì Phase 4.6 đã có endpoint cần thiết.
+- Không làm redesign lớn; chỉ thêm workflow thiếu để tránh trộn mục tiêu logic với UX.
+- Không auto phân lớp theo cohort/class group ở vòng này. Rule tự động chỉ nên làm khi VMU thật sự cần, vì nó có rủi ro nghiệp vụ cao hơn explicit target.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Browser smoke:
+
+```text
+Route: http://localhost:4200/org-admin/academic
+Login: orgadmin@maritime.edu / orgadmin123
+POST /api/v3/organizations/{orgId}/academic/learning-package-class-targets -> OK
+packageId: 6ccee955-cc2d-4bed-b1cc-aa46f9fa0a72
+courseId: f6bfe202-c0cd-40d6-ae60-7066a5e5aaec
+classId: d360f383-31dc-4c67-ac6a-d12c5007ad66
+classCode: ECDIS-2026A
+API responses observed: 9
+5xx: 0
+console errors: 0
+page errors: 0
+```
+
+Ghi chú:
+
+- `fe/public/sitemap-courses.xml` có thể bị sinh lại khi chạy FE build vì script SEO lấy dữ liệu production; file đó không thuộc slice ORG này và không được stage.
+
+Debt còn lại sau Phase 4.7:
+
+- `PAYMENT_REQUIRED` package vẫn cần checkout/payment completion trước khi auto-grant.
+- Có thể thêm rule auto class allocation theo cohort/class group nếu VMU cần vận hành hàng loạt.
