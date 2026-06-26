@@ -7,10 +7,15 @@ import com.example.lms.academic.domain.model.AcademicLearningPackageClassTarget;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
 import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
 import com.example.lms.academic.domain.model.AcademicLearningPackagePaymentEvent;
+import com.example.lms.academic.domain.model.AcademicLearningPackageRevenueSplit;
 import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
+import com.example.lms.course_authoring.domain.model.Course;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
+import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.application.port.SepayPaymentPort;
+import com.example.lms.shared.domain.model.OrgPaymentConfig;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.ValidationException;
 import org.junit.jupiter.api.DisplayName;
@@ -30,7 +35,9 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -41,10 +48,16 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     private AcademicCatalogRepository repository;
 
     @Mock
+    private CourseRepository courseRepository;
+
+    @Mock
     private GrantCourseAccessUseCase courseAccessGrant;
 
     @Mock
     private SepayPaymentPort sepayPayment;
+
+    @Mock
+    private RevenueConfigPort revenueConfigPort;
 
     @InjectMocks
     private ManageLearningPackageEnrollmentUseCase useCase;
@@ -302,13 +315,18 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         UUID packageId = UUID.randomUUID();
         UUID studentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
+        UUID teacherId = UUID.randomUUID();
         var enrollment = enrollment(orgId, packageId, studentId, "PENDING_PAYMENT");
+        var course = course(orgId, teacherId);
 
         when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
         when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
         when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+        when(revenueConfigPort.resolveConfig(orgId))
+                .thenReturn(OrgPaymentConfig.create(orgId, new BigDecimal("10"), new BigDecimal("70"), BigDecimal.ZERO));
         when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         var response = useCase.completePayment(
@@ -328,7 +346,84 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(eventCaptor.getValue().eventType()).isEqualTo("PAYMENT_CONFIRMED");
         assertThat(eventCaptor.getValue().actorId()).isEqualTo(confirmerId);
         assertThat(eventCaptor.getValue().reference()).isEqualTo("SEPAY-VMU-001");
+        var splitCaptor = ArgumentCaptor.forClass(AcademicLearningPackageRevenueSplit.class);
+        verify(repository).saveLearningPackageRevenueSplit(splitCaptor.capture());
+        assertThat(splitCaptor.getValue().grossAmount()).isEqualByComparingTo("1200000.00");
+        assertThat(splitCaptor.getValue().platformAmount()).isEqualByComparingTo("120000.00");
+        assertThat(splitCaptor.getValue().teacherAmount()).isEqualByComparingTo("840000.00");
+        assertThat(splitCaptor.getValue().orgAmount()).isEqualByComparingTo("240000.00");
+        assertThat(splitCaptor.getValue().courseId()).isEqualTo(courseId);
+        assertThat(splitCaptor.getValue().teacherId()).isEqualTo(teacherId);
         verify(courseAccessGrant).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("completePayment: rejects positive-weight subject item without primary course")
+    void completePayment_rejectsSubjectItemWithoutPrimaryCourse() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID subjectId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_PAYMENT");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageSubjectItem(orgId, packageId, subjectId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(revenueConfigPort.resolveConfig(orgId))
+                .thenReturn(OrgPaymentConfig.create(orgId, new BigDecimal("10"), new BigDecimal("70"), BigDecimal.ZERO));
+
+        assertThatThrownBy(() -> useCase.completePayment(orgId, enrollmentId, UUID.randomUUID(), null))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("course chính");
+        verify(repository, never()).saveLearningPackageRevenueSplit(any());
+        verify(courseAccessGrant, never()).grant(any(), any(), any());
+    }
+
+    @Test
+    @DisplayName("completePayment: allocates package revenue by item weights")
+    void completePayment_allocatesRevenueByItemWeights() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID confirmerId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseIdA = UUID.randomUUID();
+        UUID courseIdB = UUID.randomUUID();
+        UUID teacherIdA = UUID.randomUUID();
+        UUID teacherIdB = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_PAYMENT");
+        var courseA = course(orgId, teacherIdA);
+        var courseB = course(orgId, teacherIdB);
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(
+                packageCourseItem(orgId, packageId, courseIdA, BigDecimal.ONE, 0),
+                packageCourseItem(orgId, packageId, courseIdB, new BigDecimal("3"), 1)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
+        when(courseRepository.findById(courseIdA)).thenReturn(Optional.of(courseA));
+        when(courseRepository.findById(courseIdB)).thenReturn(Optional.of(courseB));
+        when(revenueConfigPort.resolveConfig(orgId))
+                .thenReturn(OrgPaymentConfig.create(orgId, new BigDecimal("10"), new BigDecimal("70"), BigDecimal.ZERO));
+        when(courseAccessGrant.grant(orgId, courseIdA, studentId)).thenReturn(UUID.randomUUID());
+        when(courseAccessGrant.grant(orgId, courseIdB, studentId)).thenReturn(UUID.randomUUID());
+
+        useCase.completePayment(orgId, enrollmentId, confirmerId, null);
+
+        var splitCaptor = ArgumentCaptor.forClass(AcademicLearningPackageRevenueSplit.class);
+        verify(repository, times(2)).saveLearningPackageRevenueSplit(splitCaptor.capture());
+        assertThat(splitCaptor.getAllValues()).hasSize(2);
+        assertThat(splitCaptor.getAllValues().get(0).courseId()).isEqualTo(courseIdA);
+        assertThat(splitCaptor.getAllValues().get(0).teacherId()).isEqualTo(teacherIdA);
+        assertThat(splitCaptor.getAllValues().get(0).grossAmount()).isEqualByComparingTo("300000.00");
+        assertThat(splitCaptor.getAllValues().get(1).courseId()).isEqualTo(courseIdB);
+        assertThat(splitCaptor.getAllValues().get(1).teacherId()).isEqualTo(teacherIdB);
+        assertThat(splitCaptor.getAllValues().get(1).grossAmount()).isEqualByComparingTo("900000.00");
+        verify(courseAccessGrant).grant(orgId, courseIdA, studentId);
+        verify(courseAccessGrant).grant(orgId, courseIdB, studentId);
     }
 
     @Test
@@ -373,13 +468,18 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         UUID packageId = UUID.randomUUID();
         UUID studentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
+        UUID teacherId = UUID.randomUUID();
         var enrollment = enrollment(enrollmentId, orgId, packageId, studentId, "PENDING_PAYMENT");
+        var course = course(orgId, teacherId);
 
         when(repository.findLearningPackageEnrollment(enrollmentId)).thenReturn(Optional.of(enrollment));
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
         when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
         when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
         when(repository.findLearningPackageClassTargets(orgId)).thenReturn(List.of());
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
+        when(revenueConfigPort.resolveConfig(orgId))
+                .thenReturn(OrgPaymentConfig.create(orgId, new BigDecimal("10"), new BigDecimal("70"), BigDecimal.ZERO));
         when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         var response = useCase.completeExternalPayment(
@@ -397,6 +497,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(eventCaptor.getValue().eventType()).isEqualTo("PAYMENT_CONFIRMED");
         assertThat(eventCaptor.getValue().actorId()).isNull();
         assertThat(eventCaptor.getValue().reference()).isEqualTo("SEPAY-VMU-002");
+        verify(repository).saveLearningPackageRevenueSplit(any());
         verify(courseAccessGrant).grant(orgId, courseId, studentId);
     }
 
@@ -568,15 +669,24 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     private AcademicLearningPackageItem packageCourseItem(UUID orgId, UUID packageId, UUID courseId) {
+        return packageCourseItem(orgId, packageId, courseId, BigDecimal.ONE, 0);
+    }
+
+    private AcademicLearningPackageItem packageCourseItem(
+            UUID orgId,
+            UUID packageId,
+            UUID courseId,
+            BigDecimal revenueWeight,
+            int displayOrder) {
         return new AcademicLearningPackageItem(
                 UUID.randomUUID(),
                 orgId,
                 packageId,
                 null,
                 courseId,
-                0,
+                displayOrder,
                 true,
-                BigDecimal.ONE,
+                revenueWeight,
                 "ACTIVE",
                 Instant.now(),
                 null);
@@ -607,6 +717,13 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 "ACTIVE",
                 Instant.now(),
                 null);
+    }
+
+    private Course course(UUID orgId, UUID teacherId) {
+        Course course = mock(Course.class);
+        when(course.getOrganizationId()).thenReturn(orgId);
+        when(course.getTeacherId()).thenReturn(teacherId);
+        return course;
     }
 
     private AcademicLearningPackageClassTarget classTarget(UUID orgId, UUID packageId, UUID courseId, UUID classId) {

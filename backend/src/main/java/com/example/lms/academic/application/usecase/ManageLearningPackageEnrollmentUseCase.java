@@ -4,14 +4,20 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPack
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentEventResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageRevenueSplitResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
+import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
 import com.example.lms.academic.domain.model.AcademicLearningPackagePaymentEvent;
+import com.example.lms.academic.domain.model.AcademicLearningPackageRevenueSplit;
+import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
+import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
+import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.application.port.SepayPaymentPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
@@ -21,11 +27,14 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -33,8 +42,10 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ManageLearningPackageEnrollmentUseCase {
     private final AcademicCatalogRepository repository;
+    private final CourseRepository courseRepository;
     private final GrantCourseAccessUseCase courseAccessGrant;
     private final SepayPaymentPort sepayPayment;
+    private final RevenueConfigPort revenueConfigPort;
 
     @Transactional
     public LearningPackageEnrollmentResponse requestEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
@@ -181,6 +192,7 @@ public class ManageLearningPackageEnrollmentUseCase {
                         confirmerId,
                         completed.paymentReference(),
                         completed.decisionNote()));
+        recordPackageRevenueSplits(completed);
         grantActivePackageCourses(completed);
         return toResponse(completed);
     }
@@ -197,6 +209,7 @@ public class ManageLearningPackageEnrollmentUseCase {
 
         var enrollment = enrollmentOpt.get();
         if ("ACTIVE".equals(enrollment.status()) && enrollment.paymentConfirmedAt() != null) {
+            recordPackageRevenueSplits(enrollment);
             return Optional.of(toResponse(enrollment));
         }
         if (!"PENDING_PAYMENT".equals(enrollment.status())) {
@@ -221,6 +234,7 @@ public class ManageLearningPackageEnrollmentUseCase {
                         null,
                         completed.paymentReference(),
                         completed.decisionNote()));
+        recordPackageRevenueSplits(completed);
         grantActivePackageCourses(completed);
         return Optional.of(toResponse(completed));
     }
@@ -228,6 +242,13 @@ public class ManageLearningPackageEnrollmentUseCase {
     public List<LearningPackagePaymentEventResponse> listPaymentEvents(UUID organizationId, UUID enrollmentId) {
         requireEnrollment(organizationId, enrollmentId);
         return repository.findLearningPackagePaymentEvents(organizationId, enrollmentId).stream()
+                .map(this::toResponse)
+                .toList();
+    }
+
+    public List<LearningPackageRevenueSplitResponse> listRevenueSplits(UUID organizationId, UUID enrollmentId) {
+        requireEnrollment(organizationId, enrollmentId);
+        return repository.findLearningPackageRevenueSplits(organizationId, enrollmentId).stream()
                 .map(this::toResponse)
                 .toList();
     }
@@ -271,6 +292,99 @@ public class ManageLearningPackageEnrollmentUseCase {
                     courseId,
                     enrollment.studentId());
         });
+    }
+
+    private void recordPackageRevenueSplits(AcademicLearningPackageEnrollment enrollment) {
+        if (!"ACTIVE".equals(enrollment.status())
+                || enrollment.paymentAmount().compareTo(BigDecimal.ZERO) <= 0
+                || repository.learningPackageRevenueSplitsExist(enrollment.organizationId(), enrollment.id())) {
+            return;
+        }
+        var items = repository.findLearningPackageItems(enrollment.organizationId()).stream()
+                .filter(item -> enrollment.packageId().equals(item.packageId()))
+                .filter(item -> "ACTIVE".equals(item.status()))
+                .sorted(Comparator
+                        .comparing((AcademicLearningPackageItem item) -> item.displayOrder() == null ? 0 : item.displayOrder())
+                        .thenComparing(item -> item.id().toString()))
+                .toList();
+        var totalWeight = items.stream()
+                .map(item -> item.revenueWeight() == null ? BigDecimal.ZERO : item.revenueWeight())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (totalWeight.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleException(
+                    "PACKAGE_REVENUE_WEIGHT_INVALID",
+                    "Gói học cần ít nhất một item có trọng số doanh thu dương");
+        }
+
+        var subjectCourses = repository.findSubjectCourses(enrollment.organizationId());
+        var config = revenueConfigPort.resolveConfig(enrollment.organizationId());
+        var roundedAmount = enrollment.paymentAmount().setScale(2, RoundingMode.HALF_UP);
+        var allocatedTotal = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        var lastWeightedIndex = lastPositiveWeightIndex(items);
+
+        for (int index = 0; index < items.size(); index++) {
+            var item = items.get(index);
+            var weight = item.revenueWeight() == null ? BigDecimal.ZERO : item.revenueWeight();
+            if (weight.compareTo(BigDecimal.ZERO) <= 0) {
+                continue;
+            }
+            var gross = index == lastWeightedIndex
+                    ? roundedAmount.subtract(allocatedTotal)
+                    : roundedAmount.multiply(weight).divide(totalWeight, 2, RoundingMode.HALF_UP);
+            allocatedTotal = allocatedTotal.add(gross);
+            var courseId = resolveRevenueCourseId(item, subjectCourses);
+            var teacherId = resolveRevenueTeacherId(enrollment.organizationId(), courseId);
+            repository.saveLearningPackageRevenueSplit(AcademicLearningPackageRevenueSplit.create(
+                    enrollment,
+                    item,
+                    courseId,
+                    teacherId,
+                    gross,
+                    config));
+        }
+    }
+
+    private int lastPositiveWeightIndex(List<AcademicLearningPackageItem> items) {
+        var lastIndex = -1;
+        for (int index = 0; index < items.size(); index++) {
+            var weight = items.get(index).revenueWeight() == null ? BigDecimal.ZERO : items.get(index).revenueWeight();
+            if (weight.compareTo(BigDecimal.ZERO) > 0) {
+                lastIndex = index;
+            }
+        }
+        return lastIndex;
+    }
+
+    private UUID resolveRevenueCourseId(
+            AcademicLearningPackageItem item,
+            List<AcademicSubjectCourse> subjectCourses) {
+        if (item.courseId() != null) {
+            return item.courseId();
+        }
+        var primaryCourses = subjectCourses.stream()
+                .filter(link -> Objects.equals(link.subjectId(), item.subjectId()))
+                .filter(link -> link.primary())
+                .filter(link -> "ACTIVE".equals(link.status()))
+                .map(AcademicSubjectCourse::courseId)
+                .distinct()
+                .toList();
+        if (primaryCourses.size() != 1) {
+            throw new BusinessRuleException(
+                    "PACKAGE_REVENUE_MAPPING_INCOMPLETE",
+                    "Mỗi item có doanh thu trong gói học cần đúng một course chính để chia doanh thu");
+        }
+        return primaryCourses.get(0);
+    }
+
+    private UUID resolveRevenueTeacherId(UUID organizationId, UUID courseId) {
+        var course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new EntityNotFoundException("Course", courseId));
+        if (!Objects.equals(course.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException(
+                    "PACKAGE_REVENUE_MAPPING_INCOMPLETE",
+                    "Course chia doanh thu phải thuộc cùng tổ chức với gói học");
+        }
+        return course.getTeacherId();
     }
 
     private List<UUID> resolvePackageCourseIds(UUID organizationId, UUID packageId) {
@@ -361,6 +475,28 @@ public class ManageLearningPackageEnrollmentUseCase {
                 e.note(),
                 e.occurredAt(),
                 e.createdAt());
+    }
+
+    private LearningPackageRevenueSplitResponse toResponse(AcademicLearningPackageRevenueSplit s) {
+        return new LearningPackageRevenueSplitResponse(
+                s.id(),
+                s.organizationId(),
+                s.enrollmentId(),
+                s.packageId(),
+                s.packageItemId(),
+                s.subjectId(),
+                s.courseId(),
+                s.teacherId(),
+                s.grossAmount(),
+                s.currency(),
+                s.platformFeePct(),
+                s.teacherSharePct(),
+                s.orgSharePct(),
+                s.platformAmount(),
+                s.teacherAmount(),
+                s.orgAmount(),
+                s.paymentReference(),
+                s.createdAt());
     }
 
     private LearningPackageResponse toPackageResponse(AcademicLearningPackage p) {

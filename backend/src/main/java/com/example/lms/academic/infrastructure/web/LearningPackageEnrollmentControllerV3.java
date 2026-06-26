@@ -4,6 +4,7 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPack
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentEventResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageRevenueSplitResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
 import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
@@ -136,6 +137,18 @@ public class LearningPackageEnrollmentControllerV3 {
         verifyOrgAdminAccess(currentUser, orgId);
         requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(useCase.listPaymentEvents(orgId, enrollmentId)));
+    }
+
+    @GetMapping("/learning-package-enrollments/{enrollmentId}/revenue-splits")
+    @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
+    @Operation(summary = "List package revenue split ledger rows for a learning package enrollment")
+    public ResponseEntity<ApiResponse<List<LearningPackageRevenueSplitResponse>>> listRevenueSplits(
+            @PathVariable UUID orgId,
+            @PathVariable UUID enrollmentId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
+        return ResponseEntity.ok(ApiResponse.success(useCase.listRevenueSplits(orgId, enrollmentId)));
     }
 
     private void verifyStudentAccess(UserJpaEntity currentUser, UUID orgId) {

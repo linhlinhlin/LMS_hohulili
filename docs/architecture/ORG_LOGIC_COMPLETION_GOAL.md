@@ -2326,3 +2326,99 @@ Debt còn lại sau Phase 4.20:
 - Package-level revenue ledger thật cần quyết định teacher/org/platform share theo org payment config và mapping teacher/course.
 - Package-level refund cần policy riêng về việc chỉ ghi bút toán hay thu hồi quyền course/class đã cấp.
 - Invoice/receipt chính thức nên làm sau khi revenue/refund ledger ổn định.
+
+## 51. Phase 4.21 learning package revenue split ledger - 2026-06-27
+
+Mục tiêu của vòng này là chuyển từ preview phân bổ học phí sang ledger doanh thu thật cho gói học đã thanh toán, nhưng vẫn giữ ranh giới sạch: package payment không bị ép vào `payment_transactions` course-centric, VMU không bị hardcode, và mỗi dòng doanh thu phải truy được về org, enrollment, package item, course và teacher.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V157__learning_package_revenue_splits.sql`.
+- Thêm bảng `learning_package_revenue_splits` dạng append-only cho package payment đã xác nhận.
+- Mỗi dòng ledger đại diện cho một `learning_package_item` có `revenue_weight > 0`.
+- Ledger snapshot các trường tài chính tại thời điểm ghi:
+  - `gross_amount`
+  - `platform_fee_pct`, `teacher_share_pct`, `org_share_pct`
+  - `platform_amount`, `teacher_amount`, `org_amount`
+  - `payment_reference`
+- Thêm FK theo `organization_id` tới enrollment/package/package item để giảm rủi ro nối nhầm dữ liệu chéo org.
+- Thêm domain model `AcademicLearningPackageRevenueSplit`.
+- Thêm JPA entity/repository và adapter mapping trong module `academic`.
+- `completePayment(...)` và `completeExternalPayment(...)` bây giờ ghi revenue split sau khi enrollment chuyển sang `ACTIVE` và trước khi cấp quyền course/class.
+- Nếu webhook SePay gọi lại cho enrollment đã `ACTIVE`, hệ thống vẫn idempotent: chỉ backfill revenue split nếu chưa có ledger.
+- Thêm endpoint đọc ledger:
+  - `GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/revenue-splits`
+  - Chỉ `ADMIN` hoặc `ORG_ADMIN` cùng tổ chức được xem.
+
+Quyết định thiết kế:
+
+- Không dùng `payment_transactions`/`revenue_splits` cũ cho package vì hai bảng đó đang gắn với course checkout, course auto-enrollment và refund course-level.
+- Không chia đều học phí. Hệ thống dùng `learning_package_items.revenue_weight` làm nguồn sự thật.
+- Item có `revenue_weight = 0` không sinh dòng doanh thu.
+- Item trỏ trực tiếp `course_id` thì lấy teacher từ course đó.
+- Item trỏ `subject_id` phải có đúng một `subject_courses` active và primary trong cùng org. Nếu thiếu hoặc mơ hồ, completion dừng với `PACKAGE_REVENUE_MAPPING_INCOMPLETE` để tránh ghi sai sổ tài chính.
+- Teacher/org/platform share lấy từ `OrgPaymentConfig` hiệu lực của tổ chức tại thời điểm ghi ledger.
+- Không thêm payout package ngay trong vòng này. Ledger là nền kế toán tối thiểu; payout/refund/invoice cần phase riêng.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 38, Failures: 0, Errors: 0, Skipped: 0
+
+mvn test
+# Tests run: 1246, Failures: 0, Errors: 0, Skipped: 0
+```
+
+Runtime smoke:
+
+```text
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+# backend image built, container recreated, actuator health UP
+
+Flyway local Docker:
+V155 learning package payment events -> success
+V156 learning package item revenue weight -> success
+V157 learning package revenue splits -> success
+
+ORG_ADMIN API smoke:
+GET /api/v3/organizations/a0000000-0000-0000-0000-000000000001/academic/learning-package-enrollments/96063a7a-e5e7-459d-9e6e-620fff9ea049/revenue-splits
+# 200, []
+
+Student + ORG_ADMIN end-to-end smoke:
+student tranthibinh@sv.maritime.edu requested enrollment in package 0f330a92-b29b-4a15-b3a3-09e14756d8fd
+# status PENDING_PAYMENT, paymentAmount 1,250,000 VND
+
+ORG_ADMIN completed payment for enrollment ceb3238d-557b-465b-abfd-9d8550f52750
+# status ACTIVE, paymentReference SMOKE-PACKAGE-REV-001
+
+GET /revenue-splits for that enrollment
+# 200, one split:
+# grossAmount 1,250,000.00 VND
+# platformAmount 250,000.00
+# teacherAmount 875,000.00
+# orgAmount 125,000.00
+```
+
+Các case đã khóa bằng test:
+
+- ORG_ADMIN cùng org đọc được revenue split ledger.
+- ORG_ADMIN khác org bị chặn trước khi gọi use case.
+- Xác nhận thanh toán package sinh payment event và revenue split.
+- Trọng số 1:3 phân bổ học phí `1,200,000 VND` thành `300,000 VND` và `900,000 VND`.
+- Subject item có doanh thu nhưng thiếu course chính bị từ chối để tránh chia tiền sai.
+- External SePay completion cũng sinh revenue split.
+
+Trạng thái sau Phase 4.21:
+
+- VMU package payment hiện có đủ ba lớp backend tối thiểu: enrollment state, payment event ledger, và revenue split ledger theo package item/course/teacher.
+- ORG logic vẫn là configured data, không có nhánh `if VMU`.
+- Có thể tiếp tục sang package refund, package payout queue hoặc UI đối soát revenue split cho ORG_ADMIN.
+
+Debt còn lại sau Phase 4.21:
+
+- Package-level payout queue chưa nối từ `learning_package_revenue_splits`; payout hiện tại vẫn ưu tiên course-level revenue split.
+- Package-level refund chưa có policy thu hồi quyền course/class hoặc bút toán điều chỉnh.
+- UI org-admin chưa có màn đối soát revenue split theo enrollment; endpoint backend đã sẵn sàng cho phase UI nhỏ.
+- Invoice/receipt chính thức nên làm sau khi refund/payout package ổn định.

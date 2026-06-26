@@ -197,6 +197,27 @@ public final class AcademicCatalogDtos {
             Instant createdAt
     ) {}
 
+    public record LearningPackageRevenueSplitResponse(
+            UUID id,
+            UUID organizationId,
+            UUID enrollmentId,
+            UUID packageId,
+            UUID packageItemId,
+            UUID subjectId,
+            UUID courseId,
+            UUID teacherId,
+            BigDecimal grossAmount,
+            String currency,
+            BigDecimal platformFeePct,
+            BigDecimal teacherSharePct,
+            BigDecimal orgSharePct,
+            BigDecimal platformAmount,
+            BigDecimal teacherAmount,
+            BigDecimal orgAmount,
+            String paymentReference,
+            Instant createdAt
+    ) {}
+
     public record LearningPackageAvailabilityResponse(
             LearningPackageResponse learningPackage,
             LearningPackageEnrollmentResponse enrollment

@@ -22,6 +22,7 @@ public interface AcademicCatalogRepository {
     List<AcademicClassGroupMembership> findClassGroupMemberships(UUID organizationId);
     List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status);
     List<AcademicLearningPackagePaymentEvent> findLearningPackagePaymentEvents(UUID organizationId, UUID enrollmentId);
+    List<AcademicLearningPackageRevenueSplit> findLearningPackageRevenueSplits(UUID organizationId, UUID enrollmentId);
 
     Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id);
     Optional<AcademicProgram> findProgram(UUID organizationId, UUID id);
@@ -51,6 +52,7 @@ public interface AcademicCatalogRepository {
     boolean learningPackageCourseExists(UUID organizationId, UUID packageId, UUID courseId);
     boolean learningPackageClassTargetExists(UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId);
     boolean activeClassGroupMembershipExists(UUID organizationId, UUID studentId);
+    boolean learningPackageRevenueSplitsExist(UUID organizationId, UUID enrollmentId);
 
     AcademicDepartment saveDepartment(AcademicDepartment department);
     AcademicProgram saveProgram(AcademicProgram program);
@@ -70,4 +72,5 @@ public interface AcademicCatalogRepository {
             AcademicClassGroupMembership next);
     AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment);
     AcademicLearningPackagePaymentEvent saveLearningPackagePaymentEvent(AcademicLearningPackagePaymentEvent event);
+    AcademicLearningPackageRevenueSplit saveLearningPackageRevenueSplit(AcademicLearningPackageRevenueSplit split);
 }
