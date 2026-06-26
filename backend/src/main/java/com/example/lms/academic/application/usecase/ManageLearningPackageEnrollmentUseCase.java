@@ -198,6 +198,28 @@ public class ManageLearningPackageEnrollmentUseCase {
     }
 
     @Transactional
+    public LearningPackageEnrollmentResponse refund(
+            UUID organizationId,
+            UUID enrollmentId,
+            UUID actorId,
+            ReviewLearningPackageEnrollmentCommand command) {
+        var enrollment = requireEnrollment(organizationId, enrollmentId);
+        var refunded = repository.saveLearningPackageEnrollment(
+                enrollment.refund(
+                        actorId,
+                        command == null ? null : command.note(),
+                        command == null ? null : command.paymentReference()));
+        repository.saveLearningPackagePaymentEvent(
+                AcademicLearningPackagePaymentEvent.refunded(
+                        refunded,
+                        actorId,
+                        refunded.paymentReference(),
+                        refunded.decisionNote()));
+        revokeActivePackageCourses(enrollment);
+        return toResponse(refunded);
+    }
+
+    @Transactional
     public Optional<LearningPackageEnrollmentResponse> completeExternalPayment(
             UUID enrollmentId,
             BigDecimal transferredAmount,
@@ -292,6 +314,13 @@ public class ManageLearningPackageEnrollmentUseCase {
                     courseId,
                     enrollment.studentId());
         });
+    }
+
+    private void revokeActivePackageCourses(AcademicLearningPackageEnrollment enrollment) {
+        var courseIds = resolvePackageCourseIds(enrollment.organizationId(), enrollment.packageId());
+        for (UUID courseId : courseIds) {
+            courseAccessGrant.revoke(enrollment.organizationId(), courseId, enrollment.studentId());
+        }
     }
 
     private void recordPackageRevenueSplits(AcademicLearningPackageEnrollment enrollment) {
@@ -435,7 +464,7 @@ public class ManageLearningPackageEnrollmentUseCase {
             return null;
         }
         var safeStatus = status.trim().toUpperCase();
-        if (!List.of("PENDING_APPROVAL", "PENDING_PAYMENT", "ACTIVE", "REJECTED", "CANCELLED").contains(safeStatus)) {
+        if (!List.of("PENDING_APPROVAL", "PENDING_PAYMENT", "ACTIVE", "REJECTED", "CANCELLED", "REFUNDED").contains(safeStatus)) {
             throw new ValidationException("status", "Unsupported learning package enrollment status");
         }
         return safeStatus;

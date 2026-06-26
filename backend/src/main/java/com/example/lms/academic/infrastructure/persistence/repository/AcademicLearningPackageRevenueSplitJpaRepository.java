@@ -17,46 +17,101 @@ public interface AcademicLearningPackageRevenueSplitJpaRepository
     List<AcademicLearningPackageRevenueSplitJpaEntity>
     findByOrganizationIdAndEnrollmentIdOrderByCreatedAtAsc(UUID organizationId, UUID enrollmentId);
 
-    @Query("""
-        SELECT COALESCE(SUM(s.teacherAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s
-        WHERE s.teacherId = :teacherId
-        """)
+    @Query(value = """
+        SELECT COALESCE(SUM(s.teacher_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE s.teacher_id = :teacherId
+          AND e.status = 'ACTIVE'
+        """, nativeQuery = true)
     BigDecimal sumTeacherAmountByTeacherId(@Param("teacherId") UUID teacherId);
 
-    @Query("""
-        SELECT COALESCE(SUM(s.teacherAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s
-        WHERE s.teacherId = :teacherId
-          AND EXTRACT(YEAR FROM s.createdAt) = EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
-          AND EXTRACT(MONTH FROM s.createdAt) = EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
-        """)
+    @Query(value = """
+        SELECT COALESCE(SUM(s.teacher_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE s.teacher_id = :teacherId
+          AND e.status = 'ACTIVE'
+          AND EXTRACT(YEAR FROM s.created_at) = EXTRACT(YEAR FROM CURRENT_TIMESTAMP)
+          AND EXTRACT(MONTH FROM s.created_at) = EXTRACT(MONTH FROM CURRENT_TIMESTAMP)
+        """, nativeQuery = true)
     BigDecimal sumTeacherAmountThisMonth(@Param("teacherId") UUID teacherId);
 
     @Query(value = """
-        SELECT COALESCE(SUM(s.teacher_amount), 0) FROM learning_package_revenue_splits s
+        SELECT COALESCE(SUM(s.teacher_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
         WHERE s.teacher_id = :teacherId
+          AND e.status = 'ACTIVE'
           AND s.created_at >= DATE_TRUNC('month', CURRENT_TIMESTAMP - INTERVAL '1 month')
           AND s.created_at <  DATE_TRUNC('month', CURRENT_TIMESTAMP)
         """, nativeQuery = true)
     BigDecimal sumTeacherAmountLastMonth(@Param("teacherId") UUID teacherId);
 
-    @Query("SELECT DISTINCT s.courseId FROM AcademicLearningPackageRevenueSplitJpaEntity s WHERE s.teacherId = :teacherId")
+    @Query(value = """
+        SELECT DISTINCT s.course_id
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE s.teacher_id = :teacherId
+          AND e.status = 'ACTIVE'
+        """, nativeQuery = true)
     List<UUID> findDistinctCourseIdsByTeacherId(@Param("teacherId") UUID teacherId);
 
-    @Query("SELECT COALESCE(SUM(s.grossAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s")
+    @Query(value = """
+        SELECT COALESCE(SUM(s.gross_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE e.status = 'ACTIVE'
+        """, nativeQuery = true)
     BigDecimal sumGrossRevenueAll();
 
-    @Query("SELECT COALESCE(SUM(s.platformAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s")
+    @Query(value = """
+        SELECT COALESCE(SUM(s.platform_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE e.status = 'ACTIVE'
+        """, nativeQuery = true)
     BigDecimal sumPlatformAmountAll();
 
-    @Query("SELECT COALESCE(SUM(s.teacherAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s")
+    @Query(value = """
+        SELECT COALESCE(SUM(s.teacher_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE e.status = 'ACTIVE'
+        """, nativeQuery = true)
     BigDecimal sumTeacherAmountAll();
 
-    @Query("SELECT COALESCE(SUM(s.orgAmount), 0) FROM AcademicLearningPackageRevenueSplitJpaEntity s")
+    @Query(value = """
+        SELECT COALESCE(SUM(s.org_amount), 0)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE e.status = 'ACTIVE'
+        """, nativeQuery = true)
     BigDecimal sumOrgAmountAll();
 
     @Query(value = """
         SELECT s.organization_id AS orgId, SUM(s.gross_amount) AS total
         FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE e.status = 'ACTIVE'
         GROUP BY s.organization_id
         ORDER BY total DESC
         LIMIT :limit

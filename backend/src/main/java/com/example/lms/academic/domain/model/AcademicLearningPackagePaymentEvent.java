@@ -24,7 +24,7 @@ public record AcademicLearningPackagePaymentEvent(
         Instant createdAt
 ) {
     private static final int MAX_REFERENCE_LENGTH = 128;
-    private static final Set<String> EVENT_TYPES = Set.of("QR_CREATED", "PAYMENT_CONFIRMED");
+    private static final Set<String> EVENT_TYPES = Set.of("QR_CREATED", "PAYMENT_CONFIRMED", "REFUNDED");
 
     public AcademicLearningPackagePaymentEvent {
         Objects.requireNonNull(id, "id is required");
@@ -63,6 +63,15 @@ public record AcademicLearningPackagePaymentEvent(
             String reference,
             String note) {
         return fromEnrollment(enrollment, "PAYMENT_CONFIRMED", actorId, reference, note);
+    }
+
+    public static AcademicLearningPackagePaymentEvent refunded(
+            AcademicLearningPackageEnrollment enrollment,
+            UUID actorId,
+            String reference,
+            String note) {
+        Objects.requireNonNull(actorId, "actorId is required");
+        return fromEnrollment(enrollment, "REFUNDED", actorId, reference, note);
     }
 
     private static AcademicLearningPackagePaymentEvent fromEnrollment(

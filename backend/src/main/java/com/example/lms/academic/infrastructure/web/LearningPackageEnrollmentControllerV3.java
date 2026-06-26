@@ -127,6 +127,20 @@ public class LearningPackageEnrollmentControllerV3 {
                 useCase.completePayment(orgId, enrollmentId, currentUser.getId(), command)));
     }
 
+    @PatchMapping("/learning-package-enrollments/{enrollmentId}/refund")
+    @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
+    @Operation(summary = "Refund a paid learning package enrollment")
+    public ResponseEntity<ApiResponse<LearningPackageEnrollmentResponse>> refundEnrollment(
+            @PathVariable UUID orgId,
+            @PathVariable UUID enrollmentId,
+            @Valid @RequestBody(required = false) ReviewLearningPackageEnrollmentCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
+        return ResponseEntity.ok(ApiResponse.success(
+                useCase.refund(orgId, enrollmentId, currentUser.getId(), command)));
+    }
+
     @GetMapping("/learning-package-enrollments/{enrollmentId}/payment-events")
     @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
     @Operation(summary = "List payment audit events for a learning package enrollment")

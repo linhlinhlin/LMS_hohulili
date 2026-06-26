@@ -636,8 +636,12 @@ const capabilityLabels: Record<string, string> = {
                     }
                     @if (enrollment.status === 'ACTIVE') {
                       <span class="action-row">
+                        <input class="compact-input" aria-label="Mã hoàn tiền gói học" placeholder="Mã hoàn tiền" [value]="paymentReferenceFor(enrollment.id)" (input)="setPaymentReference(enrollment.id, $event)">
                         <button type="button" class="secondary-button compact-action" [disabled]="saving()" (click)="loadPackageRevenueSplits(enrollment)">
                           Xem doanh thu
+                        </button>
+                        <button type="button" class="danger-button compact-action" [disabled]="saving()" (click)="refundPackageEnrollment(enrollment)">
+                          Hoàn tiền
                         </button>
                       </span>
                     }
@@ -784,7 +788,8 @@ const capabilityLabels: Record<string, string> = {
     }
 
     .primary-button,
-    .secondary-button {
+    .secondary-button,
+    .danger-button {
       min-height: 2.75rem;
       border-radius: 0.9rem;
       padding: 0 1rem;
@@ -804,13 +809,21 @@ const capabilityLabels: Record<string, string> = {
       color: #0056D2;
     }
 
+    .danger-button {
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+    }
+
     .primary-button:hover,
-    .secondary-button:hover {
+    .secondary-button:hover,
+    .danger-button:hover {
       transform: translateY(-1px);
     }
 
     .primary-button:disabled,
-    .secondary-button:disabled {
+    .secondary-button:disabled,
+    .danger-button:disabled {
       cursor: not-allowed;
       opacity: 0.6;
       transform: none;
@@ -1643,6 +1656,25 @@ export class OrgAcademicCatalogComponent implements OnInit {
     }
   }
 
+  protected async refundPackageEnrollment(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
+    const paymentReference = this.paymentReferenceFor(enrollment.id).trim() || null;
+    await this.mutate(
+      this.academicApi.refundLearningPackageEnrollment(this.organizationId(), enrollment.id, {
+        note: paymentReference
+          ? `Đã hoàn học phí gói học (${paymentReference}).`
+          : 'Đã hoàn học phí gói học.',
+        paymentReference,
+      }),
+      'Đã hoàn tiền gói học và thu hồi quyền truy cập liên quan.',
+      () => this.clearPaymentReference(enrollment.id)
+    );
+    this.packageRevenueSplits.update(current => {
+      const next = { ...current };
+      delete next[enrollment.id];
+      return next;
+    });
+  }
+
   protected async loadPackageRevenueSplits(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
     const orgId = this.organizationId();
     if (!orgId) {
@@ -1860,6 +1892,8 @@ export class OrgAcademicCatalogComponent implements OnInit {
         return 'Đã từ chối';
       case 'CANCELLED':
         return 'Đã hủy';
+      case 'REFUNDED':
+        return 'Đã hoàn tiền';
       default:
         return 'Chờ ORG duyệt';
     }

@@ -141,6 +141,27 @@ public class GrantCourseAccessUseCase {
         return saved.getId();
     }
 
+    @Transactional
+    public void revoke(UUID organizationId, UUID courseId, UUID studentId) {
+        Course course = courseRepository.findById(courseId)
+                .orElseThrow(() -> new BusinessRuleException("COURSE_NOT_FOUND", "Không tìm thấy khóa học"));
+        if (!Objects.equals(course.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("COURSE_ORG_MISMATCH", "Khóa học không thuộc tổ chức này");
+        }
+
+        enrollmentRepository.findByStudentIdAndCourseId(studentId, courseId).ifPresent(enrollment -> {
+            if (enrollment.getStatus() == Enrollment.EnrollmentStatus.COMPLETED) {
+                throw new BusinessRuleException(
+                        "PACKAGE_ACCESS_ALREADY_COMPLETED",
+                        "Không thể tự động thu hồi khóa học đã hoàn thành; cần xử lý học vụ thủ công");
+            }
+            if (enrollment.getStatus() != Enrollment.EnrollmentStatus.DROPPED) {
+                enrollment.drop();
+                enrollmentRepository.save(enrollment);
+            }
+        });
+    }
+
     private LearningClass findOrCreateDefaultClass(UUID organizationId, UUID courseId, Course course) {
         return learningClassRepository.findByCourseIdAndName(courseId, DEFAULT_CLASS_NAME)
                 .orElseGet(() -> createDefaultClass(organizationId, courseId, course));

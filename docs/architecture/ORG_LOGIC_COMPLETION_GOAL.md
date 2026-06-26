@@ -2566,3 +2566,98 @@ Debt còn lại sau Phase 4.23:
 - Teacher revenue history vẫn là course-level `revenue_splits`; nếu cần xem lịch sử chi tiết package ở dashboard teacher thì thêm endpoint/list riêng hoặc hợp nhất read model sau.
 - Package refund vẫn cần policy riêng về thu hồi quyền học hoặc bút toán điều chỉnh.
 - Invoice/receipt chính thức nên làm sau khi refund và package payout ledger ổn định.
+
+## 54. Phase 4.24 learning package refund and active-revenue invariant - 2026-06-27
+
+Mục tiêu của vòng này là đóng debt refund sau Phase 4.21-4.23. Với VMU, một học viên có thể đăng ký gói học theo môn/course; nếu ORG_ADMIN hoàn học phí, hệ thống phải thể hiện rõ ba điều: enrollment gói học không còn active, quyền học các course trong gói bị thu hồi nếu chưa hoàn thành, và doanh thu/payout không còn tính phần tiền đã hoàn.
+
+Thay đổi đã thực hiện:
+
+- Thêm trạng thái `REFUNDED` cho `learning_package_enrollments`.
+- Thêm loại event `REFUNDED` cho `learning_package_payment_events`.
+- Thêm migration `V158__learning_package_refund_status.sql` để cập nhật CHECK constraint ở DB.
+- Thêm domain method `AcademicLearningPackageEnrollment.refund(...)`:
+  - chỉ cho refund enrollment `ACTIVE`;
+  - yêu cầu đã có `paymentConfirmedAt`;
+  - yêu cầu `paymentAmount > 0`;
+  - ghi `decidedBy`, `decidedAt`, `decisionNote` và mã đối soát hoàn tiền nếu có.
+- Thêm `ManageLearningPackageEnrollmentUseCase.refund(...)`:
+  - đổi enrollment sang `REFUNDED`;
+  - ghi payment event `REFUNDED`;
+  - thu hồi quyền học các course thuộc package thông qua `GrantCourseAccessUseCase.revoke(...)`.
+- Thêm `GrantCourseAccessUseCase.revoke(...)`:
+  - kiểm tra course thuộc đúng organization;
+  - nếu enrollment course đã `COMPLETED` thì chặn bằng `PACKAGE_ACCESS_ALREADY_COMPLETED` để xử lý học vụ thủ công;
+  - nếu chưa hoàn thành thì chuyển enrollment course sang `DROPPED`.
+- Cập nhật các aggregate query của `AcademicLearningPackageRevenueSplitJpaRepository` để chỉ cộng package revenue khi enrollment gói học còn `ACTIVE`.
+- Thêm endpoint:
+  - `PATCH /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/refund`
+  - chỉ `ADMIN` hoặc `ORG_ADMIN` đúng org được gọi;
+  - yêu cầu capability `learning_packages`.
+- Cập nhật `/org-admin/academic`:
+  - enrollment gói học `ACTIVE` có input "Mã hoàn tiền";
+  - có action "Hoàn tiền";
+  - sau khi refund thành công, UI clear mã đối soát và bỏ panel revenue split đã load cho enrollment đó.
+
+Quyết định thiết kế:
+
+- Không tạo microservice, không tạo accounting subsystem mới. Modular monolith + DB constraint + use case transaction là đủ cho checkpoint này.
+- Không hardcode VMU. VMU chỉ là dữ liệu: organization, learning package, package items, subject/course mapping và org payment config.
+- Không xóa `learning_package_revenue_splits` khi refund. Ledger giữ append-only để audit; các màn tổng hợp chỉ tính split có enrollment gói học còn `ACTIVE`.
+- Refund event dùng amount dương theo nghĩa "số tiền được hoàn", không ghi số âm. Nếu sau này cần báo cáo kế toán hai chiều, thêm adjustment ledger riêng thay vì đổi semantic event hiện tại.
+- Không tự động thu hồi course đã hoàn thành vì có thể ảnh hưởng chứng chỉ/tiến độ học vụ. Case đó phải dừng và để ORG_ADMIN xử lý thủ công.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test,GetTeacherRevenueUseCaseTest,RequestPayoutUseCaseTest,GetCrossOrgRevenueUseCaseTest" test
+# Tests run: 50, Failures: 0, Errors: 0, Skipped: 0
+
+mvn test
+# Tests run: 1254, Failures: 0, Errors: 0, Skipped: 0
+
+cd fe
+npm run build
+# Build success; các warning còn lại là warning cũ ở admin-storage/tiptap/Sass/CommonJS/Node odd-version.
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+
+Flyway local Docker:
+V158 learning package refund status -> success
+```
+
+Runtime smoke:
+
+```text
+DB constraint smoke:
+chk_learning_package_enrollments_status includes REFUNDED
+chk_learning_package_payment_events_type includes REFUNDED
+
+ORG_ADMIN API smoke:
+PATCH /api/v3/organizations/a0000000-0000-0000-0000-000000000001/academic/learning-package-enrollments/{smokeEnrollmentId}/refund
+# success true
+# enrollment status REFUNDED
+# payment event REFUNDED count 1
+# related course enrollment status DROPPED
+
+Playwright /org-admin/academic:
+# rendered app-org-academic-catalog
+# refund action count 4
+# refund reference input count 5
+# console/page errors 0
+```
+
+Trạng thái sau Phase 4.24:
+
+- Chuỗi VMU package payment hiện có đủ: gói học -> thanh toán -> enrollment active -> revenue split -> teacher/org/admin aggregate -> ORG_ADMIN đối soát -> refund -> thu hồi quyền học -> aggregate không còn tính tiền đã hoàn.
+- ORG logic vẫn dựa vào org ownership/capability/data config, không có nhánh `if VMU`.
+- Package refund không còn là debt lớn nhất của luồng package payment.
+
+Debt còn lại sau Phase 4.24:
+
+- Re-enrollment sau refund chưa mở vì DB hiện có unique `(package_id, student_id)`. Nếu nghiệp vụ yêu cầu mua lại/gia hạn cùng package, cần thêm attempt model hoặc partial unique index theo trạng thái.
+- Teacher revenue history vẫn cần read model hợp nhất nếu muốn hiển thị package/refund detail ở dashboard giảng viên.
+- Invoice/receipt chính thức và export đối soát kế toán nên làm sau khi chốt policy re-enrollment/refund adjustment.

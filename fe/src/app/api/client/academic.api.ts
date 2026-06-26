@@ -216,6 +216,17 @@ export class AcademicApi {
     );
   }
 
+  refundLearningPackageEnrollment(
+    orgId: string,
+    enrollmentId: string,
+    request: ReviewAcademicLearningPackageEnrollmentRequest
+  ) {
+    return this.api.patchWithResponse<AcademicLearningPackageEnrollment>(
+      ACADEMIC_ENDPOINTS.REFUND_LEARNING_PACKAGE_ENROLLMENT(orgId, enrollmentId),
+      request
+    );
+  }
+
   listLearningPackageRevenueSplits(orgId: string, enrollmentId: string) {
     return this.api.getWithResponse<AcademicLearningPackageRevenueSplit[]>(
       ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_REVENUE_SPLITS(orgId, enrollmentId)

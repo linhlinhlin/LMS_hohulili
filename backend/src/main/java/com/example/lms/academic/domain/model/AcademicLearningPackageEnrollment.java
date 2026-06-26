@@ -34,7 +34,8 @@ public record AcademicLearningPackageEnrollment(
             "PENDING_PAYMENT",
             "ACTIVE",
             "REJECTED",
-            "CANCELLED");
+            "CANCELLED",
+            "REFUNDED");
 
     public AcademicLearningPackageEnrollment {
         Objects.requireNonNull(id, "id is required");
@@ -129,6 +130,39 @@ public record AcademicLearningPackageEnrollment(
                     "Only pending payment package enrollments can be completed");
         }
         return complete(null, note, paymentReference);
+    }
+
+    public AcademicLearningPackageEnrollment refund(UUID actorId, String note, String paymentReference) {
+        if (!"ACTIVE".equals(status)) {
+            throw new BusinessRuleException(
+                    "PACKAGE_ENROLLMENT_NOT_REFUNDABLE",
+                    "Only active paid package enrollments can be refunded");
+        }
+        if (paymentConfirmedAt == null || paymentAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new BusinessRuleException(
+                    "PACKAGE_ENROLLMENT_NOT_PAID",
+                    "Only confirmed paid package enrollments can be refunded");
+        }
+        Objects.requireNonNull(actorId, "actorId is required");
+        var now = Instant.now();
+        var nextReference = cleanPaymentReference(paymentReference);
+        return new AcademicLearningPackageEnrollment(
+                id,
+                organizationId,
+                packageId,
+                studentId,
+                "REFUNDED",
+                note,
+                paymentAmount,
+                paymentCurrency,
+                nextReference == null ? paymentReference() : nextReference,
+                paymentConfirmedAt,
+                paymentConfirmedBy,
+                requestedAt,
+                now,
+                actorId,
+                createdAt,
+                now);
     }
 
     private AcademicLearningPackageEnrollment complete(UUID confirmerId, String note, String paymentReference) {

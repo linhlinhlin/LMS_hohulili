@@ -159,6 +159,32 @@ class LearningPackageEnrollmentControllerV3Test {
     }
 
     @Test
+    @DisplayName("refund: allows same-organization ORG_ADMIN")
+    void refund_allowsSameOrganizationOrgAdmin() {
+        UUID organizationId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId, true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
+
+        controller.refundEnrollment(organizationId, enrollmentId, null, orgAdmin);
+
+        verify(useCase).refund(organizationId, enrollmentId, orgAdmin.getId(), null);
+    }
+
+    @Test
+    @DisplayName("refund: rejects ORG_ADMIN from another organization")
+    void refund_rejectsOrgAdminFromAnotherOrganization() {
+        UUID organizationId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, UUID.randomUUID(), true);
+
+        assertThatThrownBy(() -> controller.refundEnrollment(organizationId, enrollmentId, null, orgAdmin))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("No access");
+        verify(useCase, never()).refund(organizationId, enrollmentId, orgAdmin.getId(), null);
+    }
+
+    @Test
     @DisplayName("listPaymentEvents: allows same-organization ORG_ADMIN")
     void listPaymentEvents_allowsSameOrganizationOrgAdmin() {
         UUID organizationId = UUID.randomUUID();

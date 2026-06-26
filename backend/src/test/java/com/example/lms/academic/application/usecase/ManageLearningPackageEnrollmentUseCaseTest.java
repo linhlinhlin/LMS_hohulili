@@ -502,6 +502,55 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     @Test
+    @DisplayName("refund: paid active package becomes refunded and revokes package course access")
+    void refund_paidActivePackageRevokesPackageCourses() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        var enrollment = paidEnrollment(enrollmentId, orgId, packageId, studentId);
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+
+        var response = useCase.refund(
+                orgId,
+                enrollmentId,
+                actorId,
+                new ReviewLearningPackageEnrollmentCommand("Hoàn học phí theo yêu cầu học viên.", "REF-VMU-001"));
+
+        assertThat(response.status()).isEqualTo("REFUNDED");
+        assertThat(response.decidedBy()).isEqualTo(actorId);
+        assertThat(response.paymentReference()).isEqualTo("REF-VMU-001");
+        var eventCaptor = ArgumentCaptor.forClass(AcademicLearningPackagePaymentEvent.class);
+        verify(repository).saveLearningPackagePaymentEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().eventType()).isEqualTo("REFUNDED");
+        assertThat(eventCaptor.getValue().actorId()).isEqualTo(actorId);
+        assertThat(eventCaptor.getValue().reference()).isEqualTo("REF-VMU-001");
+        verify(courseAccessGrant).revoke(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("refund: rejects active package enrollment without confirmed payment")
+    void refund_rejectsUnpaidActivePackage() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        var enrollment = enrollment(enrollmentId, orgId, UUID.randomUUID(), UUID.randomUUID(), "ACTIVE");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> useCase.refund(orgId, enrollmentId, UUID.randomUUID(), null))
+                .isInstanceOf(BusinessRuleException.class)
+                .hasMessageContaining("confirmed paid");
+        verify(repository, never()).saveLearningPackageEnrollment(any());
+        verify(courseAccessGrant, never()).revoke(any(), any(), any());
+    }
+
+    @Test
     @DisplayName("completeExternalPayment: returns empty for non-package payment reference")
     void completeExternalPayment_returnsEmptyForUnknownReference() {
         UUID enrollmentId = UUID.randomUUID();
@@ -664,6 +713,30 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 Instant.now(),
                 null,
                 null,
+                Instant.now(),
+                null);
+    }
+
+    private AcademicLearningPackageEnrollment paidEnrollment(
+            UUID enrollmentId,
+            UUID orgId,
+            UUID packageId,
+            UUID studentId) {
+        return new AcademicLearningPackageEnrollment(
+                enrollmentId,
+                orgId,
+                packageId,
+                studentId,
+                "ACTIVE",
+                "SePay webhook xác nhận thanh toán gói học.",
+                new BigDecimal("1200000"),
+                "VND",
+                "SEPAY-VMU-PAID",
+                Instant.now(),
+                UUID.randomUUID(),
+                Instant.now(),
+                Instant.now(),
+                UUID.randomUUID(),
                 Instant.now(),
                 null);
     }
