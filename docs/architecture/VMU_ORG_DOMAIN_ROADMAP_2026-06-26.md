@@ -325,3 +325,56 @@ Debt after Phase A:
 - Add package/tuition/enrollment policy only after the curriculum workflow is accepted.
 - Add search/debounce to selectors when an organization has many programs, cohorts, subjects, or courses.
 - Run browser smoke against `/org-admin/academic` after this branch is merged/deployed to the review runtime.
+
+## 10. Phase A merge, deploy, and production smoke
+
+Status on 2026-06-26: merged and deployed to the GCP review runtime.
+
+GitHub flow:
+
+- PR: `#520` - `feat(org): add VMU curriculum plan foundation`.
+- Merge commit: `bae5b71a21b65025a2d817cb5e7b0acc39dd09b8`.
+- PR CI: backend, frontend, compose validation, Cloudflare Worker tests, and Docker smoke all passed.
+- Main CI after merge: backend, frontend, compose validation, Cloudflare Worker tests, and Docker smoke all passed.
+- Main `Build & Deploy`: completed successfully.
+
+Production API smoke against `https://holilihu.online`:
+
+```text
+GET /actuator/health -> UP
+POST /api/v3/auth/login as orgadmin@maritime.edu -> ORG_ADMIN
+GET /api/v3/organizations/{orgId}/academic/catalog -> 200
+```
+
+Catalog counts after deploy:
+
+| Item | Count |
+| --- | ---: |
+| Departments | 4 |
+| Programs | 4 |
+| Cohorts | 3 |
+| Class groups | 4 |
+| Subjects | 9 |
+| Subject-course links | 9 |
+| Academic terms | 3 |
+| Curriculum plans | 1 |
+| Curriculum subjects | 6 |
+| Courses retained | 174 |
+
+Production browser smoke:
+
+```text
+Route: https://holilihu.online/org-admin/academic
+Catalog API response: 200
+Visible cards: Học kỳ / năm học, Khung chương trình, Môn trong khung chương trình
+Seed plan visible: DKT-K63-CDIO
+Console errors: 0
+Page errors: 0
+Screenshot: artifacts/org-admin-curriculum-smoke-20260626/academic-curriculum-production.png
+```
+
+Conclusion:
+
+- Phase A is live on the review runtime.
+- VMU curriculum structure is represented as organization-scoped data, not hardcoded VMU logic.
+- The next meaningful product slice is package/tuition/enrollment policy; do not add those tables until the workflow and demo script are explicit.
