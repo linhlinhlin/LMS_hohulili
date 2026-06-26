@@ -451,3 +451,26 @@ Debt after Phase B:
 - Add org capabilities / feature flags as the next minimal control layer so ORG_ADMIN UI can be shown only when an org has the relevant module enabled.
 - Add package enrollment/payment workflow only after the business rule is explicit: direct free assignment, ORG approval, invite-only, or payment-required package purchase.
 - Add search/debounce to package selectors if catalog size grows beyond the current demo volume.
+
+## 12. Phase B seed hotfix - default-org package data
+
+Status on 2026-06-26: implemented in branch `codex/vmu-package-seed-fix`.
+
+Issue found during production smoke:
+
+- V145 schema and API deployed successfully.
+- V146 ran successfully, but inserted `0` learning packages on the review runtime.
+- Root cause: V146 selected VMU by `organizations.code = 'VMU'` or organization name containing `Hàng hải`, while the existing demo academic catalog from V144 is seeded under the default organization.
+
+Fix:
+
+- Add `V147__seed_vmu_learning_package_default_org_fix.sql`.
+- Select the target organization from curriculum plan `DKT-K63-CDIO` itself.
+- Insert/update package `VMU-DKT-K63-FOUNDATION` in the same organization as the curriculum plan.
+- Insert six package subject items from the same organization.
+
+Why this is cleaner:
+
+- It avoids fragile dependence on organization display name/code.
+- It keeps the seed aligned to the academic plan that the package is meant to wrap.
+- It is forward-only and idempotent with `ON CONFLICT` guards.
