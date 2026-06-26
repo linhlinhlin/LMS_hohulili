@@ -2422,3 +2422,81 @@ Debt còn lại sau Phase 4.21:
 - Package-level refund chưa có policy thu hồi quyền course/class hoặc bút toán điều chỉnh.
 - UI org-admin chưa có màn đối soát revenue split theo enrollment; endpoint backend đã sẵn sàng cho phase UI nhỏ.
 - Invoice/receipt chính thức nên làm sau khi refund/payout package ổn định.
+
+## 52. Phase 4.22 package revenue joins teacher payout and org analytics - 2026-06-27
+
+Mục tiêu của vòng này là đóng khoảng hở sau Phase 4.21: ledger `learning_package_revenue_splits` đã được ghi đúng, nhưng các màn doanh thu/rút tiền cũ vẫn chỉ đọc `revenue_splits` course-level. Với VMU, nếu học phí gói học đã được xác nhận thì giảng viên phải thấy số dư có thể rút và admin phải thấy doanh thu ORG trong báo cáo tổng hợp.
+
+Thay đổi đã thực hiện:
+
+- Thêm application port `LearningPackageRevenuePort` ở `shared.application.port`.
+- Module `academic` implement port này bằng `LearningPackageRevenuePortAdapter`, đọc từ `learning_package_revenue_splits`.
+- `GetTeacherRevenueUseCase` cộng course revenue + package revenue cho:
+  - tổng doanh thu;
+  - doanh thu tháng này;
+  - doanh thu tháng trước;
+  - số dư có thể rút.
+- `RequestPayoutUseCase` cộng package revenue vào available balance trước khi kiểm tra số tiền teacher yêu cầu rút.
+- `GetCrossOrgRevenueUseCase` cộng package revenue vào cross-org admin analytics:
+  - total gross revenue;
+  - platform fees;
+  - teacher payouts;
+  - org payouts;
+  - top orgs by revenue.
+- Top orgs được merge theo `orgId`, nên một ORG có cả course checkout và package checkout vẫn chỉ xuất hiện một dòng với tổng doanh thu hợp nhất.
+
+Quyết định thiết kế:
+
+- Không trộn dữ liệu package vào bảng `revenue_splits` cũ vì bảng đó đang đại diện cho course checkout.
+- Không tạo microservice hay accounting subsystem mới; một port đọc aggregate là đủ cho chặng này.
+- Không đổi UI trong vòng này. FE teacher/admin đang gọi các endpoint cũ nên tự nhận số mới từ backend.
+- `totalCoursesSold` trong teacher summary vẫn giữ semantics cũ là course-level distinct courses. Nếu muốn thống kê "package/course sales" đầy đủ hơn, cần đổi tên metric hoặc tạo metric mới để tránh gây hiểu nhầm.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=GetTeacherRevenueUseCaseTest,RequestPayoutUseCaseTest,GetCrossOrgRevenueUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 46, Failures: 0, Errors: 0, Skipped: 0
+
+mvn test
+# Tests run: 1250, Failures: 0, Errors: 0, Skipped: 0
+```
+
+Runtime smoke:
+
+```text
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+# backend rebuilt, container recreated, actuator health UP
+
+DB smoke:
+learning_package_revenue_splits contains teacher vudinhthang@maritime.edu
+# teacherAmount 875,000.00 VND
+
+Teacher API smoke:
+GET /api/v3/teacher/revenue/summary
+# totalRevenue 875,000.00; thisMonthRevenue 875,000.00
+
+GET /api/v3/teacher/payout/balance
+# availableBalance 875,000.00; minPayoutAmount 100,000
+
+Admin API smoke:
+GET /api/v3/organizations/stats/revenue
+# totalGrossRevenue 1,250,000.00
+# totalPlatformFees 250,000.00
+# totalTeacherPayouts 875,000.00
+# totalOrgPayouts 125,000.00
+```
+
+Trạng thái sau Phase 4.22:
+
+- Package revenue không còn bị "kẹt" trong ledger riêng; teacher payout balance và cross-org analytics đã thấy nguồn tiền này.
+- Luồng VMU package payment hiện có đủ: enrollment, payment event, revenue split, teacher balance, request payout và admin revenue aggregate.
+- ORG logic vẫn là dữ liệu/capability/policy theo tổ chức, không có nhánh code hardcode VMU.
+
+Debt còn lại sau Phase 4.22:
+
+- Teacher revenue history vẫn là course-level `revenue_splits`; nếu cần xem lịch sử chi tiết package ở dashboard teacher thì thêm endpoint/list riêng hoặc hợp nhất read model sau.
+- Package refund vẫn cần policy riêng về thu hồi quyền học hoặc bút toán điều chỉnh.
+- Org-admin UI chưa có màn đối soát package revenue split theo enrollment, dù backend endpoint đã có.
+- Invoice/receipt chính thức nên làm sau khi refund và package payout ledger ổn định.

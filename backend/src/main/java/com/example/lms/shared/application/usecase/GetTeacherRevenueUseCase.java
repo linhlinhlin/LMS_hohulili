@@ -2,6 +2,7 @@ package com.example.lms.shared.application.usecase;
 
 import com.example.lms.course_authoring.infrastructure.persistence.JpaCourseRepository;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.shared.application.port.LearningPackageRevenuePort;
 import com.example.lms.shared.application.support.BankAccountMasking;
 import com.example.lms.shared.domain.model.PayoutRequest;
 import com.example.lms.shared.domain.model.RevenueSplit;
@@ -34,6 +35,7 @@ public class GetTeacherRevenueUseCase {
     private final JpaCourseRepository           courseRepository;
     private final UserJpaRepository             userRepository;
     private final RevenueConfigService          revenueConfigService;
+    private final LearningPackageRevenuePort    learningPackageRevenuePort;
 
     // ── DTOs ─────────────────────────────────────────────────────────────
 
@@ -83,9 +85,15 @@ public class GetTeacherRevenueUseCase {
 
     @Transactional(readOnly = true)
     public RevenueSummaryDto getSummary(UUID teacherId) {
-        BigDecimal total     = revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId);
-        BigDecimal thisMonth = revenueSplitRepository.sumTeacherAmountThisMonth(teacherId);
-        BigDecimal lastMonth = revenueSplitRepository.sumTeacherAmountLastMonth(teacherId);
+        BigDecimal total     = sumRevenue(
+                revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId),
+                learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId));
+        BigDecimal thisMonth = sumRevenue(
+                revenueSplitRepository.sumTeacherAmountThisMonth(teacherId),
+                learningPackageRevenuePort.sumTeacherAmountThisMonth(teacherId));
+        BigDecimal lastMonth = sumRevenue(
+                revenueSplitRepository.sumTeacherAmountLastMonth(teacherId),
+                learningPackageRevenuePort.sumTeacherAmountLastMonth(teacherId));
         long       sold      = revenueSplitRepository.countDistinctCoursesByTeacherId(teacherId);
 
         double growth = 0.0;
@@ -144,7 +152,9 @@ public class GetTeacherRevenueUseCase {
 
     @Transactional(readOnly = true)
     public PayoutBalanceDto getBalance(UUID teacherId) {
-        BigDecimal totalEarned  = revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId);
+        BigDecimal totalEarned  = sumRevenue(
+                revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId),
+                learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId));
         BigDecimal completed    = payoutRequestRepository.sumCompletedByTeacherId(teacherId);
         BigDecimal inFlight     = payoutRequestRepository.sumPendingAndApprovedByTeacherId(teacherId);
         BigDecimal available    = totalEarned.subtract(completed).subtract(inFlight);
@@ -155,5 +165,13 @@ public class GetTeacherRevenueUseCase {
         BigDecimal minPayout = revenueConfigService.resolveConfig(orgId).getMinPayoutAmount();
 
         return new PayoutBalanceDto(available, inFlight, completed, minPayout);
+    }
+
+    private BigDecimal sumRevenue(BigDecimal courseRevenue, BigDecimal packageRevenue) {
+        return zeroIfNull(courseRevenue).add(zeroIfNull(packageRevenue));
+    }
+
+    private BigDecimal zeroIfNull(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }
