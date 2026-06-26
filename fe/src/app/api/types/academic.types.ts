@@ -201,6 +201,25 @@ export interface AcademicLearningPackagePaymentQr {
   packageName: string;
 }
 
+export interface AcademicLearningPackageRevenueAllocation {
+  packageId: string;
+  packagePrice: number;
+  currency: string;
+  totalWeight: number;
+  allocatedTotal: number;
+  items: AcademicLearningPackageRevenueAllocationItem[];
+}
+
+export interface AcademicLearningPackageRevenueAllocationItem {
+  itemId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  displayOrder: number;
+  revenueWeight: number;
+  allocationPct: number;
+  allocatedAmount: number;
+}
+
 export interface CreateAcademicDepartmentRequest {
   code: string;
   name: string;

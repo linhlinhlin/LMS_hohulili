@@ -2265,3 +2265,64 @@ Debt còn lại sau Phase 4.19:
 - Package-level revenue split cần dùng `revenue_weight` để phân bổ học phí theo item, rồi mới quyết định teacher/org/platform share.
 - Package-level refund cần policy riêng: refund chỉ ghi bút toán điều chỉnh hay thu hồi course/class access.
 - Invoice/receipt chính thức vẫn nên làm sau khi package revenue/refund ledger ổn định.
+
+## 50. Phase 4.20 learning package revenue allocation preview - 2026-06-27
+
+Mục tiêu của vòng này là biến `revenue_weight` thành một workflow kiểm tra được trên org-admin, nhưng vẫn chưa ghi ledger doanh thu thật. Với VMU, một gói học có thể gồm nhiều môn học/course; ORG_ADMIN cần thấy học phí gói sẽ được phân bổ dự kiến ra từng item như thế nào trước khi hệ thống có package-level revenue split/payout chính thức.
+
+Thay đổi đã thực hiện:
+
+- Thêm response DTO `LearningPackageRevenueAllocationResponse` và `LearningPackageRevenueAllocationItemResponse`.
+- Thêm use case `previewLearningPackageRevenueAllocation(orgId, packageId)`.
+- Thuật toán preview:
+  - lấy package theo `organization_id` và `packageId`;
+  - lấy các `learning_package_items` ACTIVE thuộc package trong cùng org;
+  - tổng trọng số = tổng `revenueWeight`;
+  - mỗi item có trọng số dương nhận `packagePrice * revenueWeight / totalWeight`;
+  - item cuối có trọng số dương nhận phần còn lại sau làm tròn để `allocatedTotal` không lệch tổng học phí;
+  - item có `revenueWeight = 0` vẫn xuất hiện để đối soát nhưng nhận `0`;
+  - nếu tổng trọng số hoặc học phí bằng 0 thì toàn bộ allocation trả 0, không tự đoán policy.
+- Thêm endpoint ORG_ADMIN/ADMIN:
+  - `GET /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/revenue-allocation-preview`
+  - yêu cầu capabilities `academic_catalog` và `learning_packages`.
+- Thêm API client/type Angular.
+- Thêm panel nhỏ trong `/org-admin/academic` tại card `Gói học / học phí`: chọn gói, bấm xem phân bổ, hiển thị tổng học phí, tổng trọng số, tổng đã phân bổ và từng item theo phần trăm/số tiền.
+
+Quyết định thiết kế:
+
+- Không tạo bảng mới, vì đây chỉ là preview từ dữ liệu hiện có.
+- Không gọi đây là revenue split/payout thật. Khi xác nhận thanh toán package, hệ thống đã có payment event ledger; còn ledger doanh thu/payout cần policy riêng để quyết định teacher/org/platform share và refund behavior.
+- Không hardcode VMU. VMU chỉ cấu hình package, item và trọng số phân bổ bằng dữ liệu.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 24, Failures: 0, Errors: 0, Skipped: 0
+
+cd fe
+npm run build
+# Build success; only existing Angular/Sass/CommonJS/Node odd-version warnings remain.
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+
+GET /api/v3/organizations/a0000000-0000-0000-0000-000000000001/academic/learning-packages/{packageId}/revenue-allocation-preview
+# ORG_ADMIN 200; packagePrice=1250000.00; allocatedTotal=1250000.00; itemCount=1
+
+Playwright /org-admin/academic
+# package allocation panel rendered; API 200; no console/page errors
+```
+
+Trạng thái sau Phase 4.20:
+
+- ORG_ADMIN đã có thể kiểm tra học phí gói học VMU được phân bổ dự kiến theo môn/course trước khi vận hành payout thật.
+- Đây là bước an toàn trước package-level revenue split: dữ liệu đầu vào đã rõ, UI đối soát được, nhưng sổ cái doanh thu chưa bị ghi sai bởi một policy chưa chốt.
+
+Debt còn lại sau Phase 4.20:
+
+- Package-level revenue ledger thật cần quyết định teacher/org/platform share theo org payment config và mapping teacher/course.
+- Package-level refund cần policy riêng về việc chỉ ghi bút toán hay thu hồi quyền course/class đã cấp.
+- Invoice/receipt chính thức nên làm sau khi revenue/refund ledger ổn định.

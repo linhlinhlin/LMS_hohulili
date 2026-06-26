@@ -14,6 +14,7 @@ import com.example.lms.academic.domain.model.AcademicClassGroup;
 import com.example.lms.academic.domain.model.AcademicCohort;
 import com.example.lms.academic.domain.model.AcademicCurriculumPlan;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
+import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
 import com.example.lms.academic.domain.model.AcademicProgram;
 import com.example.lms.academic.domain.model.AcademicSubject;
 import com.example.lms.academic.domain.model.AcademicTerm;
@@ -40,6 +41,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -271,6 +273,64 @@ class ManageAcademicCatalogUseCaseTest {
                 .hasMessageContaining("revenueWeight");
 
         verify(repository, never()).saveLearningPackageItem(any());
+    }
+
+    @Test
+    @DisplayName("previewLearningPackageRevenueAllocation: splits package price by item revenue weights")
+    void previewLearningPackageRevenueAllocation_splitsByRevenueWeights() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID subjectItemId = UUID.randomUUID();
+        UUID courseItemId = UUID.randomUUID();
+        UUID subjectId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackageWithPrice(packageId, organizationId, new BigDecimal("1000000"))));
+        when(repository.findLearningPackageItems(organizationId)).thenReturn(List.of(
+                learningPackageItem(subjectItemId, organizationId, packageId, subjectId, null, 1, new BigDecimal("1.0000")),
+                learningPackageItem(courseItemId, organizationId, packageId, null, courseId, 2, new BigDecimal("3.0000")),
+                learningPackageItem(UUID.randomUUID(), organizationId, UUID.randomUUID(), UUID.randomUUID(), null, 3, BigDecimal.TEN)
+        ));
+
+        var response = useCase.previewLearningPackageRevenueAllocation(organizationId, packageId);
+
+        assertThat(response.packageId()).isEqualTo(packageId);
+        assertThat(response.totalWeight()).isEqualByComparingTo("4.0000");
+        assertThat(response.allocatedTotal()).isEqualByComparingTo("1000000.00");
+        assertThat(response.items()).hasSize(2);
+        assertThat(response.items().get(0).itemId()).isEqualTo(subjectItemId);
+        assertThat(response.items().get(0).allocatedAmount()).isEqualByComparingTo("250000.00");
+        assertThat(response.items().get(0).allocationPct()).isEqualByComparingTo("25.0000");
+        assertThat(response.items().get(1).itemId()).isEqualTo(courseItemId);
+        assertThat(response.items().get(1).allocatedAmount()).isEqualByComparingTo("750000.00");
+        assertThat(response.items().get(1).allocationPct()).isEqualByComparingTo("75.0000");
+    }
+
+    @Test
+    @DisplayName("previewLearningPackageRevenueAllocation: does not allocate rounding residual to zero-weight item")
+    void previewLearningPackageRevenueAllocation_skipsZeroWeightRoundingResidual() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID weightedItemId = UUID.randomUUID();
+        UUID zeroWeightItemId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackageWithPrice(packageId, organizationId, new BigDecimal("100.00"))));
+        when(repository.findLearningPackageItems(organizationId)).thenReturn(List.of(
+                learningPackageItem(weightedItemId, organizationId, packageId, UUID.randomUUID(), null, 1, new BigDecimal("1.0000")),
+                learningPackageItem(zeroWeightItemId, organizationId, packageId, UUID.randomUUID(), null, 2, BigDecimal.ZERO)
+        ));
+
+        var response = useCase.previewLearningPackageRevenueAllocation(organizationId, packageId);
+
+        assertThat(response.allocatedTotal()).isEqualByComparingTo("100.00");
+        assertThat(response.items()).hasSize(2);
+        assertThat(response.items().get(0).itemId()).isEqualTo(weightedItemId);
+        assertThat(response.items().get(0).allocatedAmount()).isEqualByComparingTo("100.00");
+        assertThat(response.items().get(1).itemId()).isEqualTo(zeroWeightItemId);
+        assertThat(response.items().get(1).allocatedAmount()).isEqualByComparingTo("0.00");
+        assertThat(response.items().get(1).allocationPct()).isEqualByComparingTo("0.0000");
     }
 
     @Test
@@ -610,6 +670,10 @@ class ManageAcademicCatalogUseCaseTest {
     }
 
     private AcademicLearningPackage learningPackage(UUID id, UUID organizationId) {
+        return learningPackageWithPrice(id, organizationId, BigDecimal.ZERO);
+    }
+
+    private AcademicLearningPackage learningPackageWithPrice(UUID id, UUID organizationId, BigDecimal price) {
         return new AcademicLearningPackage(
                 id,
                 organizationId,
@@ -618,9 +682,31 @@ class ManageAcademicCatalogUseCaseTest {
                 "Gói Điều khiển tàu biển K63",
                 null,
                 "CURRICULUM_BUNDLE",
-                BigDecimal.ZERO,
+                price,
                 "VND",
                 "ORG_APPROVAL",
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicLearningPackageItem learningPackageItem(
+            UUID id,
+            UUID organizationId,
+            UUID packageId,
+            UUID subjectId,
+            UUID courseId,
+            int displayOrder,
+            BigDecimal revenueWeight) {
+        return new AcademicLearningPackageItem(
+                id,
+                organizationId,
+                packageId,
+                subjectId,
+                courseId,
+                displayOrder,
+                true,
+                revenueWeight,
                 "ACTIVE",
                 Instant.now(),
                 null);

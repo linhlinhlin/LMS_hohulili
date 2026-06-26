@@ -17,6 +17,7 @@ import {
   AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
   AcademicLearningPackagePaymentQr,
+  AcademicLearningPackageRevenueAllocation,
   AcademicProgram,
   AcademicSubject,
   AcademicSubjectCourse,
@@ -145,6 +146,12 @@ export class AcademicApi {
     return this.api.postWithResponse<AcademicLearningPackageClassTarget>(
       ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_CLASS_TARGETS(orgId),
       request
+    );
+  }
+
+  previewLearningPackageRevenueAllocation(orgId: string, packageId: string) {
+    return this.api.getWithResponse<AcademicLearningPackageRevenueAllocation>(
+      ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_REVENUE_ALLOCATION(orgId, packageId)
     );
   }
 

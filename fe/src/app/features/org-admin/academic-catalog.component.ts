@@ -15,6 +15,7 @@ import {
   AcademicClassGroupMembership,
   AcademicLearningPackageEnrollment,
   AcademicLearningPackageItem,
+  AcademicLearningPackageRevenueAllocation,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
   BulkAcademicClassGroupRosterResponse,
@@ -394,6 +395,32 @@ const capabilityLabels: Record<string, string> = {
                   <p class="empty-text">Chưa có gói học.</p>
                 }
               </div>
+              <form class="catalog-form allocation-form" (submit)="loadRevenueAllocation($event)">
+                <select data-testid="package-revenue-allocation-select" aria-label="Gói học cần xem phân bổ học phí" [value]="selectedRevenuePackageId()" (change)="selectedRevenuePackageId.set(text($event))">
+                  <option value="">Chọn gói học để xem phân bổ</option>
+                  @for (learningPackage of catalog().learningPackages; track learningPackage.id) {
+                    <option [value]="learningPackage.id">{{ learningPackage.code }} - {{ learningPackage.name }}</option>
+                  }
+                </select>
+                <button data-testid="package-revenue-allocation-load" class="secondary-button" type="submit" [disabled]="saving() || !selectedRevenuePackageId()">Xem phân bổ học phí</button>
+              </form>
+              @if (selectedRevenueAllocation(); as allocation) {
+                <div class="allocation-panel" data-testid="package-revenue-allocation-panel">
+                  <p class="helper-text">
+                    Tổng học phí {{ formatPrice(allocation.packagePrice, allocation.currency) }} · tổng trọng số {{ allocation.totalWeight }} · đã phân bổ {{ formatPrice(allocation.allocatedTotal, allocation.currency) }}.
+                  </p>
+                  <div class="compact-list">
+                    @for (row of allocation.items; track row.itemId) {
+                      <p>
+                        <strong>{{ packageAllocationItemLabel(row) }}</strong>
+                        <span>{{ row.allocationPct }}% · trọng số {{ row.revenueWeight }} · {{ formatPrice(row.allocatedAmount, allocation.currency) }}</span>
+                      </p>
+                    } @empty {
+                      <p class="empty-text">Gói học này chưa có môn/course để phân bổ học phí.</p>
+                    }
+                  </div>
+                </div>
+              }
             </article>
 
             <article class="catalog-card">
@@ -822,6 +849,24 @@ const capabilityLabels: Record<string, string> = {
       padding-top: 1rem;
     }
 
+    .allocation-form,
+    .allocation-panel {
+      margin-top: 1rem;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 1rem;
+    }
+
+    .allocation-panel {
+      border-radius: 1rem;
+      border: 1px solid #bfdbfe;
+      background: #eff6ff;
+      padding: 1rem;
+    }
+
+    .allocation-panel .compact-list p {
+      background: rgba(255, 255, 255, 0.78);
+    }
+
     .roster-form textarea {
       min-height: 8rem;
       resize: vertical;
@@ -956,6 +1001,8 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly studentUsers = signal<AdminUser[]>([]);
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
+  protected readonly packageRevenueAllocations = signal<Record<string, AcademicLearningPackageRevenueAllocation>>({});
+  protected readonly selectedRevenuePackageId = signal('');
   protected readonly packagePaymentReferences = signal<Record<string, string>>({});
   protected readonly classGroupTransferTargets = signal<Record<string, string>>({});
   protected readonly learningClasses = signal<ClassSummary[]>([]);
@@ -975,6 +1022,9 @@ export class OrgAcademicCatalogComponent implements OnInit {
   );
   protected readonly activeClassGroupMemberships = computed(() =>
     this.catalog().classGroupMemberships.filter(membership => membership.status === 'ACTIVE')
+  );
+  protected readonly selectedRevenueAllocation = computed(() =>
+    this.packageRevenueAllocations()[this.selectedRevenuePackageId()] ?? null
   );
 
   protected readonly departmentForm = signal<CreateAcademicDepartmentRequest>({ code: '', name: '' });
@@ -1121,7 +1171,11 @@ export class OrgAcademicCatalogComponent implements OnInit {
     this.error.set(null);
     try {
       const response = await firstValueFrom(this.academicApi.getCatalog(orgId));
-      this.catalog.set({ ...emptyCatalog(), ...(response.data ?? {}) });
+      const catalog = { ...emptyCatalog(), ...(response.data ?? {}) };
+      this.catalog.set(catalog);
+      if (!this.selectedRevenuePackageId() && catalog.learningPackages.length > 0) {
+        this.selectedRevenuePackageId.set(catalog.learningPackages[0].id);
+      }
     } catch (error) {
       this.error.set(this.errorMessage(error));
     } finally {
@@ -1183,6 +1237,32 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.packageEnrollments.set(response.data ?? []);
     } catch {
       this.packageEnrollments.set([]);
+    }
+  }
+
+  protected async loadRevenueAllocation(event?: Event): Promise<void> {
+    event?.preventDefault();
+    const orgId = this.organizationId();
+    const packageId = this.selectedRevenuePackageId();
+    if (!orgId || !packageId) {
+      this.error.set('Vui lòng chọn gói học cần xem phân bổ.');
+      return;
+    }
+
+    this.saving.set(true);
+    this.error.set(null);
+    try {
+      const response = await firstValueFrom(
+        this.academicApi.previewLearningPackageRevenueAllocation(orgId, packageId)
+      );
+      if (!response.success || !response.data) {
+        throw new Error(response.message || 'Không tải được phân bổ học phí.');
+      }
+      this.packageRevenueAllocations.update(current => ({ ...current, [packageId]: response.data }));
+    } catch (error) {
+      this.error.set(this.errorMessage(error));
+    } finally {
+      this.saving.set(false);
     }
   }
 
@@ -1666,6 +1746,13 @@ export class OrgAcademicCatalogComponent implements OnInit {
       return this.subjectLabel(item.subjectId);
     }
     return item.courseId ? this.courseLabel(item.courseId) : 'Chưa chọn mục';
+  }
+
+  protected packageAllocationItemLabel(row: AcademicLearningPackageRevenueAllocation['items'][number]): string {
+    if (row.subjectId) {
+      return this.subjectLabel(row.subjectId);
+    }
+    return row.courseId ? this.courseLabel(row.courseId) : this.shortId(row.itemId);
   }
 
   protected enrollmentPolicyLabel(policy: string): string {

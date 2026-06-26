@@ -223,6 +223,18 @@ public class AcademicCatalogControllerV3 {
                 .body(ApiResponse.success(useCase.createLearningPackageClassTarget(orgId, command)));
     }
 
+    @GetMapping("/learning-packages/{packageId}/revenue-allocation-preview")
+    @Operation(summary = "Preview learning package tuition allocation by package item weight")
+    public ResponseEntity<ApiResponse<LearningPackageRevenueAllocationResponse>> previewLearningPackageRevenueAllocation(
+            @PathVariable UUID orgId,
+            @PathVariable UUID packageId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, LEARNING_PACKAGES);
+        return ResponseEntity.ok(ApiResponse.success(
+                useCase.previewLearningPackageRevenueAllocation(orgId, packageId)));
+    }
+
     private void verifyOrgAccess(UserJpaEntity currentUser, UUID orgId) {
         if (currentUser == null) {
             throw new AccessDeniedException("Authentication is required");

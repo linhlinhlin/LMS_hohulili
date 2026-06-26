@@ -14,8 +14,11 @@ import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -271,6 +274,67 @@ public class ManageAcademicCatalogUseCase {
                 command.classGroupId(),
                 command.learningClassId());
         return toResponse(repository.saveLearningPackageClassTarget(target));
+    }
+
+    public LearningPackageRevenueAllocationResponse previewLearningPackageRevenueAllocation(
+            UUID organizationId,
+            UUID packageId) {
+        var learningPackage = repository.findLearningPackage(organizationId, packageId)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicLearningPackage", packageId));
+        var items = repository.findLearningPackageItems(organizationId).stream()
+                .filter(item -> Objects.equals(item.packageId(), packageId))
+                .filter(item -> "ACTIVE".equals(item.status()))
+                .sorted(Comparator
+                        .comparing((AcademicLearningPackageItem item) -> item.displayOrder() == null ? 0 : item.displayOrder())
+                        .thenComparing(item -> item.id().toString()))
+                .toList();
+        var totalWeight = items.stream()
+                .map(item -> item.revenueWeight() == null ? BigDecimal.ZERO : item.revenueWeight())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var price = learningPackage.price() == null ? BigDecimal.ZERO : learningPackage.price();
+        var roundedPrice = price.setScale(2, RoundingMode.HALF_UP);
+        var rows = new ArrayList<LearningPackageRevenueAllocationItemResponse>();
+        var allocatedTotal = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        var lastWeightedIndex = -1;
+        for (int index = 0; index < items.size(); index++) {
+            var weight = items.get(index).revenueWeight() == null ? BigDecimal.ZERO : items.get(index).revenueWeight();
+            if (weight.compareTo(BigDecimal.ZERO) > 0) {
+                lastWeightedIndex = index;
+            }
+        }
+
+        for (int index = 0; index < items.size(); index++) {
+            var item = items.get(index);
+            var weight = item.revenueWeight() == null ? BigDecimal.ZERO : item.revenueWeight();
+            var isLastWeightedItem = index == lastWeightedIndex;
+            var amount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            var pct = BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
+            if (totalWeight.compareTo(BigDecimal.ZERO) > 0
+                    && roundedPrice.compareTo(BigDecimal.ZERO) > 0
+                    && weight.compareTo(BigDecimal.ZERO) > 0) {
+                pct = weight.multiply(BigDecimal.valueOf(100)).divide(totalWeight, 4, RoundingMode.HALF_UP);
+                amount = isLastWeightedItem
+                        ? roundedPrice.subtract(allocatedTotal)
+                        : roundedPrice.multiply(weight).divide(totalWeight, 2, RoundingMode.HALF_UP);
+            }
+            allocatedTotal = allocatedTotal.add(amount);
+            rows.add(new LearningPackageRevenueAllocationItemResponse(
+                    item.id(),
+                    item.subjectId(),
+                    item.courseId(),
+                    item.displayOrder(),
+                    weight,
+                    pct,
+                    amount));
+        }
+
+        return new LearningPackageRevenueAllocationResponse(
+                learningPackage.id(),
+                roundedPrice,
+                learningPackage.currency(),
+                totalWeight,
+                allocatedTotal,
+                rows);
     }
 
     public ClassGroupMembershipResponse assignClassGroupMembership(

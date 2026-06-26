@@ -202,6 +202,25 @@ public final class AcademicCatalogDtos {
             LearningPackageEnrollmentResponse enrollment
     ) {}
 
+    public record LearningPackageRevenueAllocationResponse(
+            UUID packageId,
+            BigDecimal packagePrice,
+            String currency,
+            BigDecimal totalWeight,
+            BigDecimal allocatedTotal,
+            List<LearningPackageRevenueAllocationItemResponse> items
+    ) {}
+
+    public record LearningPackageRevenueAllocationItemResponse(
+            UUID itemId,
+            UUID subjectId,
+            UUID courseId,
+            Integer displayOrder,
+            BigDecimal revenueWeight,
+            BigDecimal allocationPct,
+            BigDecimal allocatedAmount
+    ) {}
+
     public record LearningPackagePaymentQrResponse(
             LearningPackageEnrollmentResponse enrollment,
             UUID txnId,

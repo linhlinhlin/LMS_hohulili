@@ -102,6 +102,20 @@ class AcademicCatalogControllerV3Test {
         verify(useCase).importClassGroupRoster(organizationId, command);
     }
 
+    @Test
+    @DisplayName("previewLearningPackageRevenueAllocation: allows same-organization ORG_ADMIN when capabilities are enabled")
+    void previewLearningPackageRevenueAllocation_allowsSameOrgAdminWhenCapabilitiesEnabled() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId);
+        when(capabilitiesUseCase.isEnabled(organizationId, "academic_catalog")).thenReturn(true);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
+
+        controller.previewLearningPackageRevenueAllocation(organizationId, packageId, orgAdmin);
+
+        verify(useCase).previewLearningPackageRevenueAllocation(organizationId, packageId);
+    }
+
     private UserJpaEntity user(UserJpaEntity.UserRole role, UUID organizationId) {
         UserJpaEntity user = mock(UserJpaEntity.class);
         when(user.getRole()).thenReturn(role);
