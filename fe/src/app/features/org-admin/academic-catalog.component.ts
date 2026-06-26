@@ -418,18 +418,19 @@ const capabilityLabels: Record<string, string> = {
                   }
                 </select>
                 <input aria-label="Thứ tự trong gói" type="number" placeholder="Thứ tự" [value]="learningPackageItemForm().displayOrder" (input)="patch(learningPackageItemForm, { displayOrder: numberValue($event) })">
+                <input aria-label="Trọng số phân bổ" type="number" min="0" step="0.0001" placeholder="Trọng số phân bổ" [value]="learningPackageItemForm().revenueWeight" (input)="patch(learningPackageItemForm, { revenueWeight: numberValue($event) })">
                 <label class="inline-check">
                   <input type="checkbox" [checked]="learningPackageItemForm().required" (change)="patch(learningPackageItemForm, { required: checked($event) })">
                   Bắt buộc trong gói
                 </label>
-                <p class="helper-text">Chọn một trong hai: môn học hoặc course LMS. Nếu môn đã có course map, ưu tiên chọn môn để giữ đúng khung chương trình.</p>
+                <p class="helper-text">Chọn một trong hai: môn học hoặc course LMS. Trọng số phân bổ mặc định là 1 và dùng cho báo cáo tài chính gói học sau này.</p>
                 <button class="primary-button" type="submit" [disabled]="saving()">Thêm vào gói</button>
               </form>
               <div class="compact-list">
                 @for (item of catalog().learningPackageItems; track item.id) {
                   <p>
                     <strong>{{ learningPackageLabel(item.packageId) }}</strong>
-                    <span>{{ packageItemLabel(item) }}{{ item.required ? ' · bắt buộc' : '' }}</span>
+                    <span>{{ packageItemLabel(item) }}{{ item.required ? ' · bắt buộc' : '' }} · trọng số {{ item.revenueWeight }}</span>
                   </p>
                 } @empty {
                   <p class="empty-text">Chưa có mục nào trong gói học.</p>
@@ -1054,6 +1055,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
     courseId: null,
     displayOrder: 0,
     required: true,
+    revenueWeight: 1,
   });
   protected readonly classTargetForm = signal<CreateAcademicLearningPackageClassTargetRequest>({
     packageId: '',
@@ -1447,6 +1449,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
         courseId: form.courseId,
         displayOrder: form.displayOrder,
         required: form.required,
+        revenueWeight: form.revenueWeight,
       }),
       'Đã thêm mục vào gói học.',
       () => this.learningPackageItemForm.set({
@@ -1455,6 +1458,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
         courseId: null,
         displayOrder: 0,
         required: true,
+        revenueWeight: 1,
       })
     );
   }

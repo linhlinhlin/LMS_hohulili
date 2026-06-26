@@ -2214,3 +2214,54 @@ Debt còn lại sau Phase 4.18:
 - Package-level refund cần thiết kế riêng vì refund phải quyết định có thu hồi quyền course/class đã cấp hay chỉ ghi bút toán điều chỉnh.
 - Package-level revenue split/payout cần `organization_policies` hoặc package item allocation rule rõ ràng trước khi tự động chia tiền.
 - Nếu cần hóa đơn/biên nhận chính thức, thêm invoice document/numbering policy sau; không nên trộn vào ledger event hiện tại.
+
+## 49. Phase 4.19 learning package item revenue allocation weight - 2026-06-27
+
+Mục tiêu của vòng này là chuẩn bị nền dữ liệu đúng cho revenue/refund/payout của gói học mà không tự động chia doanh thu theo giả định. Với VMU, một gói học có thể gồm nhiều môn, course hoặc lớp triển khai; nếu hệ thống tự chia đều học phí thì dễ sai nghiệp vụ. Vì vậy cần có trọng số phân bổ rõ trên từng package item trước.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V156__learning_package_item_revenue_weight.sql`.
+- Thêm cột `learning_package_items.revenue_weight NUMERIC(10,4) NOT NULL DEFAULT 1.0000`.
+- Thêm constraint `chk_learning_package_items_revenue_weight` để chặn trọng số âm.
+- Cập nhật domain `AcademicLearningPackageItem` với `revenueWeight`, mặc định `1`, validate không âm.
+- Cập nhật JPA entity, adapter mapping, DTO command/response và org-admin FE type.
+- Cập nhật form `/org-admin/academic`: ORG_ADMIN có thể nhập trọng số phân bổ khi thêm môn/course vào gói; danh sách item hiển thị trọng số để đối soát.
+
+Quyết định thiết kế:
+
+- Không triển khai package revenue split ngay trong vòng này. Trọng số là dữ liệu đầu vào cần thiết, không phải ledger tài chính.
+- Không tạo `organization_policies` chung khi nhu cầu hiện tại chỉ cần policy ở đúng nơi phát sinh: package item allocation.
+- Không hardcode VMU. VMU có thể dùng trọng số mặc định `1` hoặc cấu hình riêng từng gói/môn bằng dữ liệu.
+
+Verification:
+
+```bash
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# 37 tests, 0 failures/errors
+
+cd fe && npm run build
+# build success; only existing Angular/Sass/CommonJS/Node odd-version warnings remain
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+# backend rebuilt and recreated
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml exec -T db psql -U lms -d lms -c "select version, description, success from flyway_schema_history where version in ('155','156') order by version;"
+# 155 learning package payment events: success
+# 156 learning package item revenue weight: success
+
+GET /api/v3/organizations/a0000000-0000-0000-0000-000000000001/academic/catalog
+# ORG_ADMIN 200; learningPackageItems include revenueWeight=1.0000
+```
+
+Trạng thái sau Phase 4.19:
+
+- Package item đã có trọng số phân bổ học phí rõ ràng, đủ làm đầu vào cho package-level revenue split/refund/payout sau này.
+- UI org-admin đã hiện và gửi được trọng số, nhưng chưa tạo ledger doanh thu mới để tránh báo cáo tài chính sai.
+- Luồng VMU vẫn dựa trên organization/capability/package data, không có nhánh code riêng cho VMU.
+
+Debt còn lại sau Phase 4.19:
+
+- Package-level revenue split cần dùng `revenue_weight` để phân bổ học phí theo item, rồi mới quyết định teacher/org/platform share.
+- Package-level refund cần policy riêng: refund chỉ ghi bút toán điều chỉnh hay thu hồi course/class access.
+- Invoice/receipt chính thức vẫn nên làm sau khi package revenue/refund ledger ổn định.

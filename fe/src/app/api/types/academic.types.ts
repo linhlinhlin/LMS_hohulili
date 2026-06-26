@@ -138,6 +138,7 @@ export interface AcademicLearningPackageItem {
   courseId: string | null;
   displayOrder: number;
   required: boolean;
+  revenueWeight: number;
   status: string;
   createdAt: string;
 }
@@ -282,6 +283,7 @@ export interface AddAcademicLearningPackageItemRequest {
   courseId: string | null;
   displayOrder: number;
   required: boolean;
+  revenueWeight: number;
 }
 
 export interface CreateAcademicLearningPackageClassTargetRequest {

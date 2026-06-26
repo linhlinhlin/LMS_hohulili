@@ -210,9 +210,65 @@ class ManageAcademicCatalogUseCaseTest {
 
         assertThatThrownBy(() -> useCase.addLearningPackageItem(
                 organizationId,
-                new AddLearningPackageItemCommand(packageId, null, courseId, 1, true)))
+                new AddLearningPackageItemCommand(packageId, null, courseId, 1, true, null)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Course does not belong");
+
+        verify(repository, never()).saveLearningPackageItem(any());
+    }
+
+    @Test
+    @DisplayName("addLearningPackageItem: stores explicit revenue allocation weight")
+    void addLearningPackageItem_storesRevenueWeight() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
+        when(repository.learningPackageCourseExists(organizationId, packageId, courseId)).thenReturn(false);
+        when(repository.saveLearningPackageItem(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.addLearningPackageItem(
+                organizationId,
+                new AddLearningPackageItemCommand(
+                        packageId,
+                        null,
+                        courseId,
+                        1,
+                        true,
+                        new BigDecimal("2.5000")));
+
+        assertThat(response.organizationId()).isEqualTo(organizationId);
+        assertThat(response.packageId()).isEqualTo(packageId);
+        assertThat(response.courseId()).isEqualTo(courseId);
+        assertThat(response.revenueWeight()).isEqualByComparingTo("2.5000");
+    }
+
+    @Test
+    @DisplayName("addLearningPackageItem: rejects negative revenue allocation weight")
+    void addLearningPackageItem_rejectsNegativeRevenueWeight() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
+        when(repository.learningPackageCourseExists(organizationId, packageId, courseId)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.addLearningPackageItem(
+                organizationId,
+                new AddLearningPackageItemCommand(
+                        packageId,
+                        null,
+                        courseId,
+                        1,
+                        true,
+                        new BigDecimal("-1.0000"))))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("revenueWeight");
 
         verify(repository, never()).saveLearningPackageItem(any());
     }

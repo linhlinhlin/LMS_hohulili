@@ -440,6 +440,7 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getCourseId(),
                 e.getDisplayOrder(),
                 e.isRequired(),
+                e.getRevenueWeight(),
                 e.getStatus(),
                 e.getCreatedAt(),
                 e.getUpdatedAt());
@@ -582,7 +583,7 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
         return AcademicLearningPackageItemJpaEntity.builder()
                 .id(i.id()).organizationId(i.organizationId()).packageId(i.packageId()).subjectId(i.subjectId())
                 .courseId(i.courseId()).displayOrder(i.displayOrder()).required(i.required()).status(i.status())
-                .createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
+                .revenueWeight(i.revenueWeight()).createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
     }
 
     private AcademicLearningPackageClassTargetJpaEntity toEntity(AcademicLearningPackageClassTarget t) {

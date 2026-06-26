@@ -112,7 +112,8 @@ public final class AcademicCatalogDtos {
             UUID subjectId,
             UUID courseId,
             @Min(0) Integer displayOrder,
-            Boolean required
+            Boolean required,
+            @DecimalMin("0.0000") BigDecimal revenueWeight
     ) {}
 
     public record CreateLearningPackageClassTargetCommand(
@@ -151,7 +152,7 @@ public final class AcademicCatalogDtos {
     public record CurriculumPlanResponse(UUID id, UUID organizationId, UUID programId, UUID cohortId, String code, String name, Integer totalCredits, String status, Instant createdAt) {}
     public record CurriculumSubjectResponse(UUID id, UUID organizationId, UUID curriculumPlanId, UUID subjectId, UUID termId, Integer displayOrder, Boolean required, Integer creditsOverride, String status, Instant createdAt) {}
     public record LearningPackageResponse(UUID id, UUID organizationId, UUID curriculumPlanId, String code, String name, String description, String packageType, BigDecimal price, String currency, String enrollmentPolicy, String status, Instant createdAt) {}
-    public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
+    public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, BigDecimal revenueWeight, String status, Instant createdAt) {}
     public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId, UUID learningClassId, String status, Instant createdAt) {}
     public record ClassGroupMembershipResponse(UUID id, UUID organizationId, UUID classGroupId, UUID studentId, String status, Instant joinedAt, Instant leftAt, Instant createdAt) {}
     public record BulkClassGroupRosterRowResponse(String email, String action, String message, ClassGroupMembershipResponse membership) {}

@@ -232,7 +232,8 @@ public class ManageAcademicCatalogUseCase {
                 command.subjectId(),
                 command.courseId(),
                 command.displayOrder(),
-                command.required());
+                command.required(),
+                command.revenueWeight());
         return toResponse(repository.saveLearningPackageItem(item));
     }
 
@@ -542,6 +543,7 @@ public class ManageAcademicCatalogUseCase {
                 i.courseId(),
                 i.displayOrder(),
                 i.required(),
+                i.revenueWeight(),
                 i.status(),
                 i.createdAt());
     }

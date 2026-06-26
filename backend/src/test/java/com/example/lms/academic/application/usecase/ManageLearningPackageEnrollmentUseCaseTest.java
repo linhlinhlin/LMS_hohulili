@@ -576,6 +576,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 courseId,
                 0,
                 true,
+                BigDecimal.ONE,
                 "ACTIVE",
                 Instant.now(),
                 null);
@@ -590,6 +591,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 null,
                 0,
                 true,
+                BigDecimal.ONE,
                 "ACTIVE",
                 Instant.now(),
                 null);
