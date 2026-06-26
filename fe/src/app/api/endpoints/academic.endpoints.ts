@@ -4,6 +4,7 @@ export const ACADEMIC_ENDPOINTS = {
   PROGRAMS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/programs`,
   COHORTS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/cohorts`,
   CLASS_GROUPS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/class-groups`,
+  CLASS_GROUP_MEMBERSHIPS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/class-group-memberships`,
   SUBJECTS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/subjects`,
   SUBJECT_COURSES: (orgId: string) => `/api/v3/organizations/${orgId}/academic/subject-courses`,
   TERMS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/terms`,

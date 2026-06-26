@@ -19,15 +19,18 @@ public interface AcademicCatalogRepository {
     List<AcademicLearningPackage> findLearningPackages(UUID organizationId);
     List<AcademicLearningPackageItem> findLearningPackageItems(UUID organizationId);
     List<AcademicLearningPackageClassTarget> findLearningPackageClassTargets(UUID organizationId);
+    List<AcademicClassGroupMembership> findClassGroupMemberships(UUID organizationId);
     List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status);
 
     Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id);
     Optional<AcademicProgram> findProgram(UUID organizationId, UUID id);
     Optional<AcademicCohort> findCohort(UUID organizationId, UUID id);
+    Optional<AcademicClassGroup> findClassGroup(UUID organizationId, UUID id);
     Optional<AcademicSubject> findSubject(UUID organizationId, UUID id);
     Optional<AcademicTerm> findTerm(UUID organizationId, UUID id);
     Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id);
     Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id);
+    Optional<AcademicClassGroupMembership> findActiveClassGroupMembership(UUID organizationId, UUID studentId);
     Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id);
     Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId);
 
@@ -43,7 +46,8 @@ public interface AcademicCatalogRepository {
     boolean learningPackageCodeExists(UUID organizationId, String code);
     boolean learningPackageSubjectExists(UUID organizationId, UUID packageId, UUID subjectId);
     boolean learningPackageCourseExists(UUID organizationId, UUID packageId, UUID courseId);
-    boolean learningPackageClassTargetExists(UUID organizationId, UUID packageId, UUID courseId);
+    boolean learningPackageClassTargetExists(UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId);
+    boolean activeClassGroupMembershipExists(UUID organizationId, UUID studentId);
 
     AcademicDepartment saveDepartment(AcademicDepartment department);
     AcademicProgram saveProgram(AcademicProgram program);
@@ -57,5 +61,6 @@ public interface AcademicCatalogRepository {
     AcademicLearningPackage saveLearningPackage(AcademicLearningPackage learningPackage);
     AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item);
     AcademicLearningPackageClassTarget saveLearningPackageClassTarget(AcademicLearningPackageClassTarget target);
+    AcademicClassGroupMembership saveClassGroupMembership(AcademicClassGroupMembership membership);
     AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment);
 }

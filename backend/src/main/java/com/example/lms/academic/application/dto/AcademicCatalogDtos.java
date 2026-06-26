@@ -27,7 +27,8 @@ public final class AcademicCatalogDtos {
             List<CurriculumSubjectResponse> curriculumSubjects,
             List<LearningPackageResponse> learningPackages,
             List<LearningPackageItemResponse> learningPackageItems,
-            List<LearningPackageClassTargetResponse> learningPackageClassTargets
+            List<LearningPackageClassTargetResponse> learningPackageClassTargets,
+            List<ClassGroupMembershipResponse> classGroupMemberships
     ) {}
 
     public record CreateDepartmentCommand(
@@ -117,7 +118,13 @@ public final class AcademicCatalogDtos {
     public record CreateLearningPackageClassTargetCommand(
             @NotNull UUID packageId,
             @NotNull UUID courseId,
+            UUID classGroupId,
             @NotNull UUID learningClassId
+    ) {}
+
+    public record CreateClassGroupMembershipCommand(
+            @NotNull UUID classGroupId,
+            @NotNull UUID studentId
     ) {}
 
     public record ReviewLearningPackageEnrollmentCommand(
@@ -136,7 +143,8 @@ public final class AcademicCatalogDtos {
     public record CurriculumSubjectResponse(UUID id, UUID organizationId, UUID curriculumPlanId, UUID subjectId, UUID termId, Integer displayOrder, Boolean required, Integer creditsOverride, String status, Instant createdAt) {}
     public record LearningPackageResponse(UUID id, UUID organizationId, UUID curriculumPlanId, String code, String name, String description, String packageType, BigDecimal price, String currency, String enrollmentPolicy, String status, Instant createdAt) {}
     public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
-    public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID learningClassId, String status, Instant createdAt) {}
+    public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId, UUID learningClassId, String status, Instant createdAt) {}
+    public record ClassGroupMembershipResponse(UUID id, UUID organizationId, UUID classGroupId, UUID studentId, String status, Instant joinedAt, Instant createdAt) {}
     public record LearningPackageEnrollmentResponse(
             UUID id,
             UUID organizationId,

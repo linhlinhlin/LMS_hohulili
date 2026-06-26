@@ -1726,3 +1726,68 @@ Debt còn lại sau Phase 4.11:
 - Public package checkout bằng SePay/VNPay vẫn là phase riêng.
 - Package-level revenue split/refund model vẫn chưa nên dùng chung vội với course-level payment.
 - Cần cleanup smoke package/enrollment nếu local DB cần sạch tuyệt đối trước demo khác.
+
+## 42. Phase 4.12 class-group-aware package placement - 2026-06-26
+
+Mục tiêu của vòng này là làm đúng nghiệp vụ VMU hơn: sinh viên không chỉ thuộc một `LearningClass` triển khai course, mà còn thuộc một lớp hành chính học thuật như `CNT63ĐH`, `ĐKT63ĐH`, `MTB63ĐH`. Khi một gói học có cùng course nhưng mỗi lớp hành chính cần vào lớp triển khai khác nhau, backend phải chọn đúng target theo lớp hành chính của sinh viên, không dùng nhánh `if VMU`.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V153__academic_class_group_memberships.sql`.
+- Thêm bảng `academic_class_group_memberships` để lưu sinh viên thuộc lớp hành chính theo `organization_id`, `class_group_id`, `student_id`.
+- DB enforce mỗi sinh viên chỉ có một membership `ACTIVE` trong một tổ chức tại một thời điểm.
+- `learning_package_class_targets` có thêm `class_group_id` tùy chọn.
+- Class target mặc định giữ `class_group_id IS NULL`; target riêng cho lớp hành chính dùng cùng `package_id + course_id + class_group_id`.
+- `ManageAcademicCatalogUseCase` có workflow gán sinh viên vào lớp hành chính, validate class group, student, role và same-org boundary.
+- `ManageLearningPackageEnrollmentUseCase` khi kích hoạt package sẽ ưu tiên class-specific target theo membership lớp hành chính, sau đó fallback về target mặc định, rồi mới dùng self-paced grant path hiện có.
+- `/org-admin/academic` có card gán sinh viên vào lớp hành chính và dropdown `Lớp hành chính áp dụng` cho package class target.
+
+Quyết định thiết kế:
+
+- Không hardcode VMU. VMU chỉ là dữ liệu: class group, membership, package, course, learning class và target.
+- Không tự động đoán lớp triển khai từ tên lớp hoặc tên course. Rule chọn target dựa trên FK rõ ràng.
+- Không thêm engine rule phức tạp cho cohort/program ở vòng này. Membership lớp hành chính + default fallback đã đủ cho lát cắt vận hành đầu tiên.
+- Không tách microservice. Đây vẫn là domain slice nhỏ trong modular monolith.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 25, Failures: 0, Errors: 0
+
+mvn "-Dtest=AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 35, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Local Flyway/schema smoke:
+
+```text
+Flyway V153 applied successfully.
+academic_class_group_memberships table exists.
+learning_package_class_targets.class_group_id exists.
+Unique indexes for default target and class-group target exist.
+```
+
+API/UI smoke:
+
+```text
+POST /api/v3/organizations/{orgId}/academic/class-group-memberships -> 200.
+GET /api/v3/organizations/{orgId}/academic/catalog -> memberships=1.
+/org-admin/academic desktop smoke -> membership card rendered, class target class-group select rendered, API 200, console errors 0.
+/org-admin/academic mobile 390x844 smoke -> membership card rendered, class target class-group select rendered, API 200.
+```
+
+Debt còn lại sau Phase 4.12:
+
+- Cần bulk import/transfer lớp hành chính nếu VMU vận hành danh sách sinh viên lớn.
+- Public package checkout bằng SePay/VNPay vẫn là phase riêng.
+- Package-level revenue/refund/accounting vẫn chưa nên dùng chung vội với course-level payment.

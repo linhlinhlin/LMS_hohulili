@@ -92,6 +92,18 @@ public class AcademicCatalogControllerV3 {
                 .body(ApiResponse.success(useCase.createClassGroup(orgId, command)));
     }
 
+    @PostMapping("/class-group-memberships")
+    @Operation(summary = "Assign a student to an academic class group")
+    public ResponseEntity<ApiResponse<ClassGroupMembershipResponse>> assignClassGroupMembership(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody CreateClassGroupMembershipCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.assignClassGroupMembership(orgId, command)));
+    }
+
     @PostMapping("/subjects")
     @Operation(summary = "Create academic subject")
     public ResponseEntity<ApiResponse<SubjectResponse>> createSubject(

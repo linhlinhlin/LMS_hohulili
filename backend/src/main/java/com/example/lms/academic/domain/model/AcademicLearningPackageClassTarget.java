@@ -11,6 +11,7 @@ public record AcademicLearningPackageClassTarget(
         UUID organizationId,
         UUID packageId,
         UUID courseId,
+        UUID classGroupId,
         UUID learningClassId,
         String status,
         Instant createdAt,
@@ -32,12 +33,14 @@ public record AcademicLearningPackageClassTarget(
             UUID organizationId,
             UUID packageId,
             UUID courseId,
+            UUID classGroupId,
             UUID learningClassId) {
         return new AcademicLearningPackageClassTarget(
                 UUID.randomUUID(),
                 organizationId,
                 packageId,
                 courseId,
+                classGroupId,
                 learningClassId,
                 "ACTIVE",
                 Instant.now(),

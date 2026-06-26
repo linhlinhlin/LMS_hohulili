@@ -11,6 +11,7 @@ export interface AcademicCatalog {
   learningPackages: AcademicLearningPackage[];
   learningPackageItems: AcademicLearningPackageItem[];
   learningPackageClassTargets: AcademicLearningPackageClassTarget[];
+  classGroupMemberships: AcademicClassGroupMembership[];
 }
 
 export interface AcademicDepartment {
@@ -146,8 +147,19 @@ export interface AcademicLearningPackageClassTarget {
   organizationId: string;
   packageId: string;
   courseId: string;
+  classGroupId: string | null;
   learningClassId: string;
   status: string;
+  createdAt: string;
+}
+
+export interface AcademicClassGroupMembership {
+  id: string;
+  organizationId: string;
+  classGroupId: string;
+  studentId: string;
+  status: string;
+  joinedAt: string;
   createdAt: string;
 }
 
@@ -256,7 +268,13 @@ export interface AddAcademicLearningPackageItemRequest {
 export interface CreateAcademicLearningPackageClassTargetRequest {
   packageId: string;
   courseId: string;
+  classGroupId: string | null;
   learningClassId: string;
+}
+
+export interface CreateAcademicClassGroupMembershipRequest {
+  classGroupId: string;
+  studentId: string;
 }
 
 export interface ReviewAcademicLearningPackageEnrollmentRequest {

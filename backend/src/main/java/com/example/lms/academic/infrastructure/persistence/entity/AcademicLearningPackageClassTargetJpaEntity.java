@@ -22,6 +22,9 @@ public class AcademicLearningPackageClassTargetJpaEntity {
     @Column(name = "course_id", nullable = false)
     private UUID courseId;
 
+    @Column(name = "class_group_id")
+    private UUID classGroupId;
+
     @Column(name = "learning_class_id", nullable = false)
     private UUID learningClassId;
 

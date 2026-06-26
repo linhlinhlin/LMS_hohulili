@@ -1,6 +1,7 @@
 package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
+import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageClassTarget;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
@@ -177,6 +178,39 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         useCase.approve(orgId, enrollmentId, approverId, null);
 
         verify(courseAccessGrant).grantClass(orgId, courseId, classId, studentId);
+        verify(courseAccessGrant, never()).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("approve: class group target overrides default package class target")
+    void approve_classGroupTargetOverridesDefaultTarget() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID approverId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID classGroupId = UUID.randomUUID();
+        UUID defaultClassId = UUID.randomUUID();
+        UUID classGroupClassId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_APPROVAL");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(repository.findActiveClassGroupMembership(orgId, studentId))
+                .thenReturn(Optional.of(classGroupMembership(orgId, classGroupId, studentId)));
+        when(repository.findLearningPackageClassTargets(orgId))
+                .thenReturn(List.of(
+                        classTarget(orgId, packageId, courseId, null, defaultClassId),
+                        classTarget(orgId, packageId, courseId, classGroupId, classGroupClassId)));
+        when(courseAccessGrant.grantClass(orgId, courseId, classGroupClassId, studentId)).thenReturn(UUID.randomUUID());
+
+        useCase.approve(orgId, enrollmentId, approverId, null);
+
+        verify(courseAccessGrant).grantClass(orgId, courseId, classGroupClassId, studentId);
+        verify(courseAccessGrant, never()).grantClass(orgId, courseId, defaultClassId, studentId);
         verify(courseAccessGrant, never()).grant(orgId, courseId, studentId);
     }
 
@@ -383,13 +417,36 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     private AcademicLearningPackageClassTarget classTarget(UUID orgId, UUID packageId, UUID courseId, UUID classId) {
+        return classTarget(orgId, packageId, courseId, null, classId);
+    }
+
+    private AcademicLearningPackageClassTarget classTarget(
+            UUID orgId,
+            UUID packageId,
+            UUID courseId,
+            UUID classGroupId,
+            UUID classId) {
         return new AcademicLearningPackageClassTarget(
                 UUID.randomUUID(),
                 orgId,
                 packageId,
                 courseId,
+                classGroupId,
                 classId,
                 "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicClassGroupMembership classGroupMembership(UUID orgId, UUID classGroupId, UUID studentId) {
+        return new AcademicClassGroupMembership(
+                UUID.randomUUID(),
+                orgId,
+                classGroupId,
+                studentId,
+                "ACTIVE",
+                Instant.now(),
+                null,
                 Instant.now(),
                 null);
     }

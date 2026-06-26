@@ -2,6 +2,7 @@ package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
+import com.example.lms.academic.domain.model.AcademicClassGroupMembership;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
@@ -120,7 +121,10 @@ public class ManageLearningPackageEnrollmentUseCase {
                     "PACKAGE_HAS_NO_COURSES",
                     "Gói học chưa có khóa học hợp lệ để cấp quyền");
         }
-        var classTargets = resolvePackageClassTargets(enrollment.organizationId(), enrollment.packageId());
+        var classTargets = resolvePackageClassTargets(
+                enrollment.organizationId(),
+                enrollment.packageId(),
+                enrollment.studentId());
         courseIds.forEach(courseId -> {
             UUID learningClassId = classTargets.get(courseId);
             if (learningClassId != null) {
@@ -160,13 +164,25 @@ public class ManageLearningPackageEnrollmentUseCase {
         return new ArrayList<>(courseIds);
     }
 
-    private Map<UUID, UUID> resolvePackageClassTargets(UUID organizationId, UUID packageId) {
-        var targets = new LinkedHashMap<UUID, UUID>();
+    private Map<UUID, UUID> resolvePackageClassTargets(UUID organizationId, UUID packageId, UUID studentId) {
+        var activeMembership = repository.findActiveClassGroupMembership(organizationId, studentId);
+        var studentClassGroupId = activeMembership == null
+                ? null
+                : activeMembership.map(AcademicClassGroupMembership::classGroupId).orElse(null);
+        var defaultTargets = new LinkedHashMap<UUID, UUID>();
+        var classGroupTargets = new LinkedHashMap<UUID, UUID>();
         repository.findLearningPackageClassTargets(organizationId).stream()
                 .filter(target -> packageId.equals(target.packageId()))
                 .filter(target -> "ACTIVE".equals(target.status()))
-                .forEach(target -> targets.putIfAbsent(target.courseId(), target.learningClassId()));
-        return targets;
+                .forEach(target -> {
+                    if (target.classGroupId() == null) {
+                        defaultTargets.putIfAbsent(target.courseId(), target.learningClassId());
+                    } else if (target.classGroupId().equals(studentClassGroupId)) {
+                        classGroupTargets.put(target.courseId(), target.learningClassId());
+                    }
+                });
+        defaultTargets.putAll(classGroupTargets);
+        return defaultTargets;
     }
 
     private String normalizeStatus(String status) {

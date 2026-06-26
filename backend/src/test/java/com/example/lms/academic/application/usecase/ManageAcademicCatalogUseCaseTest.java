@@ -2,24 +2,32 @@ package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddCurriculumSubjectCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.AddLearningPackageItemCommand;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateClassGroupMembershipCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateCurriculumPlanCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageClassTargetCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.CreateLearningPackageCommand;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LinkSubjectCourseCommand;
+import com.example.lms.academic.domain.model.AcademicClassGroup;
 import com.example.lms.academic.domain.model.AcademicCohort;
 import com.example.lms.academic.domain.model.AcademicCurriculumPlan;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
+import com.example.lms.academic.domain.model.AcademicProgram;
 import com.example.lms.academic.domain.model.AcademicSubject;
 import com.example.lms.academic.domain.model.AcademicTerm;
-import com.example.lms.academic.domain.model.AcademicProgram;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.identity.domain.model.Role;
+import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
 import com.example.lms.shared.domain.valueobject.CourseCode;
+import com.example.lms.shared.domain.valueobject.Email;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
+import com.example.lms.shared.exception.ValidationException;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -51,6 +59,9 @@ class ManageAcademicCatalogUseCaseTest {
     @Mock
     private LearningClassRepositoryPort learningClassRepository;
 
+    @Mock
+    private UserRepository userRepository;
+
     @InjectMocks
     private ManageAcademicCatalogUseCase useCase;
 
@@ -67,11 +78,12 @@ class ManageAcademicCatalogUseCaseTest {
         when(courseRepository.findById(courseId))
                 .thenReturn(Optional.of(course(otherOrganizationId)));
 
-        var command = new LinkSubjectCourseCommand(subjectId, courseId, true);
-
-        assertThatThrownBy(() -> useCase.linkSubjectCourse(organizationId, command))
+        assertThatThrownBy(() -> useCase.linkSubjectCourse(
+                organizationId,
+                new LinkSubjectCourseCommand(subjectId, courseId, true)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Course does not belong");
+
         verify(repository, never()).saveSubjectCourse(any());
     }
 
@@ -84,8 +96,7 @@ class ManageAcademicCatalogUseCaseTest {
 
         when(repository.findSubject(organizationId, subjectId))
                 .thenReturn(Optional.of(subject(subjectId, organizationId)));
-        when(courseRepository.findById(courseId))
-                .thenReturn(Optional.of(course(organizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
         when(repository.subjectCourseExists(organizationId, subjectId, courseId)).thenReturn(false);
         when(repository.saveSubjectCourse(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
@@ -148,6 +159,7 @@ class ManageAcademicCatalogUseCaseTest {
                 new AddCurriculumSubjectCommand(planId, subjectId, termId, 10, true, null)))
                 .isInstanceOf(EntityNotFoundException.class)
                 .hasMessageContaining("AcademicTerm");
+
         verify(repository, never()).saveCurriculumSubject(any());
     }
 
@@ -191,20 +203,20 @@ class ManageAcademicCatalogUseCaseTest {
 
         when(repository.findLearningPackage(organizationId, packageId))
                 .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
-        when(courseRepository.findById(courseId))
-                .thenReturn(Optional.of(course(otherOrganizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(otherOrganizationId)));
 
         assertThatThrownBy(() -> useCase.addLearningPackageItem(
                 organizationId,
                 new AddLearningPackageItemCommand(packageId, null, courseId, 1, true)))
                 .isInstanceOf(BusinessRuleException.class)
                 .hasMessageContaining("Course does not belong");
+
         verify(repository, never()).saveLearningPackageItem(any());
     }
 
     @Test
-    @DisplayName("createLearningPackageClassTarget: maps package course to same-organization class")
-    void createLearningPackageClassTarget_allowsSameOrganizationClass() {
+    @DisplayName("createLearningPackageClassTarget: maps package course to default same-organization class")
+    void createLearningPackageClassTarget_allowsDefaultSameOrganizationClass() {
         UUID organizationId = UUID.randomUUID();
         UUID packageId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
@@ -215,16 +227,44 @@ class ManageAcademicCatalogUseCaseTest {
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
         when(learningClassRepository.findById(classId))
                 .thenReturn(Optional.of(learningClass(classId, organizationId, courseId)));
-        when(repository.learningPackageClassTargetExists(organizationId, packageId, courseId)).thenReturn(false);
+        when(repository.learningPackageClassTargetExists(organizationId, packageId, courseId, null)).thenReturn(false);
         when(repository.saveLearningPackageClassTarget(any())).thenAnswer(invocation -> invocation.getArgument(0));
 
         var response = useCase.createLearningPackageClassTarget(
                 organizationId,
-                new CreateLearningPackageClassTargetCommand(packageId, courseId, classId));
+                new CreateLearningPackageClassTargetCommand(packageId, courseId, null, classId));
 
         assertThat(response.organizationId()).isEqualTo(organizationId);
         assertThat(response.packageId()).isEqualTo(packageId);
         assertThat(response.courseId()).isEqualTo(courseId);
+        assertThat(response.classGroupId()).isNull();
+        assertThat(response.learningClassId()).isEqualTo(classId);
+    }
+
+    @Test
+    @DisplayName("createLearningPackageClassTarget: maps package course to class group-specific class")
+    void createLearningPackageClassTarget_allowsClassGroupSpecificTarget() {
+        UUID organizationId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        UUID classGroupId = UUID.randomUUID();
+        UUID classId = UUID.randomUUID();
+
+        when(repository.findLearningPackage(organizationId, packageId))
+                .thenReturn(Optional.of(learningPackage(packageId, organizationId)));
+        when(repository.findClassGroup(organizationId, classGroupId))
+                .thenReturn(Optional.of(classGroup(classGroupId, organizationId)));
+        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course(organizationId)));
+        when(learningClassRepository.findById(classId))
+                .thenReturn(Optional.of(learningClass(classId, organizationId, courseId)));
+        when(repository.learningPackageClassTargetExists(organizationId, packageId, courseId, classGroupId)).thenReturn(false);
+        when(repository.saveLearningPackageClassTarget(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.createLearningPackageClassTarget(
+                organizationId,
+                new CreateLearningPackageClassTargetCommand(packageId, courseId, classGroupId, classId));
+
+        assertThat(response.classGroupId()).isEqualTo(classGroupId);
         assertThat(response.learningClassId()).isEqualTo(classId);
     }
 
@@ -244,11 +284,56 @@ class ManageAcademicCatalogUseCaseTest {
 
         assertThatThrownBy(() -> useCase.createLearningPackageClassTarget(
                 organizationId,
-                new CreateLearningPackageClassTargetCommand(packageId, courseId, classId)))
-                .isInstanceOf(com.example.lms.shared.exception.ValidationException.class)
+                new CreateLearningPackageClassTargetCommand(packageId, courseId, null, classId)))
+                .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("khóa học đã chọn");
 
         verify(repository, never()).saveLearningPackageClassTarget(any());
+    }
+
+    @Test
+    @DisplayName("assignClassGroupMembership: assigns same-organization student")
+    void assignClassGroupMembership_assignsSameOrganizationStudent() {
+        UUID organizationId = UUID.randomUUID();
+        UUID classGroupId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+
+        when(repository.findClassGroup(organizationId, classGroupId))
+                .thenReturn(Optional.of(classGroup(classGroupId, organizationId)));
+        when(userRepository.findById(UserId.of(studentId)))
+                .thenReturn(Optional.of(user(studentId, organizationId, Role.STUDENT)));
+        when(repository.activeClassGroupMembershipExists(organizationId, studentId)).thenReturn(false);
+        when(repository.saveClassGroupMembership(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = useCase.assignClassGroupMembership(
+                organizationId,
+                new CreateClassGroupMembershipCommand(classGroupId, studentId));
+
+        assertThat(response.organizationId()).isEqualTo(organizationId);
+        assertThat(response.classGroupId()).isEqualTo(classGroupId);
+        assertThat(response.studentId()).isEqualTo(studentId);
+        assertThat(response.status()).isEqualTo("ACTIVE");
+    }
+
+    @Test
+    @DisplayName("assignClassGroupMembership: rejects teacher account")
+    void assignClassGroupMembership_rejectsTeacherAccount() {
+        UUID organizationId = UUID.randomUUID();
+        UUID classGroupId = UUID.randomUUID();
+        UUID teacherId = UUID.randomUUID();
+
+        when(repository.findClassGroup(organizationId, classGroupId))
+                .thenReturn(Optional.of(classGroup(classGroupId, organizationId)));
+        when(userRepository.findById(UserId.of(teacherId)))
+                .thenReturn(Optional.of(user(teacherId, organizationId, Role.TEACHER)));
+
+        assertThatThrownBy(() -> useCase.assignClassGroupMembership(
+                organizationId,
+                new CreateClassGroupMembershipCommand(classGroupId, teacherId)))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("học viên");
+
+        verify(repository, never()).saveClassGroupMembership(any());
     }
 
     private AcademicSubject subject(UUID id, UUID organizationId) {
@@ -285,6 +370,19 @@ class ManageAcademicCatalogUseCaseTest {
                 "Khóa 63",
                 2022,
                 2026,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicClassGroup classGroup(UUID id, UUID organizationId) {
+        return new AcademicClassGroup(
+                id,
+                organizationId,
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                "CNT63DH",
+                "CNT63ĐH",
                 "ACTIVE",
                 Instant.now(),
                 null);
@@ -355,6 +453,20 @@ class ManageAcademicCatalogUseCaseTest {
                 .name("VMU K63")
                 .code("VMU-K63-" + id.toString().substring(0, 8))
                 .status(LearningClass.ClassStatus.OPEN)
+                .build();
+    }
+
+    private User user(UUID id, UUID organizationId, Role role) {
+        return User.builder()
+                .id(UserId.of(id))
+                .username("user-" + id.toString().substring(0, 8))
+                .email(Email.of("user-" + id + "@maritime.edu"))
+                .password("encoded")
+                .fullName("VMU User")
+                .role(role)
+                .enabled(true)
+                .organizationId(organizationId)
+                .createdAt(Instant.now())
                 .build();
     }
 }

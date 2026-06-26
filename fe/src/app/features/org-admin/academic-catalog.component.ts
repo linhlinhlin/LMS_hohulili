@@ -16,6 +16,7 @@ import {
   AcademicLearningPackageItem,
   AddAcademicCurriculumSubjectRequest,
   AddAcademicLearningPackageItemRequest,
+  CreateAcademicClassGroupMembershipRequest,
   CreateAcademicLearningPackageClassTargetRequest,
   CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
@@ -30,7 +31,7 @@ import {
 import { AuthService } from '../../core/services/auth.service';
 import { OrganizationCapability } from '../../shared/types/user.types';
 import { ClassSummary } from '../../shared/types/course.types';
-import { AdminCourseSummary, AdminService } from '../admin/infrastructure/services/admin.service';
+import { AdminCourseSummary, AdminService, AdminUser } from '../admin/infrastructure/services/admin.service';
 import { OrganizationService } from '../admin/infrastructure/services/organization.service';
 import { ClassService } from '../../state/class.service';
 
@@ -47,6 +48,7 @@ const emptyCatalog = (): AcademicCatalog => ({
   learningPackages: [],
   learningPackageItems: [],
   learningPackageClassTargets: [],
+  classGroupMemberships: [],
 });
 
 const capabilityLabels: Record<string, string> = {
@@ -101,6 +103,7 @@ const capabilityLabels: Record<string, string> = {
             <div class="metric-card"><span>Ngành</span><strong>{{ catalog().programs.length }}</strong></div>
             <div class="metric-card"><span>Khóa</span><strong>{{ catalog().cohorts.length }}</strong></div>
             <div class="metric-card"><span>Lớp</span><strong>{{ catalog().classGroups.length }}</strong></div>
+            <div class="metric-card"><span>Sinh viên lớp</span><strong>{{ catalog().classGroupMemberships.length }}</strong></div>
             <div class="metric-card"><span>Môn học</span><strong>{{ catalog().subjects.length }}</strong></div>
             <div class="metric-card"><span>Course map</span><strong>{{ catalog().subjectCourses.length }}</strong></div>
             <div class="metric-card"><span>Học kỳ</span><strong>{{ catalog().terms.length }}</strong></div>
@@ -432,6 +435,36 @@ const capabilityLabels: Record<string, string> = {
               </div>
             </article>
 
+            <article class="catalog-card" data-testid="class-group-membership-card">
+              <h2>Sinh viên thuộc lớp</h2>
+              <form class="catalog-form" (submit)="createClassGroupMembership($event)">
+                <select data-testid="class-group-membership-class" aria-label="Lớp hành chính của sinh viên" [value]="classGroupMembershipForm().classGroupId" (change)="patch(classGroupMembershipForm, { classGroupId: text($event) })">
+                  <option value="">Chọn lớp hành chính</option>
+                  @for (classGroup of catalog().classGroups; track classGroup.id) {
+                    <option [value]="classGroup.id">{{ classGroup.code }} - {{ classGroup.name }}</option>
+                  }
+                </select>
+                <select data-testid="class-group-membership-student" aria-label="Sinh viên cần gán lớp" [value]="classGroupMembershipForm().studentId" (change)="patch(classGroupMembershipForm, { studentId: text($event) })">
+                  <option value="">Chọn sinh viên</option>
+                  @for (student of studentUsers(); track student.id) {
+                    <option [value]="student.id">{{ student.name || student.email }} - {{ student.email }}</option>
+                  }
+                </select>
+                <p class="helper-text">Mỗi sinh viên chỉ có một lớp hành chính đang hoạt động. Khi duyệt gói học, hệ thống sẽ ưu tiên lớp triển khai theo lớp hành chính này.</p>
+                <button data-testid="class-group-membership-submit" class="primary-button" type="submit" [disabled]="saving() || !canCreateClassGroupMembership()">Gán sinh viên vào lớp</button>
+              </form>
+              <div class="compact-list">
+                @for (membership of catalog().classGroupMemberships; track membership.id) {
+                  <p>
+                    <strong>{{ classGroupLabel(membership.classGroupId) }}</strong>
+                    <span>{{ studentLabel(membership.studentId) }}</span>
+                  </p>
+                } @empty {
+                  <p class="empty-text">Chưa có sinh viên nào được gán vào lớp hành chính.</p>
+                }
+              </div>
+            </article>
+
             <article class="catalog-card" data-testid="package-class-target-card">
               <h2>Lớp triển khai trong gói học</h2>
               <form class="catalog-form" (submit)="createLearningPackageClassTarget($event)">
@@ -447,6 +480,12 @@ const capabilityLabels: Record<string, string> = {
                     <option [value]="course.id">{{ course.code }} - {{ course.title }}</option>
                   }
                 </select>
+                <select data-testid="package-class-target-class-group" aria-label="Phạm vi lớp hành chính" [value]="classTargetForm().classGroupId ?? ''" (change)="patch(classTargetForm, { classGroupId: nullableText($event) })">
+                  <option value="">Áp dụng mặc định cho mọi lớp</option>
+                  @for (classGroup of catalog().classGroups; track classGroup.id) {
+                    <option [value]="classGroup.id">{{ classGroup.code }} - {{ classGroup.name }}</option>
+                  }
+                </select>
                 <select data-testid="package-class-target-class" aria-label="Lớp triển khai của course" [value]="classTargetForm().learningClassId" (change)="patch(classTargetForm, { learningClassId: text($event) })">
                   <option value="">Chọn lớp triển khai</option>
                   @for (learningClass of learningClasses(); track learningClass.id) {
@@ -460,7 +499,7 @@ const capabilityLabels: Record<string, string> = {
                 @for (target of catalog().learningPackageClassTargets; track target.id) {
                   <p>
                     <strong>{{ learningPackageLabel(target.packageId) }}</strong>
-                    <span>{{ courseLabel(target.courseId) }} → {{ learningClassLabel(target.learningClassId) }}</span>
+                    <span>{{ classGroupScopeLabel(target.classGroupId) }} · {{ courseLabel(target.courseId) }} → {{ learningClassLabel(target.learningClassId) }}</span>
                   </p>
                 } @empty {
                   <p class="empty-text">Chưa có lớp triển khai nào được gắn với gói học.</p>
@@ -757,6 +796,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
 
   protected readonly catalog = signal<AcademicCatalog>(emptyCatalog());
   protected readonly availableCourses = signal<AdminCourseSummary[]>([]);
+  protected readonly studentUsers = signal<AdminUser[]>([]);
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
   protected readonly packagePaymentReferences = signal<Record<string, string>>({});
@@ -794,6 +834,10 @@ export class OrgAcademicCatalogComponent implements OnInit {
     cohortId: '',
     code: '',
     name: '',
+  });
+  protected readonly classGroupMembershipForm = signal<CreateAcademicClassGroupMembershipRequest>({
+    classGroupId: '',
+    studentId: '',
   });
   protected readonly subjectForm = signal<CreateAcademicSubjectRequest>({
     departmentId: null,
@@ -849,6 +893,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly classTargetForm = signal<CreateAcademicLearningPackageClassTargetRequest>({
     packageId: '',
     courseId: '',
+    classGroupId: null,
     learningClassId: '',
   });
   protected readonly packageTargetCourseOptions = computed(() => {
@@ -875,13 +920,23 @@ export class OrgAcademicCatalogComponent implements OnInit {
     const form = this.classTargetForm();
     return Boolean(form.packageId && form.courseId && form.learningClassId);
   });
+  protected readonly canCreateClassGroupMembership = computed(() => {
+    const form = this.classGroupMembershipForm();
+    return Boolean(form.classGroupId && form.studentId);
+  });
 
   ngOnInit(): void {
     void this.reload();
   }
 
   protected async reload(): Promise<void> {
-    await Promise.all([this.loadCatalog(), this.loadCourses(), this.loadCapabilities(), this.loadPackageEnrollments()]);
+    await Promise.all([
+      this.loadCatalog(),
+      this.loadCourses(),
+      this.loadStudents(),
+      this.loadCapabilities(),
+      this.loadPackageEnrollments(),
+    ]);
   }
 
   protected async loadCatalog(): Promise<void> {
@@ -914,6 +969,20 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.availableCourses.set(response.data ?? []);
     } catch {
       this.availableCourses.set([]);
+    }
+  }
+
+  protected async loadStudents(): Promise<void> {
+    if (!this.organizationId()) {
+      this.studentUsers.set([]);
+      return;
+    }
+
+    try {
+      const response = await firstValueFrom(this.adminService.getUsers({ page: 0, size: 200, role: 'STUDENT' }));
+      this.studentUsers.set(response.data ?? []);
+    } catch {
+      this.studentUsers.set([]);
     }
   }
 
@@ -1001,6 +1070,21 @@ export class OrgAcademicCatalogComponent implements OnInit {
       }),
       'Đã tạo lớp hành chính.',
       () => this.classGroupForm.set({ programId: '', cohortId: '', code: '', name: '' })
+    );
+  }
+
+  protected async createClassGroupMembership(event: Event): Promise<void> {
+    event.preventDefault();
+    if (!this.canCreateClassGroupMembership()) {
+      this.error.set('Vui lòng chọn lớp hành chính và sinh viên.');
+      return;
+    }
+
+    const form = this.classGroupMembershipForm();
+    await this.mutate(
+      this.academicApi.createClassGroupMembership(this.organizationId(), form),
+      'Đã gán sinh viên vào lớp hành chính.',
+      () => this.classGroupMembershipForm.set({ classGroupId: '', studentId: '' })
     );
   }
 
@@ -1165,7 +1249,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.academicApi.createLearningPackageClassTarget(this.organizationId(), form),
       'Đã gắn gói học với lớp triển khai.',
       () => {
-        this.classTargetForm.set({ packageId: '', courseId: '', learningClassId: '' });
+        this.classTargetForm.set({ packageId: '', courseId: '', classGroupId: null, learningClassId: '' });
         this.learningClasses.set([]);
       }
     );
@@ -1227,6 +1311,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
     this.classTargetForm.set({
       packageId: this.text(event),
       courseId: '',
+      classGroupId: null,
       learningClassId: '',
     });
     this.learningClasses.set([]);
@@ -1299,6 +1384,20 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected courseLabel(courseId: string): string {
     const course = this.availableCourses().find(item => item.id === courseId);
     return course ? `${course.code} - ${course.title}` : courseId;
+  }
+
+  protected classGroupLabel(classGroupId: string): string {
+    const classGroup = this.catalog().classGroups.find(item => item.id === classGroupId);
+    return classGroup ? `${classGroup.code} - ${classGroup.name}` : this.shortId(classGroupId);
+  }
+
+  protected classGroupScopeLabel(classGroupId: string | null): string {
+    return classGroupId ? this.classGroupLabel(classGroupId) : 'Mặc định';
+  }
+
+  protected studentLabel(studentId: string): string {
+    const student = this.studentUsers().find(item => item.id === studentId);
+    return student ? `${student.name || student.email} - ${student.email}` : this.shortId(studentId);
   }
 
   protected learningClassLabel(learningClassId: string): string {

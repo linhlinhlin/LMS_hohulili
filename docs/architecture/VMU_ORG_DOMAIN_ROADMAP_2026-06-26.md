@@ -1023,3 +1023,74 @@ Still intentionally not done:
 - Public SePay/VNPay checkout for learning packages.
 - Package-level revenue split and refund accounting.
 - Automatic cohort/class-group allocation beyond explicit package class targets.
+
+## 23. Phase L implementation - class-group-aware package placement
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- model VMU administrative class membership as organization-scoped data;
+- let package course placement vary by student class group without VMU-specific code branches;
+- keep a safe default target for organizations that do not need class-group-specific placement.
+
+Backend scope:
+
+- Adds `V153__academic_class_group_memberships.sql`.
+- Adds `academic_class_group_memberships` with same-organization foreign keys to `organizations`, `academic_class_groups`, and `users`.
+- Enforces one active class-group membership per student per organization.
+- Adds optional `class_group_id` to `learning_package_class_targets`.
+- Keeps two target levels:
+  - default package/course target where `class_group_id IS NULL`;
+  - class-group override target where `class_group_id IS NOT NULL`.
+- Adds domain/JPA/repository support for `AcademicClassGroupMembership`.
+- Adds API:
+  - `POST /api/v3/organizations/{orgId}/academic/class-group-memberships`.
+- Extends catalog response with `classGroupMemberships`.
+- Extends package activation so class-group-specific targets override default targets for the same package/course.
+
+Frontend scope:
+
+- `/org-admin/academic` shows the `Sinh viên lớp` metric.
+- Adds a compact card for assigning a student to an academic class group.
+- Adds `Lớp hành chính áp dụng` to package class-target creation.
+- Keeps the workflow explicit instead of inventing hidden auto-placement logic.
+
+VMU fit:
+
+- VMU can place students from `CNT63ĐH`, `ĐKT63ĐH`, or `MTB63ĐH` into different learning classes for the same package course by data configuration.
+- If a class group has no override, the package still uses the default target.
+- This supports realistic university operations while preserving the modular monolith and Clean Architecture boundaries.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 25, Failures: 0, Errors: 0
+
+mvn "-Dtest=AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 35, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Runtime smoke:
+
+```text
+Docker backend rebuilt and healthy.
+Flyway V153 applied.
+POST class-group membership as ORG_ADMIN -> 200.
+GET academic catalog -> classGroupMemberships returned.
+/org-admin/academic desktop smoke: membership card and package class-group selector rendered, API 200, console errors 0.
+/org-admin/academic mobile 390x844 smoke: same controls rendered, API 200.
+```
+
+Still intentionally not done:
+
+- Bulk import and transfer history for class-group memberships.
+- Public SePay/VNPay checkout for learning packages.
+- Package-level revenue split and refund accounting.
+- More advanced placement policies by cohort/program/term; add only after VMU needs those rules in a real workflow.

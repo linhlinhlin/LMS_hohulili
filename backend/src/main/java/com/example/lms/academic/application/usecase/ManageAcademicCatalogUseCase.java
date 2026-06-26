@@ -4,7 +4,10 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.*;
 import com.example.lms.academic.domain.model.*;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.identity.domain.model.Role;
+import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
@@ -20,6 +23,7 @@ public class ManageAcademicCatalogUseCase {
     private final AcademicCatalogRepository repository;
     private final CourseRepository courseRepository;
     private final LearningClassRepositoryPort learningClassRepository;
+    private final UserRepository userRepository;
 
     public CatalogResponse getCatalog(UUID organizationId) {
         return new CatalogResponse(
@@ -34,7 +38,8 @@ public class ManageAcademicCatalogUseCase {
                 repository.findCurriculumSubjects(organizationId).stream().map(this::toResponse).toList(),
                 repository.findLearningPackages(organizationId).stream().map(this::toResponse).toList(),
                 repository.findLearningPackageItems(organizationId).stream().map(this::toResponse).toList(),
-                repository.findLearningPackageClassTargets(organizationId).stream().map(this::toResponse).toList()
+                repository.findLearningPackageClassTargets(organizationId).stream().map(this::toResponse).toList(),
+                repository.findClassGroupMemberships(organizationId).stream().map(this::toResponse).toList()
         );
     }
 
@@ -229,6 +234,9 @@ public class ManageAcademicCatalogUseCase {
             UUID organizationId,
             CreateLearningPackageClassTargetCommand command) {
         requireLearningPackage(organizationId, command.packageId());
+        if (command.classGroupId() != null) {
+            requireClassGroup(organizationId, command.classGroupId());
+        }
         var course = courseRepository.findById(command.courseId())
                 .orElseThrow(() -> new EntityNotFoundException("Course", command.courseId()));
         if (!Objects.equals(course.getOrganizationId(), organizationId)) {
@@ -242,15 +250,42 @@ public class ManageAcademicCatalogUseCase {
         if (!Objects.equals(learningClass.getCourseId(), command.courseId())) {
             throw new ValidationException("learningClassId", "Lớp học không thuộc khóa học đã chọn");
         }
-        if (repository.learningPackageClassTargetExists(organizationId, command.packageId(), command.courseId())) {
-            throw new ValidationException("courseId", "Gói học đã có lớp đích cho khóa học này");
+        if (repository.learningPackageClassTargetExists(
+                organizationId,
+                command.packageId(),
+                command.courseId(),
+                command.classGroupId())) {
+            throw new ValidationException("courseId", "Gói học đã có lớp đích cho phạm vi này");
         }
         var target = AcademicLearningPackageClassTarget.create(
                 organizationId,
                 command.packageId(),
                 command.courseId(),
+                command.classGroupId(),
                 command.learningClassId());
         return toResponse(repository.saveLearningPackageClassTarget(target));
+    }
+
+    public ClassGroupMembershipResponse assignClassGroupMembership(
+            UUID organizationId,
+            CreateClassGroupMembershipCommand command) {
+        requireClassGroup(organizationId, command.classGroupId());
+        var student = userRepository.findById(UserId.of(command.studentId()))
+                .orElseThrow(() -> new EntityNotFoundException("User", command.studentId()));
+        if (!Objects.equals(student.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("STUDENT_ORG_MISMATCH", "Sinh viên không thuộc tổ chức này");
+        }
+        if (student.getRole() != Role.STUDENT) {
+            throw new ValidationException("studentId", "Chỉ tài khoản học viên mới được gán vào lớp hành chính");
+        }
+        if (repository.activeClassGroupMembershipExists(organizationId, command.studentId())) {
+            throw new ValidationException("studentId", "Sinh viên đã có lớp hành chính đang hoạt động");
+        }
+        var membership = AcademicClassGroupMembership.assign(
+                organizationId,
+                command.classGroupId(),
+                command.studentId());
+        return toResponse(repository.saveClassGroupMembership(membership));
     }
 
     private void requireDepartment(UUID organizationId, UUID id) {
@@ -266,6 +301,11 @@ public class ManageAcademicCatalogUseCase {
     private void requireCohort(UUID organizationId, UUID id) {
         repository.findCohort(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicCohort", id));
+    }
+
+    private void requireClassGroup(UUID organizationId, UUID id) {
+        repository.findClassGroup(organizationId, id)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicClassGroup", id));
     }
 
     private void requireSubject(UUID organizationId, UUID id) {
@@ -388,8 +428,20 @@ public class ManageAcademicCatalogUseCase {
                 t.organizationId(),
                 t.packageId(),
                 t.courseId(),
+                t.classGroupId(),
                 t.learningClassId(),
                 t.status(),
                 t.createdAt());
+    }
+
+    private ClassGroupMembershipResponse toResponse(AcademicClassGroupMembership m) {
+        return new ClassGroupMembershipResponse(
+                m.id(),
+                m.organizationId(),
+                m.classGroupId(),
+                m.studentId(),
+                m.status(),
+                m.joinedAt(),
+                m.createdAt());
     }
 }

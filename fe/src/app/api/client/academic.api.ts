@@ -5,6 +5,7 @@ import { ACADEMIC_ENDPOINTS } from '../endpoints/academic.endpoints';
 import { ApiResponse } from '../types/common.types';
 import {
   AcademicCatalog,
+  AcademicClassGroupMembership,
   AcademicCurriculumPlan,
   AcademicCurriculumSubject,
   AcademicClassGroup,
@@ -23,6 +24,7 @@ import {
   CreateAcademicCurriculumPlanRequest,
   CreateAcademicClassGroupRequest,
   CreateAcademicCohortRequest,
+  CreateAcademicClassGroupMembershipRequest,
   CreateAcademicDepartmentRequest,
   CreateAcademicLearningPackageClassTargetRequest,
   CreateAcademicLearningPackageRequest,
@@ -59,6 +61,13 @@ export class AcademicApi {
   createClassGroup(orgId: string, request: CreateAcademicClassGroupRequest) {
     return this.api.postWithResponse<AcademicClassGroup>(
       ACADEMIC_ENDPOINTS.CLASS_GROUPS(orgId),
+      request
+    );
+  }
+
+  createClassGroupMembership(orgId: string, request: CreateAcademicClassGroupMembershipRequest) {
+    return this.api.postWithResponse<AcademicClassGroupMembership>(
+      ACADEMIC_ENDPOINTS.CLASS_GROUP_MEMBERSHIPS(orgId),
       request
     );
   }
