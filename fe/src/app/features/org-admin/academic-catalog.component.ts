@@ -478,6 +478,13 @@ const capabilityLabels: Record<string, string> = {
                   <p>
                     <strong>{{ learningPackageLabel(enrollment.packageId) }}</strong>
                     <span>Học viên {{ shortId(enrollment.studentId) }} · {{ enrollmentStatusLabel(enrollment.status) }}</span>
+                    <span class="payment-chip">{{ formatEnrollmentPayment(enrollment) }}</span>
+                    @if (enrollment.paymentReference) {
+                      <span class="payment-chip muted">Mã: {{ enrollment.paymentReference }}</span>
+                    }
+                    @if (enrollment.paymentConfirmedAt) {
+                      <span class="payment-chip muted">Đối soát: {{ shortId(enrollment.paymentConfirmedBy ?? '') }}</span>
+                    }
                     @if (enrollment.status === 'PENDING_APPROVAL') {
                       <span class="action-row">
                         <button type="button" class="secondary-button compact-action" [disabled]="saving()" (click)="rejectPackageEnrollment(enrollment)">
@@ -490,6 +497,7 @@ const capabilityLabels: Record<string, string> = {
                     }
                     @if (enrollment.status === 'PENDING_PAYMENT') {
                       <span class="action-row">
+                        <input class="compact-input" aria-label="Mã giao dịch gói học" placeholder="Mã giao dịch" [value]="paymentReferenceFor(enrollment.id)" (input)="setPaymentReference(enrollment.id, $event)">
                         <button type="button" class="secondary-button compact-action" [disabled]="saving()" (click)="rejectPackageEnrollment(enrollment)">
                           Hủy yêu cầu
                         </button>
@@ -661,9 +669,32 @@ const capabilityLabels: Record<string, string> = {
       font-size: 0.8rem;
     }
 
+    .compact-input {
+      min-height: 2rem;
+      width: min(13rem, 100%);
+      border-radius: 0.7rem;
+      font-size: 0.8rem;
+    }
+
     .action-row {
       display: inline-flex;
+      flex-wrap: wrap;
+      align-items: center;
       gap: 0.5rem;
+    }
+
+    .payment-chip {
+      border-radius: 999px;
+      background: #eff6ff;
+      color: #0056D2;
+      padding: 0.2rem 0.55rem;
+      font-size: 0.78rem;
+      font-weight: 800;
+    }
+
+    .payment-chip.muted {
+      background: #f1f5f9;
+      color: #475569;
     }
 
     .compact-list {
@@ -728,6 +759,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly availableCourses = signal<AdminCourseSummary[]>([]);
   protected readonly capabilities = signal<OrganizationCapability[]>([]);
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
+  protected readonly packagePaymentReferences = signal<Record<string, string>>({});
   protected readonly learningClasses = signal<ClassSummary[]>([]);
   private readonly classNameCache = signal<Record<string, string>>({});
   protected readonly loading = signal(false);
@@ -1160,12 +1192,16 @@ export class OrgAcademicCatalogComponent implements OnInit {
   }
 
   protected async completePackagePayment(enrollment: AcademicLearningPackageEnrollment): Promise<void> {
+    const paymentReference = this.paymentReferenceFor(enrollment.id).trim() || null;
     await this.mutate(
       this.academicApi.completeLearningPackagePayment(this.organizationId(), enrollment.id, {
-        note: 'Đã xác nhận thanh toán gói học.',
+        note: paymentReference
+          ? `Đã xác nhận thanh toán gói học (${paymentReference}).`
+          : 'Đã xác nhận thanh toán gói học.',
+        paymentReference,
       }),
       'Đã xác nhận thanh toán và kích hoạt gói học.',
-      () => undefined
+      () => this.clearPaymentReference(enrollment.id)
     );
   }
 
@@ -1324,6 +1360,27 @@ export class OrgAcademicCatalogComponent implements OnInit {
 
   protected shortId(id: string): string {
     return id.length > 8 ? id.slice(0, 8) : id;
+  }
+
+  protected paymentReferenceFor(enrollmentId: string): string {
+    return this.packagePaymentReferences()[enrollmentId] ?? '';
+  }
+
+  protected setPaymentReference(enrollmentId: string, event: Event): void {
+    const value = this.text(event);
+    this.packagePaymentReferences.update(current => ({ ...current, [enrollmentId]: value }));
+  }
+
+  protected clearPaymentReference(enrollmentId: string): void {
+    this.packagePaymentReferences.update(current => {
+      const next = { ...current };
+      delete next[enrollmentId];
+      return next;
+    });
+  }
+
+  protected formatEnrollmentPayment(enrollment: AcademicLearningPackageEnrollment): string {
+    return this.formatPrice(enrollment.paymentAmount ?? 0, enrollment.paymentCurrency ?? 'VND');
   }
 
   protected formatPrice(price: number, currency: string): string {

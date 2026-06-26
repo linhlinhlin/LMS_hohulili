@@ -398,6 +398,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getStudentId(),
                 e.getStatus(),
                 e.getDecisionNote(),
+                e.getPaymentAmount(),
+                e.getPaymentCurrency(),
+                e.getPaymentReference(),
+                e.getPaymentConfirmedAt(),
+                e.getPaymentConfirmedBy(),
                 e.getRequestedAt(),
                 e.getDecidedAt(),
                 e.getDecidedBy(),
@@ -492,7 +497,10 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private AcademicLearningPackageEnrollmentJpaEntity toEntity(AcademicLearningPackageEnrollment e) {
         return AcademicLearningPackageEnrollmentJpaEntity.builder()
                 .id(e.id()).organizationId(e.organizationId()).packageId(e.packageId()).studentId(e.studentId())
-                .status(e.status()).decisionNote(e.decisionNote()).requestedAt(e.requestedAt())
+                .status(e.status()).decisionNote(e.decisionNote())
+                .paymentAmount(e.paymentAmount()).paymentCurrency(e.paymentCurrency())
+                .paymentReference(e.paymentReference()).paymentConfirmedAt(e.paymentConfirmedAt())
+                .paymentConfirmedBy(e.paymentConfirmedBy()).requestedAt(e.requestedAt())
                 .decidedAt(e.decidedAt()).decidedBy(e.decidedBy())
                 .createdAt(e.createdAt()).updatedAt(e.updatedAt()).build();
     }

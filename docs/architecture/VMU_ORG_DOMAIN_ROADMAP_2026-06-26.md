@@ -953,3 +953,73 @@ Still intentionally not done:
 - Public package checkout with SePay/VNPay.
 - Package-level revenue split/refund workflow.
 - Grouped capability UX by domain if capability count grows beyond the current small set.
+
+## 22. Phase K implementation - package tuition audit snapshot
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make paid VMU/ORG learning packages auditable before public checkout is introduced;
+- preserve the payable amount when a student requests a package, even if the package price changes later;
+- let ORG_ADMIN record an offline bank-transfer, SePay, receipt, or reconciliation reference;
+- store who confirmed payment and when, then activate the package through the existing course/class grant path.
+
+Backend scope:
+
+- Adds `V152__learning_package_enrollment_payment_audit.sql`.
+- Adds payment audit fields to `learning_package_enrollments`:
+  - `payment_amount`;
+  - `payment_currency`;
+  - `payment_reference`;
+  - `payment_confirmed_at`;
+  - `payment_confirmed_by`.
+- Backfills existing package enrollment rows from `learning_packages.price/currency`.
+- Adds DB constraints for non-negative amount and three-letter currency.
+- Extends `AcademicLearningPackageEnrollment` and its JPA mapper/entity.
+- `requestEnrollment(...)` snapshots package price/currency at request time.
+- `completePayment(...)` persists the reconciliation reference and confirmer metadata.
+
+Frontend scope:
+
+- Academic API types include payment amount, currency, reference, confirmed timestamp and confirmer.
+- `/org-admin/academic` shows package enrollment tuition as a compact chip.
+- `PENDING_PAYMENT` rows include a `Mã giao dịch` input before `Xác nhận thanh toán`.
+- Confirmed rows show the stored `SEPAY-VMU-*` style reference and the confirming user short id.
+
+VMU fit:
+
+- This matches a university back-office flow: training office collects or reconciles tuition, records the reference, then activates package learning access.
+- It avoids pretending that public checkout is complete when package-level revenue/refund/accounting has not been modeled yet.
+- VMU remains data/config: package price, package policy, course item, class target, and org capability.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 19, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Runtime smoke:
+
+```text
+Docker backend rebuilt and healthy.
+Flyway V152 applied.
+Created PAYMENT_REQUIRED smoke package with one valid course item.
+Student request: PENDING_PAYMENT, paymentAmount=1,250,000, paymentCurrency=VND.
+ORG_ADMIN complete-payment with SEPAY-VMU-* reference: ACTIVE.
+DB persisted payment_reference, payment_confirmed_at, payment_confirmed_by.
+Student course enrollment exists for SAF-101 through DEFAULT class.
+/org-admin/academic smoke: API failures 0, console errors 0, page errors 0.
+```
+
+Still intentionally not done:
+
+- Public SePay/VNPay checkout for learning packages.
+- Package-level revenue split and refund accounting.
+- Automatic cohort/class-group allocation beyond explicit package class targets.

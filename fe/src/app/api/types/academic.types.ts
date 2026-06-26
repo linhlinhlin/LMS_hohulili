@@ -158,6 +158,11 @@ export interface AcademicLearningPackageEnrollment {
   studentId: string;
   status: string;
   decisionNote: string | null;
+  paymentAmount: number;
+  paymentCurrency: string;
+  paymentReference: string | null;
+  paymentConfirmedAt: string | null;
+  paymentConfirmedBy: string | null;
   requestedAt: string;
   decidedAt: string | null;
   decidedBy: string | null;
@@ -256,4 +261,5 @@ export interface CreateAcademicLearningPackageClassTargetRequest {
 
 export interface ReviewAcademicLearningPackageEnrollmentRequest {
   note: string | null;
+  paymentReference?: string | null;
 }

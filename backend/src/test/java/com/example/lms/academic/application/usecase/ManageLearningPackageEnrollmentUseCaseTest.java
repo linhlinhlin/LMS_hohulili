@@ -60,6 +60,8 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.packageId()).isEqualTo(packageId);
         assertThat(response.studentId()).isEqualTo(studentId);
         assertThat(response.status()).isEqualTo("PENDING_APPROVAL");
+        assertThat(response.paymentAmount()).isEqualByComparingTo("1200000");
+        assertThat(response.paymentCurrency()).isEqualTo("VND");
     }
 
     @Test
@@ -144,7 +146,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 orgId,
                 enrollmentId,
                 approverId,
-                new ReviewLearningPackageEnrollmentCommand("Đủ điều kiện theo lớp VMU."));
+                new ReviewLearningPackageEnrollmentCommand("Đủ điều kiện theo lớp VMU.", null));
 
         assertThat(response.status()).isEqualTo("ACTIVE");
         assertThat(response.decidedBy()).isEqualTo(approverId);
@@ -239,12 +241,34 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 orgId,
                 enrollmentId,
                 confirmerId,
-                new ReviewLearningPackageEnrollmentCommand("Đã đối soát chuyển khoản."));
+                new ReviewLearningPackageEnrollmentCommand("Đã đối soát chuyển khoản.", "SEPAY-VMU-001"));
 
         assertThat(response.status()).isEqualTo("ACTIVE");
         assertThat(response.decidedBy()).isEqualTo(confirmerId);
         assertThat(response.decisionNote()).isEqualTo("Đã đối soát chuyển khoản.");
+        assertThat(response.paymentReference()).isEqualTo("SEPAY-VMU-001");
+        assertThat(response.paymentConfirmedBy()).isEqualTo(confirmerId);
+        assertThat(response.paymentConfirmedAt()).isNotNull();
         verify(courseAccessGrant).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("completePayment: rejects overlong payment reference")
+    void completePayment_rejectsOverlongPaymentReference() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, UUID.randomUUID(), UUID.randomUUID(), "PENDING_PAYMENT");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+
+        assertThatThrownBy(() -> useCase.completePayment(
+                orgId,
+                enrollmentId,
+                UUID.randomUUID(),
+                new ReviewLearningPackageEnrollmentCommand(null, "X".repeat(129))))
+                .isInstanceOf(ValidationException.class)
+                .hasMessageContaining("payment reference");
+        verify(repository, never()).saveLearningPackageEnrollment(any());
     }
 
     @Test
@@ -290,7 +314,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 "Gói Điều khiển tàu biển K63",
                 null,
                 "CURRICULUM_BUNDLE",
-                BigDecimal.ZERO,
+                new BigDecimal("1200000"),
                 "VND",
                 policy,
                 "ACTIVE",
@@ -305,6 +329,11 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 packageId,
                 studentId,
                 status,
+                null,
+                new BigDecimal("1200000"),
+                "VND",
+                null,
+                null,
                 null,
                 Instant.now(),
                 null,

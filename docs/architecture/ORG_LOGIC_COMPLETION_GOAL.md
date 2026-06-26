@@ -1651,3 +1651,78 @@ Debt còn lại sau Phase 4.10:
 - Public package checkout SePay/VNPay vẫn là phase riêng.
 - Package-level revenue/refund model vẫn nên tách khỏi course-level payment hiện tại.
 - Nếu số capability tăng nhiều, có thể nhóm UI theo domain: Học vụ, Gói học, Thanh toán, Báo cáo.
+
+## 41. Phase 4.11 learning package tuition audit snapshot - 2026-06-26
+
+Mục tiêu của vòng này là làm cho luồng gói học trả phí đủ đáng tin để demo và vận hành nội bộ theo kiểu VMU: học phí của gói phải được snapshot tại thời điểm học viên yêu cầu, ORG_ADMIN phải ghi được mã đối soát/chuyển khoản khi xác nhận, và hệ thống phải lưu người xác nhận + thời điểm xác nhận. Đây là lát cắt audit tối thiểu trước khi làm checkout public bằng SePay/VNPay.
+
+Thay đổi đã thực hiện:
+
+- Thêm migration `V152__learning_package_enrollment_payment_audit.sql`.
+- `learning_package_enrollments` có thêm `payment_amount`, `payment_currency`, `payment_reference`, `payment_confirmed_at`, `payment_confirmed_by`.
+- Migration backfill `payment_amount/payment_currency` từ `learning_packages.price/currency`, đặt `NOT NULL`, default an toàn và check constraint non-negative/currency 3 ký tự.
+- Domain `AcademicLearningPackageEnrollment` lưu payment snapshot và validate amount/currency/reference.
+- Khi student request gói học, `ManageLearningPackageEnrollmentUseCase` snapshot học phí từ `LearningPackage`.
+- Khi ORG_ADMIN complete payment, hệ thống lưu mã đối soát, thời điểm xác nhận và người xác nhận trước khi cấp quyền học.
+- DTO/API trả payment audit fields để FE hiển thị được trạng thái đối soát.
+- `/org-admin/academic` hiển thị chip học phí, mã đối soát, người đối soát và input `Mã giao dịch` cho enrollment `PENDING_PAYMENT`.
+
+Quyết định thiết kế:
+
+- Không nhét package tuition vào `payment_transactions` ở vòng này vì bảng đó đang course-centric, kéo theo revenue split/refund/course auto-enrollment.
+- Không hardcode VMU. VMU là dữ liệu: org, curriculum, package, price, enrollment policy, class target.
+- Không cho kích hoạt package rỗng. Nếu package không resolve được course hợp lệ, backend vẫn trả lỗi nghiệp vụ thay vì active sai.
+- Public SePay/VNPay package checkout là phase riêng, cần model package-level payment/revenue/refund rõ ràng trước khi triển khai.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 19, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Local Flyway/schema smoke:
+
+```text
+Flyway V152 applied successfully.
+learning_package_enrollments columns verified:
+payment_amount, payment_currency, payment_reference, payment_confirmed_at, payment_confirmed_by.
+```
+
+API smoke:
+
+```text
+Created PAYMENT_REQUIRED package with course item.
+Student request enrollment -> PENDING_PAYMENT.
+Snapshot amount -> 1,250,000 VND.
+ORG_ADMIN complete-payment with reference SEPAY-VMU-* -> ACTIVE.
+payment_reference/payment_confirmed_at/payment_confirmed_by persisted.
+Course access granted to SAF-101 through DEFAULT class.
+```
+
+Browser smoke:
+
+```text
+Route: http://localhost:4200/org-admin/academic
+Login: orgadmin@maritime.edu / orgadmin123
+Markers visible: ORG ACADEMIC CATALOG, SMOKE-PAY-COURSE, SEPAY-VMU, 1.250.000
+API failures: 0
+console errors: 0
+page errors: 0
+Screenshot: tmp-org-academic-smoke.png
+```
+
+Debt còn lại sau Phase 4.11:
+
+- Public package checkout bằng SePay/VNPay vẫn là phase riêng.
+- Package-level revenue split/refund model vẫn chưa nên dùng chung vội với course-level payment.
+- Cần cleanup smoke package/enrollment nếu local DB cần sạch tuyệt đối trước demo khác.

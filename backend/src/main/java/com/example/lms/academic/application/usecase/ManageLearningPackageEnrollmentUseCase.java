@@ -45,7 +45,9 @@ public class ManageLearningPackageEnrollmentUseCase {
                                     organizationId,
                                     packageId,
                                     studentId,
-                                    learningPackage.enrollmentPolicy()));
+                                    learningPackage.enrollmentPolicy(),
+                                    learningPackage.price(),
+                                    learningPackage.currency()));
                     grantActivePackageCourses(enrollment);
                     return toResponse(enrollment);
                 });
@@ -90,7 +92,10 @@ public class ManageLearningPackageEnrollmentUseCase {
             ReviewLearningPackageEnrollmentCommand command) {
         var enrollment = requireEnrollment(organizationId, enrollmentId);
         var completed = repository.saveLearningPackageEnrollment(
-                enrollment.completePayment(confirmerId, command == null ? null : command.note()));
+                enrollment.completePayment(
+                        confirmerId,
+                        command == null ? null : command.note(),
+                        command == null ? null : command.paymentReference()));
         grantActivePackageCourses(completed);
         return toResponse(completed);
     }
@@ -183,6 +188,11 @@ public class ManageLearningPackageEnrollmentUseCase {
                 e.studentId(),
                 e.status(),
                 e.decisionNote(),
+                e.paymentAmount(),
+                e.paymentCurrency(),
+                e.paymentReference(),
+                e.paymentConfirmedAt(),
+                e.paymentConfirmedBy(),
                 e.requestedAt(),
                 e.decidedAt(),
                 e.decidedBy(),
