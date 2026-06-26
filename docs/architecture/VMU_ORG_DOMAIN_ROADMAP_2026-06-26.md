@@ -655,3 +655,49 @@ Remaining product gap:
   - direct `course_id` item -> enroll that course;
   - `subject_id` item -> resolve primary `subject_course`;
   - `PAYMENT_REQUIRED` package -> package checkout/payment must complete first.
+
+## 16. Phase E implementation - package entitlement to course access
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make approved VMU/ORG learning packages produce actual learner access;
+- avoid a fake “active package” state that does not show up in student learning;
+- keep self-enrollment payment rules intact.
+
+Backend scope:
+
+- Adds `GrantCourseAccessUseCase` in `learning_delivery`.
+- The grant use case is for already-validated entitlements only:
+  - organization package approval;
+  - future package payment completion;
+  - future admin/import entitlement flows.
+- It checks:
+  - course belongs to the same organization;
+  - course is `APPROVED`;
+  - course is `SELF_PACED`;
+  - existing active/completed enrollments are idempotent;
+  - dropped/suspended enrollments can be reactivated.
+- It creates or reuses the `DEFAULT` learning class and sets `organization_id` on that class.
+- `ManageLearningPackageEnrollmentUseCase` calls it when a package enrollment becomes `ACTIVE`.
+
+VMU fit:
+
+- VMU packages can be modeled as curriculum/subject bundles without VMU-specific branches.
+- A package item can point directly to a course.
+- A package item can point to a subject, then resolve through `subject_courses`.
+- This supports real VMU concepts such as program, cohort, subject, curriculum plan, and training package while staying tenant-configured.
+
+Still intentionally not done:
+
+- `PAYMENT_REQUIRED` package checkout and payment completion.
+- `INSTRUCTOR_LED` automatic class placement, because university-style classes need explicit class/cohort/term placement.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest" test
+# Tests run: 13, Failures: 0, Errors: 0
+```

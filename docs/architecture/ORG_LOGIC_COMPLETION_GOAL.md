@@ -1315,3 +1315,50 @@ Debt còn lại sau Phase 4.4:
   - nếu item là `course_id`, enroll course theo rule hiện có;
   - nếu item là `subject_id`, tìm primary `subject_course` trước khi enroll;
   - nếu package `PAYMENT_REQUIRED`, cần package-level checkout hoặc mapping sang payment hiện có trước khi active.
+
+## 35. Phase 4.5 package entitlement grants real course access - 2026-06-26
+
+Mục tiêu của vòng này là đóng vòng nghiệp vụ sau khi ORG_ADMIN duyệt gói học: học viên không chỉ có package enrollment `ACTIVE`, mà còn được cấp quyền học thật vào các khóa học phù hợp trong gói.
+
+Thay đổi đã thực hiện:
+
+- Thêm `GrantCourseAccessUseCase` trong module `learning_delivery`.
+- Use case mới cấp quyền học từ một entitlement đã được xác thực, ví dụ gói học tổ chức, và không thay thế `SelfEnrollUseCase`.
+- `SelfEnrollUseCase` vẫn giữ trách nhiệm kiểm tra thanh toán course-level cho tự đăng ký cá nhân.
+- `GrantCourseAccessUseCase`:
+  - kiểm tra course thuộc đúng `organization_id`;
+  - yêu cầu course `APPROVED`;
+  - chỉ cấp tự động cho course `SELF_PACED`;
+  - tạo hoặc tái sử dụng lớp `DEFAULT`;
+  - set `learning_classes.organization_id` đúng tenant;
+  - trả lại enrollment hiện có nếu học viên đã `ACTIVE` hoặc `COMPLETED`;
+  - tái kích hoạt enrollment `DROPPED` hoặc `SUSPENDED`.
+- `ManageLearningPackageEnrollmentUseCase` giờ cấp quyền course khi:
+  - package policy `OPEN` tạo enrollment `ACTIVE`;
+  - ORG_ADMIN approve enrollment `PENDING_APPROVAL` sang `ACTIVE`;
+  - enrollment đã `ACTIVE` được gọi lại idempotently.
+- Package item resolution:
+  - item có `course_id` -> grant course trực tiếp;
+  - item có `subject_id` -> resolve qua các `subject_courses` đang `ACTIVE`;
+  - loại trùng course bằng `LinkedHashSet` để không tạo enrollment lặp.
+
+Quyết định thiết kế:
+
+- Không bypass payment trong luồng tự đăng ký course cá nhân.
+- Không tự động cấp quyền cho `INSTRUCTOR_LED` course vì loại này cần class placement rõ ràng, ví dụ lớp CNT63ĐH, KPM63ĐH hoặc lớp học kỳ cụ thể.
+- Không hardcode VMU. VMU chỉ là dữ liệu cấu hình qua organization, curriculum, subject, package, subject-course mapping.
+- Nếu package không resolve ra course hợp lệ, workflow báo lỗi thay vì kích hoạt package “rỗng”.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest" test
+# Tests run: 13, Failures: 0, Errors: 0
+```
+
+Debt còn lại sau Phase 4.5:
+
+- `PAYMENT_REQUIRED` package vẫn cần slice package checkout/payment completion trước khi auto-grant.
+- `INSTRUCTOR_LED` package cần rule xếp lớp cụ thể, không nên dùng lớp `DEFAULT`.
+- Cần Docker/Flyway/browser smoke khi Docker Desktop daemon phản hồi lại, vì lượt này Docker CLI timeout ở bước `docker compose ps`.

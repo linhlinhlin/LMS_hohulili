@@ -3,7 +3,10 @@ package com.example.lms.academic.application.usecase;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearningPackageEnrollmentCommand;
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
+import com.example.lms.academic.domain.model.AcademicLearningPackageItem;
+import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
+import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.ValidationException;
 import org.junit.jupiter.api.DisplayName;
@@ -31,6 +34,9 @@ import static org.mockito.Mockito.when;
 class ManageLearningPackageEnrollmentUseCaseTest {
     @Mock
     private AcademicCatalogRepository repository;
+
+    @Mock
+    private GrantCourseAccessUseCase courseAccessGrant;
 
     @InjectMocks
     private ManageLearningPackageEnrollmentUseCase useCase;
@@ -61,15 +67,20 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         UUID orgId = UUID.randomUUID();
         UUID packageId = UUID.randomUUID();
         UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
 
         when(repository.findLearningPackage(orgId, packageId))
                 .thenReturn(Optional.of(packageWithPolicy(orgId, packageId, "OPEN")));
         when(repository.findLearningPackageEnrollment(orgId, packageId, studentId)).thenReturn(Optional.empty());
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         var response = useCase.requestEnrollment(orgId, packageId, studentId);
 
         assertThat(response.status()).isEqualTo("ACTIVE");
+        verify(courseAccessGrant).grant(orgId, courseId, studentId);
     }
 
     @Test
@@ -106,6 +117,7 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.id()).isEqualTo(existing.id());
         assertThat(response.status()).isEqualTo("PENDING_APPROVAL");
         verify(repository, never()).saveLearningPackageEnrollment(any());
+        verify(courseAccessGrant, never()).grant(any(), any(), any());
     }
 
     @Test
@@ -114,10 +126,16 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         UUID orgId = UUID.randomUUID();
         UUID enrollmentId = UUID.randomUUID();
         UUID approverId = UUID.randomUUID();
-        var enrollment = enrollment(orgId, UUID.randomUUID(), UUID.randomUUID(), "PENDING_APPROVAL");
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_APPROVAL");
 
         when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
         when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageCourseItem(orgId, packageId, courseId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of());
+        when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
 
         var response = useCase.approve(
                 orgId,
@@ -128,6 +146,30 @@ class ManageLearningPackageEnrollmentUseCaseTest {
         assertThat(response.status()).isEqualTo("ACTIVE");
         assertThat(response.decidedBy()).isEqualTo(approverId);
         assertThat(response.decisionNote()).isEqualTo("Đủ điều kiện theo lớp VMU.");
+        verify(courseAccessGrant).grant(orgId, courseId, studentId);
+    }
+
+    @Test
+    @DisplayName("approve: subject package item grants mapped subject course")
+    void approve_subjectPackageItemGrantsMappedCourse() {
+        UUID orgId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID approverId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID subjectId = UUID.randomUUID();
+        UUID courseId = UUID.randomUUID();
+        var enrollment = enrollment(orgId, packageId, studentId, "PENDING_APPROVAL");
+
+        when(repository.findLearningPackageEnrollment(orgId, enrollmentId)).thenReturn(Optional.of(enrollment));
+        when(repository.saveLearningPackageEnrollment(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(repository.findLearningPackageItems(orgId)).thenReturn(List.of(packageSubjectItem(orgId, packageId, subjectId)));
+        when(repository.findSubjectCourses(orgId)).thenReturn(List.of(subjectCourse(orgId, subjectId, courseId)));
+        when(courseAccessGrant.grant(orgId, courseId, studentId)).thenReturn(UUID.randomUUID());
+
+        useCase.approve(orgId, enrollmentId, approverId, null);
+
+        verify(courseAccessGrant).grant(orgId, courseId, studentId);
     }
 
     @Test
@@ -192,6 +234,46 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 Instant.now(),
                 null,
                 null,
+                Instant.now(),
+                null);
+    }
+
+    private AcademicLearningPackageItem packageCourseItem(UUID orgId, UUID packageId, UUID courseId) {
+        return new AcademicLearningPackageItem(
+                UUID.randomUUID(),
+                orgId,
+                packageId,
+                null,
+                courseId,
+                0,
+                true,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicLearningPackageItem packageSubjectItem(UUID orgId, UUID packageId, UUID subjectId) {
+        return new AcademicLearningPackageItem(
+                UUID.randomUUID(),
+                orgId,
+                packageId,
+                subjectId,
+                null,
+                0,
+                true,
+                "ACTIVE",
+                Instant.now(),
+                null);
+    }
+
+    private AcademicSubjectCourse subjectCourse(UUID orgId, UUID subjectId, UUID courseId) {
+        return new AcademicSubjectCourse(
+                UUID.randomUUID(),
+                orgId,
+                subjectId,
+                courseId,
+                true,
+                "ACTIVE",
                 Instant.now(),
                 null);
     }

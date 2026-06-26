@@ -5,12 +5,16 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.ReviewLearni
 import com.example.lms.academic.domain.model.AcademicLearningPackage;
 import com.example.lms.academic.domain.model.AcademicLearningPackageEnrollment;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
+import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,7 +22,9 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ManageLearningPackageEnrollmentUseCase {
     private final AcademicCatalogRepository repository;
+    private final GrantCourseAccessUseCase courseAccessGrant;
 
+    @Transactional
     public LearningPackageEnrollmentResponse requestEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
         var learningPackage = requireLearningPackage(organizationId, packageId);
         if (!"ACTIVE".equals(learningPackage.status())) {
@@ -27,13 +33,20 @@ public class ManageLearningPackageEnrollmentUseCase {
                     "Only active learning packages can receive enrollments");
         }
         return repository.findLearningPackageEnrollment(organizationId, packageId, studentId)
-                .map(this::toResponse)
-                .orElseGet(() -> toResponse(repository.saveLearningPackageEnrollment(
-                        AcademicLearningPackageEnrollment.request(
-                                organizationId,
-                                packageId,
-                                studentId,
-                                learningPackage.enrollmentPolicy()))));
+                .map(existing -> {
+                    grantActivePackageCourses(existing);
+                    return toResponse(existing);
+                })
+                .orElseGet(() -> {
+                    var enrollment = repository.saveLearningPackageEnrollment(
+                            AcademicLearningPackageEnrollment.request(
+                                    organizationId,
+                                    packageId,
+                                    studentId,
+                                    learningPackage.enrollmentPolicy()));
+                    grantActivePackageCourses(enrollment);
+                    return toResponse(enrollment);
+                });
     }
 
     public List<LearningPackageEnrollmentResponse> listEnrollments(UUID organizationId, String status) {
@@ -43,16 +56,20 @@ public class ManageLearningPackageEnrollmentUseCase {
                 .toList();
     }
 
+    @Transactional
     public LearningPackageEnrollmentResponse approve(
             UUID organizationId,
             UUID enrollmentId,
             UUID approverId,
             ReviewLearningPackageEnrollmentCommand command) {
         var enrollment = requireEnrollment(organizationId, enrollmentId);
-        return toResponse(repository.saveLearningPackageEnrollment(
-                enrollment.approve(approverId, command == null ? null : command.note())));
+        var approved = repository.saveLearningPackageEnrollment(
+                enrollment.approve(approverId, command == null ? null : command.note()));
+        grantActivePackageCourses(approved);
+        return toResponse(approved);
     }
 
+    @Transactional
     public LearningPackageEnrollmentResponse reject(
             UUID organizationId,
             UUID enrollmentId,
@@ -71,6 +88,44 @@ public class ManageLearningPackageEnrollmentUseCase {
     private AcademicLearningPackageEnrollment requireEnrollment(UUID organizationId, UUID enrollmentId) {
         return repository.findLearningPackageEnrollment(organizationId, enrollmentId)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicLearningPackageEnrollment", enrollmentId));
+    }
+
+    private void grantActivePackageCourses(AcademicLearningPackageEnrollment enrollment) {
+        if (!"ACTIVE".equals(enrollment.status())) {
+            return;
+        }
+        var courseIds = resolvePackageCourseIds(enrollment.organizationId(), enrollment.packageId());
+        if (courseIds.isEmpty()) {
+            throw new BusinessRuleException(
+                    "PACKAGE_HAS_NO_COURSES",
+                    "Gói học chưa có khóa học hợp lệ để cấp quyền");
+        }
+        courseIds.forEach(courseId -> courseAccessGrant.grant(
+                enrollment.organizationId(),
+                courseId,
+                enrollment.studentId()));
+    }
+
+    private List<UUID> resolvePackageCourseIds(UUID organizationId, UUID packageId) {
+        var courseIds = new LinkedHashSet<UUID>();
+        var subjectCourses = repository.findSubjectCourses(organizationId);
+
+        repository.findLearningPackageItems(organizationId).stream()
+                .filter(item -> packageId.equals(item.packageId()))
+                .filter(item -> "ACTIVE".equals(item.status()))
+                .forEach(item -> {
+                    if (item.courseId() != null) {
+                        courseIds.add(item.courseId());
+                    }
+                    if (item.subjectId() != null) {
+                        subjectCourses.stream()
+                                .filter(link -> item.subjectId().equals(link.subjectId()))
+                                .filter(link -> "ACTIVE".equals(link.status()))
+                                .map(link -> link.courseId())
+                                .forEach(courseIds::add);
+                    }
+                });
+        return new ArrayList<>(courseIds);
     }
 
     private String normalizeStatus(String status) {
