@@ -2889,3 +2889,46 @@ student_name=Nguyễn Văn An
 status=ACTIVE
 payment_reference=SMOKE-PACKAGE-SEP-001
 ```
+
+## 60. Phase 4.30 org-admin CSV export action for package reconciliation - 2026-06-27
+
+Mục tiêu của vòng này là đưa export CSV ở Phase 4.28/4.29 ra đúng nơi vận hành: màn hình `/org-admin/academic`. Trước đó backend đã xuất được file đối soát enriched, nhưng ORG_ADMIN vẫn phải gọi API thủ công. Với VMU, thao tác này cần nằm cạnh hàng chờ/yêu cầu gói học để phòng/khoa/kế toán có thể tải danh sách đăng ký, thanh toán và trạng thái xử lý ngay trong luồng quản trị.
+
+Thay đổi đã thực hiện:
+
+- Thêm endpoint FE `LEARNING_PACKAGE_ENROLLMENTS_EXPORT` trỏ tới `/api/v3/organizations/{orgId}/academic/learning-package-enrollments/export.csv`.
+- Thêm `AcademicApi.exportLearningPackageEnrollmentsCsv(...)` trả `Blob`, giữ nguyên API list enrollment hiện tại.
+- Thêm nút `Tải CSV đối soát` ở card `Yêu cầu gói học` trong `/org-admin/academic`.
+- Thêm trạng thái `exportingPackageEnrollments` để disable nút trong lúc tải file và hiển thị nhãn `Đang tạo CSV...`.
+- Thêm helper tải file browser-side với tên `learning-package-enrollments-yyyy-mm-dd.csv`.
+- Giữ nguyên toàn bộ workflow duyệt/từ chối/xác nhận thanh toán/hoàn tiền. Phase này chỉ làm thao tác đối soát dễ dùng hơn.
+
+Quyết định thiết kế:
+
+- Không thêm thư viện tải file. Browser `Blob` + temporary anchor là đủ và ít rủi ro nhất.
+- Không thêm filter UI ở phase này. Endpoint vẫn hỗ trợ status filter, nhưng màn hình hiện đang hiển thị toàn bộ queue; filter UI nên làm khi có nhu cầu vận hành rõ hơn.
+- Không hardcode VMU. Text “đối soát” phản ánh nghiệp vụ tài chính/đào tạo chung của ORG, dùng được cho các tổ chức khác.
+- Không stage `fe/public/sitemap-courses.xml`; file này do build SEO sinh lại từ production courses và vẫn là dirty generated file ngoài phạm vi phase.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Build passed. Existing warnings only: Angular optional-chain/nullish diagnostics, Sass @import deprecation, CommonJS mammoth dependencies, Node odd-version warning.
+```
+
+Browser/API smoke:
+
+```text
+Temporary Angular dev server: http://127.0.0.1:4300
+Login: orgadmin@maritime.edu
+Page: /org-admin/academic
+Button: "Tải CSV đối soát" visible and enabled
+GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments/export.csv
+-> 200 text/csv;charset=UTF-8
+CSV header includes:
+enrollment_id,package_id,package_code,package_name,student_id,student_email,student_name,status,payment_amount,currency,payment_reference,payment_confirmed_at,requested_at,decided_at,decision_note
+Browser console errors: 0
+Page errors: 0
+```

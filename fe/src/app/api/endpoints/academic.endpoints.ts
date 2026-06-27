@@ -17,6 +17,7 @@ export const ACADEMIC_ENDPOINTS = {
   LEARNING_PACKAGE_CLASS_TARGETS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-class-targets`,
   LEARNING_PACKAGE_REVENUE_ALLOCATION: (orgId: string, packageId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages/${packageId}/revenue-allocation-preview`,
   LEARNING_PACKAGE_ENROLLMENTS: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments`,
+  LEARNING_PACKAGE_ENROLLMENTS_EXPORT: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-package-enrollments/export.csv`,
   MY_AVAILABLE_LEARNING_PACKAGES: (orgId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages/available/me`,
   MY_LEARNING_PACKAGE_ENROLLMENT: (orgId: string, packageId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages/${packageId}/enrollments/me`,
   MY_LEARNING_PACKAGE_PAYMENT_QR: (orgId: string, packageId: string) => `/api/v3/organizations/${orgId}/academic/learning-packages/${packageId}/payment-qr/me`,

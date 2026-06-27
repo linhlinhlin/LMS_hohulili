@@ -163,6 +163,16 @@ export class AcademicApi {
     );
   }
 
+  exportLearningPackageEnrollmentsCsv(orgId: string, status?: string): Observable<Blob> {
+    return this.api.get<Blob>(
+      ACADEMIC_ENDPOINTS.LEARNING_PACKAGE_ENROLLMENTS_EXPORT(orgId),
+      {
+        responseType: 'blob',
+        ...(status ? { params: { status } } : {}),
+      }
+    );
+  }
+
   listMyAvailableLearningPackages(orgId: string) {
     return this.api.getWithResponse<AcademicLearningPackageAvailability[]>(
       ACADEMIC_ENDPOINTS.MY_AVAILABLE_LEARNING_PACKAGES(orgId)

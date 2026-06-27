@@ -597,10 +597,21 @@ const capabilityLabels: Record<string, string> = {
             </article>
 
             <article class="catalog-card">
-              <h2>Yêu cầu gói học</h2>
-              <p class="helper-text">
-                Theo dõi học viên đăng ký gói học theo chính sách của tổ chức. Gói cần ORG duyệt sẽ nằm ở trạng thái chờ duyệt trước khi kích hoạt.
-              </p>
+              <div class="card-heading-row">
+                <div>
+                  <h2>Yêu cầu gói học</h2>
+                  <p class="helper-text">
+                    Theo dõi học viên đăng ký gói học theo chính sách của tổ chức. Gói cần ORG duyệt sẽ nằm ở trạng thái chờ duyệt trước khi kích hoạt.
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  class="secondary-button compact-action"
+                  [disabled]="exportingPackageEnrollments() || !organizationId()"
+                  (click)="downloadPackageEnrollmentsCsv()">
+                  {{ exportingPackageEnrollments() ? 'Đang tạo CSV...' : 'Tải CSV đối soát' }}
+                </button>
+              </div>
               <div class="compact-list">
                 @for (enrollment of packageEnrollments(); track enrollment.id) {
                   <p>
@@ -715,6 +726,19 @@ const capabilityLabels: Record<string, string> = {
       color: #0f172a;
       font-size: 1.05rem;
       font-weight: 800;
+    }
+
+    .card-heading-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .card-heading-row h2,
+    .card-heading-row .helper-text {
+      margin-bottom: 0;
     }
 
     .capability-strip {
@@ -1000,6 +1024,12 @@ const capabilityLabels: Record<string, string> = {
       }
     }
 
+    @media (max-width: 639px) {
+      .card-heading-row {
+        flex-direction: column;
+      }
+    }
+
     .membership-status {
       border-radius: 999px;
       background: #dcfce7;
@@ -1060,6 +1090,7 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly packageEnrollments = signal<AcademicLearningPackageEnrollment[]>([]);
   protected readonly packageRevenueAllocations = signal<Record<string, AcademicLearningPackageRevenueAllocation>>({});
   protected readonly packageRevenueSplits = signal<Record<string, AcademicLearningPackageRevenueSplit[]>>({});
+  protected readonly exportingPackageEnrollments = signal(false);
   protected readonly selectedRevenuePackageId = signal('');
   protected readonly packagePaymentReferences = signal<Record<string, string>>({});
   protected readonly classGroupTransferTargets = signal<Record<string, string>>({});
@@ -1295,6 +1326,25 @@ export class OrgAcademicCatalogComponent implements OnInit {
       this.packageEnrollments.set(response.data ?? []);
     } catch {
       this.packageEnrollments.set([]);
+    }
+  }
+
+  protected async downloadPackageEnrollmentsCsv(): Promise<void> {
+    const orgId = this.organizationId();
+    if (!orgId) {
+      this.error.set('Không xác định được tổ chức để xuất CSV.');
+      return;
+    }
+
+    this.exportingPackageEnrollments.set(true);
+    this.error.set(null);
+    try {
+      const blob = await firstValueFrom(this.academicApi.exportLearningPackageEnrollmentsCsv(orgId));
+      this.saveBlob(blob, `learning-package-enrollments-${new Date().toISOString().slice(0, 10)}.csv`);
+    } catch (error) {
+      this.error.set(this.errorMessage(error));
+    } finally {
+      this.exportingPackageEnrollments.set(false);
     }
   }
 
@@ -1962,6 +2012,18 @@ export class OrgAcademicCatalogComponent implements OnInit {
       .split(/[\n,;]+/)
       .map(email => email.trim())
       .filter(Boolean);
+  }
+
+  private saveBlob(blob: Blob, filename: string): void {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    anchor.style.display = 'none';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    URL.revokeObjectURL(url);
   }
 
   private async mutate<T>(
