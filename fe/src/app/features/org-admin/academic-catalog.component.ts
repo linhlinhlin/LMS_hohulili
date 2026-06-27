@@ -63,6 +63,18 @@ const capabilityLabels: Record<string, string> = {
   org_payout_approval: 'Duyệt chi trả',
 };
 
+const packageEnrollmentStatusFilters = [
+  { value: '', label: 'Tất cả trạng thái' },
+  { value: 'PENDING_APPROVAL', label: 'Chờ ORG duyệt' },
+  { value: 'PENDING_PAYMENT', label: 'Chờ thanh toán' },
+  { value: 'ACTIVE', label: 'Đã kích hoạt' },
+  { value: 'REJECTED', label: 'Đã từ chối' },
+  { value: 'CANCELLED', label: 'Đã hủy' },
+  { value: 'REFUNDED', label: 'Đã hoàn tiền' },
+] as const;
+
+type PackageEnrollmentStatusFilter = typeof packageEnrollmentStatusFilters[number]['value'];
+
 @Component({
   selector: 'app-org-academic-catalog',
   imports: [],
@@ -604,19 +616,32 @@ const capabilityLabels: Record<string, string> = {
                     Theo dõi học viên đăng ký gói học theo chính sách của tổ chức. Gói cần ORG duyệt sẽ nằm ở trạng thái chờ duyệt trước khi kích hoạt.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  class="secondary-button compact-action"
-                  [disabled]="exportingPackageEnrollments() || !organizationId()"
-                  (click)="downloadPackageEnrollmentsCsv()">
-                  {{ exportingPackageEnrollments() ? 'Đang tạo CSV...' : 'Tải CSV đối soát' }}
-                </button>
+                <div class="card-heading-actions">
+                  <label class="status-filter">
+                    <span>Trạng thái</span>
+                    <select
+                      aria-label="Lọc yêu cầu gói học"
+                      [value]="packageEnrollmentStatusFilter()"
+                      (change)="changePackageEnrollmentStatusFilter($event)">
+                      @for (option of packageEnrollmentStatusFilters; track option.value) {
+                        <option [value]="option.value">{{ option.label }}</option>
+                      }
+                    </select>
+                  </label>
+                  <button
+                    type="button"
+                    class="secondary-button compact-action"
+                    [disabled]="exportingPackageEnrollments() || !organizationId()"
+                    (click)="downloadPackageEnrollmentsCsv()">
+                    {{ exportingPackageEnrollments() ? 'Đang tạo CSV...' : 'Tải CSV đối soát' }}
+                  </button>
+                </div>
               </div>
               <div class="compact-list">
                 @for (enrollment of packageEnrollments(); track enrollment.id) {
                   <p>
                     <strong>{{ learningPackageLabel(enrollment.packageId) }}</strong>
-                    <span>Học viên {{ shortId(enrollment.studentId) }} · {{ enrollmentStatusLabel(enrollment.status) }}</span>
+                    <span>Học viên {{ studentLabel(enrollment.studentId) }} · {{ enrollmentStatusLabel(enrollment.status) }}</span>
                     <span class="payment-chip">{{ formatEnrollmentPayment(enrollment) }}</span>
                     @if (enrollment.paymentReference) {
                       <span class="payment-chip muted">Mã: {{ enrollment.paymentReference }}</span>
@@ -739,6 +764,35 @@ const capabilityLabels: Record<string, string> = {
     .card-heading-row h2,
     .card-heading-row .helper-text {
       margin-bottom: 0;
+    }
+
+    .card-heading-actions {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-end;
+      justify-content: flex-end;
+      gap: 0.75rem;
+    }
+
+    .status-filter {
+      display: grid;
+      gap: 0.35rem;
+      min-width: 12rem;
+    }
+
+    .status-filter span {
+      color: #64748b;
+      font-size: 0.72rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .status-filter select {
+      min-height: 2rem;
+      border-radius: 0.7rem;
+      font-size: 0.82rem;
+      font-weight: 700;
     }
 
     .capability-strip {
@@ -1028,6 +1082,11 @@ const capabilityLabels: Record<string, string> = {
       .card-heading-row {
         flex-direction: column;
       }
+
+      .card-heading-actions,
+      .status-filter {
+        width: 100%;
+      }
     }
 
     .membership-status {
@@ -1091,6 +1150,8 @@ export class OrgAcademicCatalogComponent implements OnInit {
   protected readonly packageRevenueAllocations = signal<Record<string, AcademicLearningPackageRevenueAllocation>>({});
   protected readonly packageRevenueSplits = signal<Record<string, AcademicLearningPackageRevenueSplit[]>>({});
   protected readonly exportingPackageEnrollments = signal(false);
+  protected readonly packageEnrollmentStatusFilters = packageEnrollmentStatusFilters;
+  protected readonly packageEnrollmentStatusFilter = signal<PackageEnrollmentStatusFilter>('');
   protected readonly selectedRevenuePackageId = signal('');
   protected readonly packagePaymentReferences = signal<Record<string, string>>({});
   protected readonly classGroupTransferTargets = signal<Record<string, string>>({});
@@ -1322,11 +1383,17 @@ export class OrgAcademicCatalogComponent implements OnInit {
     }
 
     try {
-      const response = await firstValueFrom(this.academicApi.listLearningPackageEnrollments(orgId));
+      const status = this.packageEnrollmentStatusFilter() || undefined;
+      const response = await firstValueFrom(this.academicApi.listLearningPackageEnrollments(orgId, status));
       this.packageEnrollments.set(response.data ?? []);
     } catch {
       this.packageEnrollments.set([]);
     }
+  }
+
+  protected changePackageEnrollmentStatusFilter(event: Event): void {
+    this.packageEnrollmentStatusFilter.set(this.text(event) as PackageEnrollmentStatusFilter);
+    void this.loadPackageEnrollments();
   }
 
   protected async downloadPackageEnrollmentsCsv(): Promise<void> {
@@ -1339,7 +1406,8 @@ export class OrgAcademicCatalogComponent implements OnInit {
     this.exportingPackageEnrollments.set(true);
     this.error.set(null);
     try {
-      const blob = await firstValueFrom(this.academicApi.exportLearningPackageEnrollmentsCsv(orgId));
+      const status = this.packageEnrollmentStatusFilter() || undefined;
+      const blob = await firstValueFrom(this.academicApi.exportLearningPackageEnrollmentsCsv(orgId, status));
       this.saveBlob(blob, `learning-package-enrollments-${new Date().toISOString().slice(0, 10)}.csv`);
     } catch (error) {
       this.error.set(this.errorMessage(error));

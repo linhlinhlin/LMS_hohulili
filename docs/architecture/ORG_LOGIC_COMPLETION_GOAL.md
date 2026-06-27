@@ -2932,3 +2932,53 @@ enrollment_id,package_id,package_code,package_name,student_id,student_email,stud
 Browser console errors: 0
 Page errors: 0
 ```
+
+## 61. Phase 4.31 package enrollment queue status filter and student identity - 2026-06-27
+
+Mục tiêu của vòng này là làm hàng chờ/yêu cầu gói học trong `/org-admin/academic` đủ dùng hơn cho vận hành VMU. Sau Phase 4.30, ORG_ADMIN đã tải được CSV, nhưng danh sách trên màn hình vẫn hiển thị học viên bằng UUID rút gọn và chưa lọc trạng thái ngay tại UI. Khi phòng/khoa/kế toán duyệt yêu cầu hoặc đối soát thanh toán, họ cần nhìn thấy tên/email học viên và chuyển nhanh giữa `Chờ ORG duyệt`, `Chờ thanh toán`, `Đã kích hoạt`, `Đã hoàn tiền`.
+
+Thay đổi đã thực hiện:
+
+- Thêm bộ lọc trạng thái tại card `Yêu cầu gói học`:
+  - `Tất cả trạng thái`
+  - `Chờ ORG duyệt`
+  - `Chờ thanh toán`
+  - `Đã kích hoạt`
+  - `Đã từ chối`
+  - `Đã hủy`
+  - `Đã hoàn tiền`
+- `loadPackageEnrollments()` dùng lại tham số `status` đã có của backend/API client thay vì lọc local.
+- CSV export dùng cùng status filter hiện tại để file tải về khớp danh sách người vận hành đang xem.
+- Card enrollment đổi từ `Học viên {shortId}` sang `Học viên {tên hoặc email} - {email}` bằng `studentLabel(...)` đã có trong component.
+- CSS giữ tối thiểu: filter và nút CSV nằm cùng header card, tự xuống dòng trên mobile.
+
+Quyết định thiết kế:
+
+- Không thêm endpoint mới vì backend đã hỗ trợ `status`.
+- Không thêm search học viên trong phase này; `studentUsers` đang được load sẵn cho roster/class membership và đủ cho demo/vận hành nhỏ.
+- Không lọc local để tránh lệch giữa danh sách UI và CSV/API. Source of truth là backend query theo `status`.
+- Không hardcode VMU. Tên/email học viên và trạng thái enrollment là workflow chung cho mọi ORG dùng gói học.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Build passed with the same existing project warnings as Phase 4.30.
+```
+
+Browser/API smoke:
+
+```text
+Temporary Angular dev server: http://127.0.0.1:4300
+Login: orgadmin@maritime.edu
+Page: /org-admin/academic
+Filter selected: ACTIVE
+Observed API: /learning-package-enrollments?status=ACTIVE -> 200
+Card shows student email: yes
+GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments/export.csv?status=ACTIVE
+-> 200 text/csv;charset=UTF-8
+CSV header includes package_code and student_email
+Browser console errors: 0
+Page errors: 0
+```
