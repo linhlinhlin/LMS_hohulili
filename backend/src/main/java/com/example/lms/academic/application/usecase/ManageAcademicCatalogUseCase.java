@@ -4,13 +4,26 @@ import com.example.lms.academic.application.dto.AcademicCatalogDtos.*;
 import com.example.lms.academic.domain.model.*;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.identity.domain.model.Role;
+import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.learning_delivery.domain.repository.LearningClassRepositoryPort;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 
 @Component
@@ -18,6 +31,8 @@ import java.util.UUID;
 public class ManageAcademicCatalogUseCase {
     private final AcademicCatalogRepository repository;
     private final CourseRepository courseRepository;
+    private final LearningClassRepositoryPort learningClassRepository;
+    private final UserRepository userRepository;
 
     public CatalogResponse getCatalog(UUID organizationId) {
         return new CatalogResponse(
@@ -31,7 +46,9 @@ public class ManageAcademicCatalogUseCase {
                 repository.findCurriculumPlans(organizationId).stream().map(this::toResponse).toList(),
                 repository.findCurriculumSubjects(organizationId).stream().map(this::toResponse).toList(),
                 repository.findLearningPackages(organizationId).stream().map(this::toResponse).toList(),
-                repository.findLearningPackageItems(organizationId).stream().map(this::toResponse).toList()
+                repository.findLearningPackageItems(organizationId).stream().map(this::toResponse).toList(),
+                repository.findLearningPackageClassTargets(organizationId).stream().map(this::toResponse).toList(),
+                repository.findClassGroupMemberships(organizationId).stream().map(this::toResponse).toList()
         );
     }
 
@@ -218,8 +235,246 @@ public class ManageAcademicCatalogUseCase {
                 command.subjectId(),
                 command.courseId(),
                 command.displayOrder(),
-                command.required());
+                command.required(),
+                command.revenueWeight());
         return toResponse(repository.saveLearningPackageItem(item));
+    }
+
+    public LearningPackageClassTargetResponse createLearningPackageClassTarget(
+            UUID organizationId,
+            CreateLearningPackageClassTargetCommand command) {
+        requireLearningPackage(organizationId, command.packageId());
+        if (command.classGroupId() != null) {
+            requireClassGroup(organizationId, command.classGroupId());
+        }
+        var course = courseRepository.findById(command.courseId())
+                .orElseThrow(() -> new EntityNotFoundException("Course", command.courseId()));
+        if (!Objects.equals(course.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("COURSE_ORG_MISMATCH", "Khóa học không thuộc tổ chức này");
+        }
+        var learningClass = learningClassRepository.findById(command.learningClassId())
+                .orElseThrow(() -> new EntityNotFoundException("LearningClass", command.learningClassId()));
+        if (!Objects.equals(learningClass.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("CLASS_ORG_MISMATCH", "Lớp học không thuộc tổ chức này");
+        }
+        if (!Objects.equals(learningClass.getCourseId(), command.courseId())) {
+            throw new ValidationException("learningClassId", "Lớp học không thuộc khóa học đã chọn");
+        }
+        if (repository.learningPackageClassTargetExists(
+                organizationId,
+                command.packageId(),
+                command.courseId(),
+                command.classGroupId())) {
+            throw new ValidationException("courseId", "Gói học đã có lớp đích cho phạm vi này");
+        }
+        var target = AcademicLearningPackageClassTarget.create(
+                organizationId,
+                command.packageId(),
+                command.courseId(),
+                command.classGroupId(),
+                command.learningClassId());
+        return toResponse(repository.saveLearningPackageClassTarget(target));
+    }
+
+    public LearningPackageRevenueAllocationResponse previewLearningPackageRevenueAllocation(
+            UUID organizationId,
+            UUID packageId) {
+        var learningPackage = repository.findLearningPackage(organizationId, packageId)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicLearningPackage", packageId));
+        var items = repository.findLearningPackageItems(organizationId).stream()
+                .filter(item -> Objects.equals(item.packageId(), packageId))
+                .filter(item -> "ACTIVE".equals(item.status()))
+                .sorted(Comparator
+                        .comparing((AcademicLearningPackageItem item) -> item.displayOrder() == null ? 0 : item.displayOrder())
+                        .thenComparing(item -> item.id().toString()))
+                .toList();
+        var totalWeight = items.stream()
+                .map(item -> item.revenueWeight() == null ? BigDecimal.ZERO : item.revenueWeight())
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        var price = learningPackage.price() == null ? BigDecimal.ZERO : learningPackage.price();
+        var roundedPrice = price.setScale(2, RoundingMode.HALF_UP);
+        var rows = new ArrayList<LearningPackageRevenueAllocationItemResponse>();
+        var allocatedTotal = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+        var lastWeightedIndex = -1;
+        for (int index = 0; index < items.size(); index++) {
+            var weight = items.get(index).revenueWeight() == null ? BigDecimal.ZERO : items.get(index).revenueWeight();
+            if (weight.compareTo(BigDecimal.ZERO) > 0) {
+                lastWeightedIndex = index;
+            }
+        }
+
+        for (int index = 0; index < items.size(); index++) {
+            var item = items.get(index);
+            var weight = item.revenueWeight() == null ? BigDecimal.ZERO : item.revenueWeight();
+            var isLastWeightedItem = index == lastWeightedIndex;
+            var amount = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
+            var pct = BigDecimal.ZERO.setScale(4, RoundingMode.HALF_UP);
+            if (totalWeight.compareTo(BigDecimal.ZERO) > 0
+                    && roundedPrice.compareTo(BigDecimal.ZERO) > 0
+                    && weight.compareTo(BigDecimal.ZERO) > 0) {
+                pct = weight.multiply(BigDecimal.valueOf(100)).divide(totalWeight, 4, RoundingMode.HALF_UP);
+                amount = isLastWeightedItem
+                        ? roundedPrice.subtract(allocatedTotal)
+                        : roundedPrice.multiply(weight).divide(totalWeight, 2, RoundingMode.HALF_UP);
+            }
+            allocatedTotal = allocatedTotal.add(amount);
+            rows.add(new LearningPackageRevenueAllocationItemResponse(
+                    item.id(),
+                    item.subjectId(),
+                    item.courseId(),
+                    item.displayOrder(),
+                    weight,
+                    pct,
+                    amount));
+        }
+
+        return new LearningPackageRevenueAllocationResponse(
+                learningPackage.id(),
+                roundedPrice,
+                learningPackage.currency(),
+                totalWeight,
+                allocatedTotal,
+                rows);
+    }
+
+    public ClassGroupMembershipResponse assignClassGroupMembership(
+            UUID organizationId,
+            CreateClassGroupMembershipCommand command) {
+        requireClassGroup(organizationId, command.classGroupId());
+        var student = userRepository.findById(UserId.of(command.studentId()))
+                .orElseThrow(() -> new EntityNotFoundException("User", command.studentId()));
+        if (!Objects.equals(student.getOrganizationId(), organizationId)) {
+            throw new BusinessRuleException("STUDENT_ORG_MISMATCH", "Sinh viên không thuộc tổ chức này");
+        }
+        if (student.getRole() != Role.STUDENT) {
+            throw new ValidationException("studentId", "Chỉ tài khoản học viên mới được gán vào lớp hành chính");
+        }
+        if (repository.activeClassGroupMembershipExists(organizationId, command.studentId())) {
+            throw new ValidationException("studentId", "Sinh viên đã có lớp hành chính đang hoạt động");
+        }
+        var membership = AcademicClassGroupMembership.assign(
+                organizationId,
+                command.classGroupId(),
+                command.studentId());
+        return toResponse(repository.saveClassGroupMembership(membership));
+    }
+
+    public ClassGroupMembershipResponse transferClassGroupMembership(
+            UUID organizationId,
+            UUID membershipId,
+            TransferClassGroupMembershipCommand command) {
+        requireClassGroup(organizationId, command.classGroupId());
+        var current = repository.findClassGroupMembership(organizationId, membershipId)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicClassGroupMembership", membershipId));
+        if (!"ACTIVE".equals(current.status())) {
+            throw new ValidationException("membershipId", "Only active class group memberships can be transferred");
+        }
+        if (Objects.equals(current.classGroupId(), command.classGroupId())) {
+            throw new ValidationException("classGroupId", "Target class group must be different");
+        }
+
+        var now = Instant.now();
+        var previous = current.leave(now);
+        var next = AcademicClassGroupMembership.assign(
+                organizationId,
+                command.classGroupId(),
+                current.studentId());
+        return toResponse(repository.replaceClassGroupMembership(previous, next));
+    }
+
+    public BulkClassGroupRosterResponse importClassGroupRoster(
+            UUID organizationId,
+            BulkClassGroupRosterCommand command) {
+        requireClassGroup(organizationId, command.classGroupId());
+        List<String> studentEmails = command.studentEmails() == null ? List.of() : command.studentEmails();
+        if (studentEmails.isEmpty()) {
+            throw new ValidationException("studentEmails", "Student email list is required");
+        }
+
+        List<BulkClassGroupRosterRowResponse> rows = new ArrayList<>();
+        Set<String> seenEmails = new HashSet<>();
+        int assigned = 0;
+        int transferred = 0;
+        int unchanged = 0;
+        int failed = 0;
+
+        for (String rawEmail : studentEmails) {
+            String email = normalizeRosterEmail(rawEmail);
+            if (email.isBlank()) {
+                failed++;
+                rows.add(new BulkClassGroupRosterRowResponse("", "FAILED", "Email sinh viên không hợp lệ.", null));
+                continue;
+            }
+            if (!seenEmails.add(email)) {
+                unchanged++;
+                rows.add(new BulkClassGroupRosterRowResponse(
+                        email,
+                        "UNCHANGED",
+                        "Email trùng trong danh sách nhập.",
+                        null));
+                continue;
+            }
+
+            var row = importRosterStudent(organizationId, command.classGroupId(), email);
+            rows.add(row);
+            switch (row.action()) {
+                case "ASSIGNED" -> assigned++;
+                case "TRANSFERRED" -> transferred++;
+                case "UNCHANGED" -> unchanged++;
+                default -> failed++;
+            }
+        }
+
+        return new BulkClassGroupRosterResponse(
+                rows.size(),
+                assigned,
+                transferred,
+                unchanged,
+                failed,
+                rows);
+    }
+
+    private BulkClassGroupRosterRowResponse importRosterStudent(UUID organizationId, UUID classGroupId, String email) {
+        var student = userRepository.findByEmail(email);
+        if (student.isEmpty()) {
+            return new BulkClassGroupRosterRowResponse(email, "FAILED", "Không tìm thấy học viên theo email.", null);
+        }
+        if (!Objects.equals(student.get().getOrganizationId(), organizationId)) {
+            return new BulkClassGroupRosterRowResponse(email, "FAILED", "Học viên không thuộc tổ chức này.", null);
+        }
+        if (student.get().getRole() != Role.STUDENT) {
+            return new BulkClassGroupRosterRowResponse(email, "FAILED", "Tài khoản không phải học viên.", null);
+        }
+
+        UUID studentId = student.get().getId().value();
+        var currentMembership = repository.findActiveClassGroupMembership(organizationId, studentId);
+        if (currentMembership.isEmpty()) {
+            var membership = AcademicClassGroupMembership.assign(organizationId, classGroupId, studentId);
+            return new BulkClassGroupRosterRowResponse(
+                    email,
+                    "ASSIGNED",
+                    "Đã gán học viên vào lớp hành chính.",
+                    toResponse(repository.saveClassGroupMembership(membership)));
+        }
+        if (Objects.equals(currentMembership.get().classGroupId(), classGroupId)) {
+            return new BulkClassGroupRosterRowResponse(
+                    email,
+                    "UNCHANGED",
+                    "Học viên đã thuộc lớp hành chính này.",
+                    toResponse(currentMembership.get()));
+        }
+
+        var previous = currentMembership.get().leave(Instant.now());
+        var next = AcademicClassGroupMembership.assign(organizationId, classGroupId, studentId);
+        return new BulkClassGroupRosterRowResponse(
+                email,
+                "TRANSFERRED",
+                "Đã chuyển học viên sang lớp hành chính mới.",
+                toResponse(repository.replaceClassGroupMembership(previous, next)));
+    }
+
+    private String normalizeRosterEmail(String rawEmail) {
+        return rawEmail == null ? "" : rawEmail.trim().toLowerCase(Locale.ROOT);
     }
 
     private void requireDepartment(UUID organizationId, UUID id) {
@@ -235,6 +490,11 @@ public class ManageAcademicCatalogUseCase {
     private void requireCohort(UUID organizationId, UUID id) {
         repository.findCohort(organizationId, id)
                 .orElseThrow(() -> new EntityNotFoundException("AcademicCohort", id));
+    }
+
+    private void requireClassGroup(UUID organizationId, UUID id) {
+        repository.findClassGroup(organizationId, id)
+                .orElseThrow(() -> new EntityNotFoundException("AcademicClassGroup", id));
     }
 
     private void requireSubject(UUID organizationId, UUID id) {
@@ -347,7 +607,32 @@ public class ManageAcademicCatalogUseCase {
                 i.courseId(),
                 i.displayOrder(),
                 i.required(),
+                i.revenueWeight(),
                 i.status(),
                 i.createdAt());
+    }
+
+    private LearningPackageClassTargetResponse toResponse(AcademicLearningPackageClassTarget t) {
+        return new LearningPackageClassTargetResponse(
+                t.id(),
+                t.organizationId(),
+                t.packageId(),
+                t.courseId(),
+                t.classGroupId(),
+                t.learningClassId(),
+                t.status(),
+                t.createdAt());
+    }
+
+    private ClassGroupMembershipResponse toResponse(AcademicClassGroupMembership m) {
+        return new ClassGroupMembershipResponse(
+                m.id(),
+                m.organizationId(),
+                m.classGroupId(),
+                m.studentId(),
+                m.status(),
+                m.joinedAt(),
+                m.leftAt(),
+                m.createdAt());
     }
 }

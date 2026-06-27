@@ -1,5 +1,6 @@
 package com.example.lms.shared.application.usecase;
 
+import com.example.lms.shared.application.port.ExternalPaymentCompletionPort;
 import com.example.lms.shared.application.port.SepayPaymentPort;
 import com.example.lms.shared.domain.event.DomainEventPublisher;
 import com.example.lms.shared.domain.event.PaymentCompletedEvent;
@@ -11,6 +12,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -33,6 +35,7 @@ public class ProcessSepayWebhookUseCase {
     private final PaymentRepository  paymentRepository;
     private final SepayPaymentPort   sepayPayment;
     private final DomainEventPublisher eventPublisher;
+    private final List<ExternalPaymentCompletionPort> externalPaymentCompletionPorts;
 
     public record WebhookResult(boolean success, String message, PaymentTransaction payment) {
         static WebhookResult success(PaymentTransaction p) {
@@ -66,10 +69,19 @@ public class ProcessSepayWebhookUseCase {
             return WebhookResult.invalid("Cannot extract transaction ID");
         }
 
-        // 3. Find the payment
+        BigDecimal transferredAmount = sepayPayment.extractTransferAmount(payload);
+        String sepayTxnCode = sepayPayment.extractTransactionCode(payload);
+
+        // 3. Find the course payment first. Course checkout remains the primary payment ledger.
         var paymentOpt = paymentRepository.findById(txnId);
         if (paymentOpt.isEmpty()) {
-            log.warn("[SePay] Payment not found: {}", txnId);
+            var externalResult = tryCompleteExternalTarget(txnId, transferredAmount, sepayTxnCode);
+            if (externalResult != null) {
+                return externalResult.success()
+                        ? new WebhookResult(true, externalResult.message(), null)
+                        : WebhookResult.invalid(externalResult.message());
+            }
+            log.warn("[SePay] Payment target not found: {}", txnId);
             return WebhookResult.invalid("Payment not found: " + txnId);
         }
 
@@ -87,7 +99,6 @@ public class ProcessSepayWebhookUseCase {
         }
 
         // 5. Log amount validation (informational — don't reject; SePay already validated)
-        BigDecimal transferredAmount = sepayPayment.extractTransferAmount(payload);
         if (transferredAmount != null && !payment.isAmountMatch(transferredAmount)) {
             log.warn("[SePay] Amount mismatch txn={}: expected={} got={}",
                     txnId, payment.getAmount(), transferredAmount);
@@ -95,7 +106,6 @@ public class ProcessSepayWebhookUseCase {
         }
 
         // 6. Store SePay transaction code and mark completed
-        String sepayTxnCode = sepayPayment.extractTransactionCode(payload);
         payment.setSepayMetadata(sepayTxnCode);
         payment.markCompleted();
         payment = paymentRepository.save(payment);
@@ -107,5 +117,19 @@ public class ProcessSepayWebhookUseCase {
                 txnId, payment.getStudentId(), payment.getCourseId(), sepayTxnCode);
 
         return WebhookResult.success(payment);
+    }
+
+    private ExternalPaymentCompletionPort.Result tryCompleteExternalTarget(
+            UUID referenceId,
+            BigDecimal transferredAmount,
+            String gatewayTransactionCode
+    ) {
+        for (ExternalPaymentCompletionPort port : externalPaymentCompletionPorts) {
+            var result = port.tryComplete(referenceId, transferredAmount, gatewayTransactionCode);
+            if (result.isPresent()) {
+                return result.get();
+            }
+        }
+        return null;
     }
 }

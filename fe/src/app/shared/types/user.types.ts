@@ -59,6 +59,15 @@ export interface Organization {
   updatedAt: string | null;
 }
 
+export interface OrganizationCapability {
+  id: string;
+  organizationId: string;
+  key: string;
+  enabled: boolean;
+  createdAt: string;
+  updatedAt: string | null;
+}
+
 export type InviteType = 'CODE' | 'EMAIL';
 export type InviteStatus = 'ACTIVE' | 'REVOKED' | 'EXPIRED';
 

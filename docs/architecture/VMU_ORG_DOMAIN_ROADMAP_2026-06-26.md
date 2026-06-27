@@ -538,3 +538,559 @@ Conclusion:
 - Phase B is live on the review runtime.
 - VMU learning package data is now tied to the curriculum plan's organization, not fragile organization display names.
 - Package payment/enrollment remains intentionally separate until the exact VMU package checkout or assignment workflow is decided.
+
+## 14. Phase C implementation - organization capabilities
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- let each ORG expose only the modules it is configured to use;
+- keep VMU-specific behavior as organization data, not `if VMU` branches;
+- provide a small control layer before wiring deeper package enrollment/payment workflows.
+
+Backend scope:
+
+- `V148__organization_capabilities.sql`
+  - adds `organization_capabilities`;
+  - enforces one capability key per organization;
+  - validates capability keys with `^[a-z][a-z0-9_]{1,63}$`;
+  - seeds the default organization with:
+    - `academic_catalog`;
+    - `curriculum_plan`;
+    - `learning_packages`;
+    - `org_payment_config`;
+    - `org_payout_approval`.
+- Adds the minimal identity-domain model, repository port, JPA adapter, and use case for capabilities.
+- Adds:
+  - `GET /api/v3/organizations/{id}/capabilities` for `ADMIN` and same-org `ORG_ADMIN`;
+  - `PUT /api/v3/organizations/{id}/capabilities/{key}` for `ADMIN` only.
+
+Frontend scope:
+
+- `/org-admin/academic` loads the current ORG capabilities.
+- The page shows a compact "Năng lực đang bật" strip after the KPI cards.
+- The first UI pass is read-only on purpose: it exposes configuration state without hiding workflows yet, so older orgs without seeded capabilities do not lose access unexpectedly.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageOrganizationCapabilitiesUseCaseTest" test
+# Tests run: 5, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Local Docker/API smoke before Docker Desktop became unavailable:
+
+```text
+Flyway V148 applied successfully on local runtime.
+organization_capabilities contains 5 default enabled capabilities.
+POST /api/v3/auth/login as orgadmin@maritime.edu -> ORG_ADMIN.
+GET /api/v3/organizations/{orgId}/capabilities -> 5 enabled capabilities.
+```
+
+Runtime note:
+
+- Local browser smoke was blocked after a timed-out Docker frontend build left Docker Desktop's daemon unresponsive.
+- The code-level blocker found during smoke was fixed: root `docker-compose.yml` now uses the same Base64 dev JWT secret as `.env.dev.example` when no local `.env` exists.
+- Re-run `/org-admin/academic` browser smoke after Docker Desktop is manually healthy again or after the PR is deployed to the review runtime.
+
+Debt after Phase C:
+
+- The next useful product slice is policy enforcement, not more UI decoration.
+- Package checkout/enrollment should be wired only after the business rule is explicit: free assignment, ORG approval, invite-only, or payment-required package purchase.
+- If two organizations require materially different behavior, use these capabilities and later add small typed policy tables; do not introduce a plugin system.
+
+## 15. Phase D implementation - learning package enrollment policy
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- turn VMU learning packages from catalog data into a real workflow;
+- let students request a package according to the package policy;
+- let ORG_ADMIN review package requests without creating a VMU-only code path.
+
+Backend scope:
+
+- `V149__learning_package_enrollments.sql`
+  - adds `learning_package_enrollments`;
+  - stores package request state per organization/package/student;
+  - enforces unique `(package_id, student_id)`;
+  - supports `PENDING_APPROVAL`, `PENDING_PAYMENT`, `ACTIVE`, `REJECTED`, and `CANCELLED`.
+- `V150__seed_vmu_learning_package_enrollment_request.sql`
+  - creates one safe demo request for `VMU-DKT-K63-FOUNDATION` when a same-org student exists;
+  - uses `ON CONFLICT DO NOTHING`.
+- Adds domain/usecase/API for policy evaluation:
+  - `OPEN` activates immediately;
+  - `ORG_APPROVAL` enters the approval queue;
+  - `PAYMENT_REQUIRED` waits for payment;
+  - `INVITE_ONLY` rejects direct self-request.
+
+Frontend scope:
+
+- Adds type-safe academic API methods for listing, requesting, approving, and rejecting package enrollments.
+- Adds a compact "Yêu cầu gói học" card to `/org-admin/academic`.
+- Keeps the UI intentionally small: list package request status and allow approve/reject for `PENDING_APPROVAL`.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,AcademicCatalogControllerV3Test" test
+# Tests run: 20, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Remaining product gap:
+
+- Active package enrollment is not yet course access. The next slice should activate course enrollments only after mapping package items safely:
+  - direct `course_id` item -> enroll that course;
+  - `subject_id` item -> resolve primary `subject_course`;
+  - `PAYMENT_REQUIRED` package -> package checkout/payment must complete first.
+
+## 16. Phase E implementation - package entitlement to course access
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make approved VMU/ORG learning packages produce actual learner access;
+- avoid a fake “active package” state that does not show up in student learning;
+- keep self-enrollment payment rules intact.
+
+Backend scope:
+
+- Adds `GrantCourseAccessUseCase` in `learning_delivery`.
+- The grant use case is for already-validated entitlements only:
+  - organization package approval;
+  - future package payment completion;
+  - future admin/import entitlement flows.
+- It checks:
+  - course belongs to the same organization;
+  - course is `APPROVED`;
+  - course is `SELF_PACED`;
+  - existing active/completed enrollments are idempotent;
+  - dropped/suspended enrollments can be reactivated.
+- It creates or reuses the `DEFAULT` learning class and sets `organization_id` on that class.
+- `ManageLearningPackageEnrollmentUseCase` calls it when a package enrollment becomes `ACTIVE`.
+
+VMU fit:
+
+- VMU packages can be modeled as curriculum/subject bundles without VMU-specific branches.
+- A package item can point directly to a course.
+- A package item can point to a subject, then resolve through `subject_courses`.
+- This supports real VMU concepts such as program, cohort, subject, curriculum plan, and training package while staying tenant-configured.
+
+Still intentionally not done:
+
+- `PAYMENT_REQUIRED` package checkout and payment completion.
+- `INSTRUCTOR_LED` automatic class placement, because university-style classes need explicit class/cohort/term placement.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest" test
+# Tests run: 13, Failures: 0, Errors: 0
+```
+
+## 17. Phase F implementation - package class placement
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- support university-style package delivery where a package course must place a learner into a concrete learning class;
+- keep VMU logic as data, not hardcoded branches;
+- avoid granting `INSTRUCTOR_LED` courses through the self-paced `DEFAULT` class.
+
+Backend scope:
+
+- Adds `V151__learning_package_class_targets.sql`.
+- Adds `learning_package_class_targets` as the package/course/class placement table.
+- Adds domain/JPA/repository support for `AcademicLearningPackageClassTarget`.
+- Adds API:
+  - `POST /api/v3/organizations/{orgId}/academic/learning-package-class-targets`.
+- Extends academic catalog payload with `learningPackageClassTargets`.
+- Extends `GrantCourseAccessUseCase` with `grantClass(...)`.
+- Extends package enrollment activation so:
+  - active class target -> enroll into that concrete class;
+  - no class target -> use existing self-paced grant path.
+- Rejects silent success when the learner is already `ACTIVE`/`COMPLETED` in another class of the same course, so VMU roster placement stays explicit.
+
+VMU fit:
+
+- VMU can configure a K63 package course to a concrete class/term offering without code changes.
+- Subjects still resolve to LMS courses through `subject_courses`.
+- Package approval remains the business trigger; class target controls operational placement.
+
+Still intentionally not done:
+
+- org-admin UI for selecting package class targets.
+- package checkout/payment completion for `PAYMENT_REQUIRED`.
+- automatic class allocation by cohort/class group. That should come only if VMU needs rule-based placement beyond explicit target selection.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest,GrantCourseAccessUseCaseTest,AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 31, Failures: 0, Errors: 0
+
+mvn test
+# Tests run: 1201, Failures: 0, Errors: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+## 18. Phase G implementation - org-admin package class-target UI
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make Phase F usable by ORG_ADMIN from `/org-admin/academic`;
+- allow VMU package operators to place a package course into a concrete learning class;
+- keep course choices constrained to the selected package content;
+- keep VMU as configured data rather than VMU-specific code.
+
+Frontend scope:
+
+- Academic API types/endpoints/client now support `learningPackageClassTargets`.
+- `/org-admin/academic` now shows the `Lớp trong gói` metric.
+- Added a package -> course -> class form for class-target placement.
+- Reuses `ClassService.getClassesByCourse(courseId)` instead of adding a duplicate API.
+- Course options come from direct package course items plus subject-derived courses through `subject_courses`.
+- Added stable ASCII `data-testid` hooks for smoke tests.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Browser smoke:
+
+```text
+Route: http://localhost:4200/org-admin/academic
+Login: orgadmin@maritime.edu / orgadmin123
+Created or verified package -> course -> class mapping:
+packageId: 6ccee955-cc2d-4bed-b1cc-aa46f9fa0a72
+courseId: f6bfe202-c0cd-40d6-ae60-7066a5e5aaec
+classId: d360f383-31dc-4c67-ac6a-d12c5007ad66
+classCode: ECDIS-2026A
+5xx: 0
+console errors: 0
+page errors: 0
+```
+
+Still intentionally not done:
+
+- `PAYMENT_REQUIRED` package checkout and payment completion.
+- Automatic class allocation by cohort/class group. This should be added only if VMU needs rule-based placement beyond explicit target selection.
+
+## 19. Phase H implementation - paid package completion
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make `PAYMENT_REQUIRED` learning packages operational for VMU-style administration;
+- allow ORG_ADMIN to confirm an already-reconciled tuition/payment event;
+- activate the package only after payment confirmation;
+- reuse the package course-grant path, including class-target placement from Phase F.
+
+Backend scope:
+
+- Adds `AcademicLearningPackageEnrollment.completePayment(...)`.
+- Allows only `PENDING_PAYMENT -> ACTIVE`.
+- Adds use case `ManageLearningPackageEnrollmentUseCase.completePayment(...)`.
+- Adds endpoint:
+  - `PATCH /api/v3/organizations/{orgId}/academic/learning-package-enrollments/{enrollmentId}/complete-payment`.
+- Keeps same-org ORG_ADMIN guard.
+- Does not add a new table or widen `payment_transactions` yet.
+
+Frontend scope:
+
+- Academic API endpoint/client supports payment completion.
+- `/org-admin/academic` shows `Xác nhận thanh toán` for `PENDING_PAYMENT` package enrollments.
+- Existing reject path remains available for unpaid or invalid requests.
+
+VMU fit:
+
+- A training office can reconcile tuition outside the LMS, then activate a package inside the LMS.
+- Package activation still grants concrete class enrollment when a package class target exists.
+- This matches a realistic university back-office workflow without forcing full online checkout before the academic model is stable.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 18, Failures: 0, Errors: 0
+
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Runtime smoke:
+
+```text
+Backend Docker rebuilt and healthy.
+Student package request: PENDING_PAYMENT.
+ORG_ADMIN complete-payment: ACTIVE.
+/org-admin/academic browser smoke: API failures 0, console errors 0, page errors 0.
+```
+
+Still intentionally not done:
+
+- Public SePay/VNPay package checkout.
+- Package-level revenue split/refund model.
+- Automatic cohort/class-group allocation.
+
+## 20. Phase I implementation - capability enforcement
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make organization capabilities a real backend policy, not only a UI label;
+- support different operating modes per ORG without VMU-specific branches;
+- prevent ORGs from using academic/package/payment workflows unless the platform has enabled those capabilities.
+
+Backend scope:
+
+- `ManageOrganizationCapabilitiesUseCase.isEnabled(...)` returns the stored enabled state.
+- Missing capability keys are treated as disabled.
+- Academic catalog endpoints require `academic_catalog`.
+- Curriculum plan endpoints require `academic_catalog` + `curriculum_plan`.
+- Learning package authoring and package enrollment endpoints require `learning_packages`.
+- Org payment config endpoints require `org_payment_config`.
+- ORG_ADMIN payout list/approve/reject requires `org_payout_approval`.
+- System ADMIN still keeps platform-wide payout visibility and operations.
+
+VMU fit:
+
+- VMU can run the full academic catalog, curriculum plan, learning package, payment config, and payout approval flow because those capabilities are enabled as data.
+- A smaller partner org can omit curriculum/package/payment capabilities and still use simpler LMS flows.
+- This keeps “VMU behavior” configurable through org data rather than hardcoded Java/Angular branches.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageOrganizationCapabilitiesUseCaseTest,AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,OrgPaymentConfigControllerV3Test,AdminRevenueControllerV3Test" test
+# Tests run: 27, Failures: 0, Errors: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Runtime smoke:
+
+```text
+Disable academic_catalog by ADMIN -> 200.
+Catalog request while disabled -> 403.
+Restore academic_catalog -> 200.
+Catalog request while enabled -> 200.
+```
+
+Still intentionally not done:
+
+- Advanced grouped capability UI if the number of capabilities grows.
+- Public package checkout with SePay/VNPay.
+- Package-level revenue split/refund workflow.
+
+## 21. Phase J implementation - capability settings UI
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- give system ADMIN a first-class control plane for ORG capabilities;
+- make VMU-specific operating scope configurable from organization data;
+- keep ORG_ADMIN aware of enabled workflows without allowing self-escalation.
+
+Frontend scope:
+
+- Adds a `Phân hệ` tab to the organization detail page.
+- Shows each capability with a Vietnamese business label, technical key, description, and enabled/disabled state.
+- Allows only system `ADMIN` to toggle capabilities.
+- Shows `ORG_ADMIN` the same list as read-only.
+- Adds an overview quick action so org setup flows can reach capability settings quickly.
+- Uses the existing `OrganizationService.listCapabilities` and `setCapability` APIs.
+
+VMU fit:
+
+- VMU can be configured with the full academic/payment package: học vụ nền tảng, chương trình đào tạo, gói học, cấu hình doanh thu, duyệt payout.
+- Another organization can be intentionally smaller without code changes.
+- This matches the target model: “ORG có đặc thù riêng” through capability data and policy enforcement, not hardcoded VMU branches.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Application bundle generation complete
+```
+
+Still intentionally not done:
+
+- Public package checkout with SePay/VNPay.
+- Package-level revenue split/refund workflow.
+- Grouped capability UX by domain if capability count grows beyond the current small set.
+
+## 22. Phase K implementation - package tuition audit snapshot
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- make paid VMU/ORG learning packages auditable before public checkout is introduced;
+- preserve the payable amount when a student requests a package, even if the package price changes later;
+- let ORG_ADMIN record an offline bank-transfer, SePay, receipt, or reconciliation reference;
+- store who confirmed payment and when, then activate the package through the existing course/class grant path.
+
+Backend scope:
+
+- Adds `V152__learning_package_enrollment_payment_audit.sql`.
+- Adds payment audit fields to `learning_package_enrollments`:
+  - `payment_amount`;
+  - `payment_currency`;
+  - `payment_reference`;
+  - `payment_confirmed_at`;
+  - `payment_confirmed_by`.
+- Backfills existing package enrollment rows from `learning_packages.price/currency`.
+- Adds DB constraints for non-negative amount and three-letter currency.
+- Extends `AcademicLearningPackageEnrollment` and its JPA mapper/entity.
+- `requestEnrollment(...)` snapshots package price/currency at request time.
+- `completePayment(...)` persists the reconciliation reference and confirmer metadata.
+
+Frontend scope:
+
+- Academic API types include payment amount, currency, reference, confirmed timestamp and confirmer.
+- `/org-admin/academic` shows package enrollment tuition as a compact chip.
+- `PENDING_PAYMENT` rows include a `Mã giao dịch` input before `Xác nhận thanh toán`.
+- Confirmed rows show the stored `SEPAY-VMU-*` style reference and the confirming user short id.
+
+VMU fit:
+
+- This matches a university back-office flow: training office collects or reconciles tuition, records the reference, then activates package learning access.
+- It avoids pretending that public checkout is complete when package-level revenue/refund/accounting has not been modeled yet.
+- VMU remains data/config: package price, package policy, course item, class target, and org capability.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 19, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Runtime smoke:
+
+```text
+Docker backend rebuilt and healthy.
+Flyway V152 applied.
+Created PAYMENT_REQUIRED smoke package with one valid course item.
+Student request: PENDING_PAYMENT, paymentAmount=1,250,000, paymentCurrency=VND.
+ORG_ADMIN complete-payment with SEPAY-VMU-* reference: ACTIVE.
+DB persisted payment_reference, payment_confirmed_at, payment_confirmed_by.
+Student course enrollment exists for SAF-101 through DEFAULT class.
+/org-admin/academic smoke: API failures 0, console errors 0, page errors 0.
+```
+
+Still intentionally not done:
+
+- Public SePay/VNPay checkout for learning packages.
+- Package-level revenue split and refund accounting.
+- Automatic cohort/class-group allocation beyond explicit package class targets.
+
+## 23. Phase L implementation - class-group-aware package placement
+
+Status on 2026-06-26: implemented in branch `codex/org-capabilities`.
+
+Purpose:
+
+- model VMU administrative class membership as organization-scoped data;
+- let package course placement vary by student class group without VMU-specific code branches;
+- keep a safe default target for organizations that do not need class-group-specific placement.
+
+Backend scope:
+
+- Adds `V153__academic_class_group_memberships.sql`.
+- Adds `academic_class_group_memberships` with same-organization foreign keys to `organizations`, `academic_class_groups`, and `users`.
+- Enforces one active class-group membership per student per organization.
+- Adds optional `class_group_id` to `learning_package_class_targets`.
+- Keeps two target levels:
+  - default package/course target where `class_group_id IS NULL`;
+  - class-group override target where `class_group_id IS NOT NULL`.
+- Adds domain/JPA/repository support for `AcademicClassGroupMembership`.
+- Adds API:
+  - `POST /api/v3/organizations/{orgId}/academic/class-group-memberships`.
+- Extends catalog response with `classGroupMemberships`.
+- Extends package activation so class-group-specific targets override default targets for the same package/course.
+
+Frontend scope:
+
+- `/org-admin/academic` shows the `Sinh viên lớp` metric.
+- Adds a compact card for assigning a student to an academic class group.
+- Adds `Lớp hành chính áp dụng` to package class-target creation.
+- Keeps the workflow explicit instead of inventing hidden auto-placement logic.
+
+VMU fit:
+
+- VMU can place students from `CNT63ĐH`, `ĐKT63ĐH`, or `MTB63ĐH` into different learning classes for the same package course by data configuration.
+- If a class group has no override, the package still uses the default target.
+- This supports realistic university operations while preserving the modular monolith and Clean Architecture boundaries.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 25, Failures: 0, Errors: 0
+
+mvn "-Dtest=AcademicCatalogControllerV3Test,LearningPackageEnrollmentControllerV3Test,ManageAcademicCatalogUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest" test
+# Tests run: 35, Failures: 0, Errors: 0
+
+cd ../fe
+npm run build
+# Application bundle generation complete
+```
+
+Runtime smoke:
+
+```text
+Docker backend rebuilt and healthy.
+Flyway V153 applied.
+POST class-group membership as ORG_ADMIN -> 200.
+GET academic catalog -> classGroupMemberships returned.
+/org-admin/academic desktop smoke: membership card and package class-group selector rendered, API 200, console errors 0.
+/org-admin/academic mobile 390x844 smoke: same controls rendered, API 200.
+```
+
+Still intentionally not done:
+
+- Bulk import and transfer history for class-group memberships.
+- Public SePay/VNPay checkout for learning packages.
+- Package-level revenue split and refund accounting.
+- More advanced placement policies by cohort/program/term; add only after VMU needs those rules in a real workflow.

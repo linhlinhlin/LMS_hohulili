@@ -3,6 +3,7 @@ package com.example.lms.academic.infrastructure.persistence.entity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -31,6 +32,10 @@ public class AcademicLearningPackageItemJpaEntity {
     @Column(name = "is_required", nullable = false)
     private boolean required;
 
+    @Column(name = "revenue_weight", nullable = false, precision = 10, scale = 4)
+    @Builder.Default
+    private BigDecimal revenueWeight = BigDecimal.ONE;
+
     @Column(nullable = false, length = 20)
     private String status;
 
@@ -44,6 +49,7 @@ public class AcademicLearningPackageItemJpaEntity {
     void onCreate() {
         if (id == null) id = UUID.randomUUID();
         if (displayOrder == null) displayOrder = 0;
+        if (revenueWeight == null) revenueWeight = BigDecimal.ONE;
         if (status == null) status = "ACTIVE";
         if (createdAt == null) createdAt = Instant.now();
     }

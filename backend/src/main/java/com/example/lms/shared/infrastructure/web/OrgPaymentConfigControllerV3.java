@@ -1,6 +1,7 @@
 package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.shared.application.usecase.ManageOrgPaymentConfigUseCase;
 import com.example.lms.shared.domain.model.OrgPaymentConfig;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,8 +30,10 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
 public class OrgPaymentConfigControllerV3 {
+    private static final String ORG_PAYMENT_CONFIG = "org_payment_config";
 
     private final ManageOrgPaymentConfigUseCase useCase;
+    private final ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
 
     @GetMapping
     @Operation(summary = "Get payment config for an organization (falls back to platform defaults)")
@@ -38,6 +41,7 @@ public class OrgPaymentConfigControllerV3 {
             @PathVariable UUID orgId,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requirePaymentConfig(orgId);
         var config = useCase.getConfig(orgId);
         return ResponseEntity.ok(ApiResponse.success(toDto(config), "Cấu hình thanh toán"));
     }
@@ -49,6 +53,7 @@ public class OrgPaymentConfigControllerV3 {
             @RequestBody UpsertConfigBody body,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requirePaymentConfig(orgId);
         var config = useCase.upsertConfig(orgId,
                 BigDecimal.valueOf(body.platformFeePct()),
                 BigDecimal.valueOf(body.teacherSharePct()),
@@ -89,6 +94,12 @@ public class OrgPaymentConfigControllerV3 {
         }
         if (!Objects.equals(currentUser.getOrganizationId(), orgId)) {
             throw new AccessDeniedException("Không có quyền truy cập cấu hình thanh toán của tổ chức khác");
+        }
+    }
+
+    private void requirePaymentConfig(UUID orgId) {
+        if (!capabilitiesUseCase.isEnabled(orgId, ORG_PAYMENT_CONFIG)) {
+            throw new AccessDeniedException("Organization capability is disabled: " + ORG_PAYMENT_CONFIG);
         }
     }
 }

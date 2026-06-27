@@ -3,6 +3,7 @@ package com.example.lms.shared.application.usecase;
 import com.example.lms.identity.domain.model.Role;
 import com.example.lms.identity.domain.model.User;
 import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.application.port.LearningPackageRevenuePort;
 import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.domain.model.OrgPaymentConfig;
 import com.example.lms.shared.domain.model.PayoutRequest;
@@ -42,6 +43,7 @@ class RequestPayoutUseCaseTest {
     @Mock private TeacherBankAccountRepository bankRepo;
     @Mock private UserRepository userRepo;
     @Mock private RevenueConfigPort revenueConfigPort;
+    @Mock private LearningPackageRevenuePort learningPackageRevenuePort;
 
     @InjectMocks
     private RequestPayoutUseCase useCase;
@@ -78,6 +80,7 @@ class RequestPayoutUseCaseTest {
         when(revenueConfigPort.resolveConfig(orgId))
                 .thenReturn(OrgPaymentConfig.create(orgId, BigDecimal.valueOf(20), BigDecimal.valueOf(70), BigDecimal.valueOf(100000)));
         when(splitRepo.sumTeacherAmountByTeacherId(teacherId)).thenReturn(BigDecimal.valueOf(500000));
+        when(learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId)).thenReturn(BigDecimal.ZERO);
         when(payoutRepo.sumCompletedByTeacherId(teacherId)).thenReturn(BigDecimal.ZERO);
         when(payoutRepo.sumPendingAndApprovedByTeacherId(teacherId)).thenReturn(BigDecimal.ZERO);
         when(payoutRepo.save(any(PayoutRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -87,6 +90,49 @@ class RequestPayoutUseCaseTest {
         assertThat(result.getOrganizationId()).isEqualTo(orgId);
         assertThat(result.getTeacherId()).isEqualTo(teacherId);
         assertThat(result.getBankAccountId()).isEqualTo(bankId);
+    }
+
+    @Test
+    @DisplayName("execute should include learning package revenue in available balance")
+    void executeShouldIncludeLearningPackageRevenueInAvailableBalance() {
+        UUID orgId = UUID.randomUUID();
+        UUID teacherId = UUID.randomUUID();
+        UUID bankId = UUID.randomUUID();
+        TeacherBankAccount bankAccount = TeacherBankAccount.reconstitute(
+                bankId,
+                teacherId,
+                "VCB",
+                "1234567890",
+                "TEACHER HOLDER",
+                true,
+                true,
+                Instant.now().minusSeconds(86400)
+        );
+        User teacher = User.builder()
+                .id(UserId.of(teacherId))
+                .username("teacher")
+                .email(Email.of("teacher@maritime.edu"))
+                .password("encoded")
+                .fullName("Teacher")
+                .role(Role.TEACHER)
+                .enabled(true)
+                .organizationId(orgId)
+                .build();
+
+        when(bankRepo.findById(bankId)).thenReturn(Optional.of(bankAccount));
+        when(userRepo.findById(UserId.of(teacherId))).thenReturn(Optional.of(teacher));
+        when(revenueConfigPort.resolveConfig(orgId))
+                .thenReturn(OrgPaymentConfig.create(orgId, BigDecimal.valueOf(20), BigDecimal.valueOf(70), BigDecimal.valueOf(100000)));
+        when(splitRepo.sumTeacherAmountByTeacherId(teacherId)).thenReturn(BigDecimal.valueOf(200000));
+        when(learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId)).thenReturn(BigDecimal.valueOf(300000));
+        when(payoutRepo.sumCompletedByTeacherId(teacherId)).thenReturn(BigDecimal.ZERO);
+        when(payoutRepo.sumPendingAndApprovedByTeacherId(teacherId)).thenReturn(BigDecimal.ZERO);
+        when(payoutRepo.save(any(PayoutRequest.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        PayoutRequest result = useCase.execute(teacherId, bankId, BigDecimal.valueOf(450000), "Package revenue");
+
+        assertThat(result.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(450000));
+        verify(payoutRepo).save(any(PayoutRequest.class));
     }
 
     @Test

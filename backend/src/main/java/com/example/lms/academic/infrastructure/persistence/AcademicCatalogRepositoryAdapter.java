@@ -6,6 +6,7 @@ import com.example.lms.academic.infrastructure.persistence.entity.*;
 import com.example.lms.academic.infrastructure.persistence.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -14,6 +15,11 @@ import java.util.UUID;
 @Component
 @RequiredArgsConstructor
 public class AcademicCatalogRepositoryAdapter implements AcademicCatalogRepository {
+    private static final List<String> CURRENT_LEARNING_PACKAGE_ENROLLMENT_STATUSES = List.of(
+            "PENDING_APPROVAL",
+            "PENDING_PAYMENT",
+            "ACTIVE");
+
     private final AcademicDepartmentJpaRepository departments;
     private final AcademicProgramJpaRepository programs;
     private final AcademicCohortJpaRepository cohorts;
@@ -25,6 +31,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     private final AcademicCurriculumSubjectJpaRepository curriculumSubjects;
     private final AcademicLearningPackageJpaRepository learningPackages;
     private final AcademicLearningPackageItemJpaRepository learningPackageItems;
+    private final AcademicLearningPackageClassTargetJpaRepository learningPackageClassTargets;
+    private final AcademicClassGroupMembershipJpaRepository classGroupMemberships;
+    private final AcademicLearningPackageEnrollmentJpaRepository learningPackageEnrollments;
+    private final AcademicLearningPackagePaymentEventJpaRepository learningPackagePaymentEvents;
+    private final AcademicLearningPackageRevenueSplitJpaRepository learningPackageRevenueSplits;
 
     @Override
     public List<AcademicDepartment> findDepartments(UUID organizationId) {
@@ -86,6 +97,47 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public List<AcademicLearningPackageClassTarget> findLearningPackageClassTargets(UUID organizationId) {
+        return learningPackageClassTargets.findByOrganizationIdOrderByCreatedAtAsc(organizationId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<AcademicClassGroupMembership> findClassGroupMemberships(UUID organizationId) {
+        return classGroupMemberships.findByOrganizationIdOrderByJoinedAtDesc(organizationId).stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status) {
+        var safeStatus = status == null || status.isBlank() ? null : status.trim().toUpperCase();
+        var entities = safeStatus == null
+                ? learningPackageEnrollments.findByOrganizationIdOrderByRequestedAtDesc(organizationId)
+                : learningPackageEnrollments.findByOrganizationIdAndStatusOrderByRequestedAtDesc(organizationId, safeStatus);
+        return entities.stream().map(this::toDomain).toList();
+    }
+
+    @Override
+    public List<AcademicLearningPackagePaymentEvent> findLearningPackagePaymentEvents(UUID organizationId, UUID enrollmentId) {
+        return learningPackagePaymentEvents
+                .findByOrganizationIdAndEnrollmentIdOrderByOccurredAtAscCreatedAtAsc(organizationId, enrollmentId)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
+    public List<AcademicLearningPackageRevenueSplit> findLearningPackageRevenueSplits(UUID organizationId, UUID enrollmentId) {
+        return learningPackageRevenueSplits
+                .findByOrganizationIdAndEnrollmentIdOrderByCreatedAtAsc(organizationId, enrollmentId)
+                .stream()
+                .map(this::toDomain)
+                .toList();
+    }
+
+    @Override
     public Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id) {
         return departments.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
@@ -98,6 +150,11 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public Optional<AcademicCohort> findCohort(UUID organizationId, UUID id) {
         return cohorts.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicClassGroup> findClassGroup(UUID organizationId, UUID id) {
+        return classGroups.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
     }
 
     @Override
@@ -118,6 +175,40 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id) {
         return learningPackages.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicClassGroupMembership> findClassGroupMembership(UUID organizationId, UUID id) {
+        return classGroupMemberships.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicClassGroupMembership> findActiveClassGroupMembership(UUID organizationId, UUID studentId) {
+        return classGroupMemberships.findFirstByOrganizationIdAndStudentIdAndStatusOrderByJoinedAtDesc(
+                        organizationId,
+                        studentId,
+                        "ACTIVE")
+                .map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id) {
+        return learningPackageEnrollments.findByIdAndOrganizationId(id, organizationId).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID id) {
+        return learningPackageEnrollments.findById(id).map(this::toDomain);
+    }
+
+    @Override
+    public Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
+        return learningPackageEnrollments.findFirstByOrganizationIdAndPackageIdAndStudentIdAndStatusInOrderByRequestedAtDesc(
+                        organizationId,
+                        packageId,
+                        studentId,
+                        CURRENT_LEARNING_PACKAGE_ENROLLMENT_STATUSES)
+                .map(this::toDomain);
     }
 
     @Override
@@ -181,6 +272,21 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     }
 
     @Override
+    public boolean learningPackageClassTargetExists(UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId) {
+        return learningPackageClassTargets.existsTarget(organizationId, packageId, courseId, classGroupId);
+    }
+
+    @Override
+    public boolean activeClassGroupMembershipExists(UUID organizationId, UUID studentId) {
+        return classGroupMemberships.existsByOrganizationIdAndStudentIdAndStatus(organizationId, studentId, "ACTIVE");
+    }
+
+    @Override
+    public boolean learningPackageRevenueSplitsExist(UUID organizationId, UUID enrollmentId) {
+        return learningPackageRevenueSplits.existsByOrganizationIdAndEnrollmentId(organizationId, enrollmentId);
+    }
+
+    @Override
     public AcademicDepartment saveDepartment(AcademicDepartment department) {
         return toDomain(departments.save(toEntity(department)));
     }
@@ -233,6 +339,40 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
     @Override
     public AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item) {
         return toDomain(learningPackageItems.save(toEntity(item)));
+    }
+
+    @Override
+    public AcademicLearningPackageClassTarget saveLearningPackageClassTarget(AcademicLearningPackageClassTarget target) {
+        return toDomain(learningPackageClassTargets.save(toEntity(target)));
+    }
+
+    @Override
+    public AcademicClassGroupMembership saveClassGroupMembership(AcademicClassGroupMembership membership) {
+        return toDomain(classGroupMemberships.save(toEntity(membership)));
+    }
+
+    @Override
+    @Transactional
+    public AcademicClassGroupMembership replaceClassGroupMembership(
+            AcademicClassGroupMembership previous,
+            AcademicClassGroupMembership next) {
+        classGroupMemberships.saveAndFlush(toEntity(previous));
+        return toDomain(classGroupMemberships.save(toEntity(next)));
+    }
+
+    @Override
+    public AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment) {
+        return toDomain(learningPackageEnrollments.save(toEntity(enrollment)));
+    }
+
+    @Override
+    public AcademicLearningPackagePaymentEvent saveLearningPackagePaymentEvent(AcademicLearningPackagePaymentEvent event) {
+        return toDomain(learningPackagePaymentEvents.save(toEntity(event)));
+    }
+
+    @Override
+    public AcademicLearningPackageRevenueSplit saveLearningPackageRevenueSplit(AcademicLearningPackageRevenueSplit split) {
+        return toDomain(learningPackageRevenueSplits.save(toEntity(split)));
     }
 
     private AcademicDepartment toDomain(AcademicDepartmentJpaEntity e) {
@@ -329,9 +469,95 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
                 e.getCourseId(),
                 e.getDisplayOrder(),
                 e.isRequired(),
+                e.getRevenueWeight(),
                 e.getStatus(),
                 e.getCreatedAt(),
                 e.getUpdatedAt());
+    }
+
+    private AcademicLearningPackageClassTarget toDomain(AcademicLearningPackageClassTargetJpaEntity e) {
+        return new AcademicLearningPackageClassTarget(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getPackageId(),
+                e.getCourseId(),
+                e.getClassGroupId(),
+                e.getLearningClassId(),
+                e.getStatus(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
+    private AcademicClassGroupMembership toDomain(AcademicClassGroupMembershipJpaEntity e) {
+        return new AcademicClassGroupMembership(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getClassGroupId(),
+                e.getStudentId(),
+                e.getStatus(),
+                e.getJoinedAt(),
+                e.getLeftAt(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
+    private AcademicLearningPackageEnrollment toDomain(AcademicLearningPackageEnrollmentJpaEntity e) {
+        return new AcademicLearningPackageEnrollment(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getPackageId(),
+                e.getStudentId(),
+                e.getStatus(),
+                e.getDecisionNote(),
+                e.getPaymentAmount(),
+                e.getPaymentCurrency(),
+                e.getPaymentReference(),
+                e.getPaymentConfirmedAt(),
+                e.getPaymentConfirmedBy(),
+                e.getRequestedAt(),
+                e.getDecidedAt(),
+                e.getDecidedBy(),
+                e.getCreatedAt(),
+                e.getUpdatedAt());
+    }
+
+    private AcademicLearningPackagePaymentEvent toDomain(AcademicLearningPackagePaymentEventJpaEntity e) {
+        return new AcademicLearningPackagePaymentEvent(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getEnrollmentId(),
+                e.getPackageId(),
+                e.getStudentId(),
+                e.getEventType(),
+                e.getAmount(),
+                e.getCurrency(),
+                e.getReference(),
+                e.getActorId(),
+                e.getNote(),
+                e.getOccurredAt(),
+                e.getCreatedAt());
+    }
+
+    private AcademicLearningPackageRevenueSplit toDomain(AcademicLearningPackageRevenueSplitJpaEntity e) {
+        return new AcademicLearningPackageRevenueSplit(
+                e.getId(),
+                e.getOrganizationId(),
+                e.getEnrollmentId(),
+                e.getPackageId(),
+                e.getPackageItemId(),
+                e.getSubjectId(),
+                e.getCourseId(),
+                e.getTeacherId(),
+                e.getGrossAmount(),
+                e.getCurrency(),
+                e.getPlatformFeePct(),
+                e.getTeacherSharePct(),
+                e.getOrgSharePct(),
+                e.getPlatformAmount(),
+                e.getTeacherAmount(),
+                e.getOrgAmount(),
+                e.getPaymentReference(),
+                e.getCreatedAt());
     }
 
     private AcademicDepartmentJpaEntity toEntity(AcademicDepartment d) {
@@ -408,6 +634,53 @@ public class AcademicCatalogRepositoryAdapter implements AcademicCatalogReposito
         return AcademicLearningPackageItemJpaEntity.builder()
                 .id(i.id()).organizationId(i.organizationId()).packageId(i.packageId()).subjectId(i.subjectId())
                 .courseId(i.courseId()).displayOrder(i.displayOrder()).required(i.required()).status(i.status())
-                .createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
+                .revenueWeight(i.revenueWeight()).createdAt(i.createdAt()).updatedAt(i.updatedAt()).build();
+    }
+
+    private AcademicLearningPackageClassTargetJpaEntity toEntity(AcademicLearningPackageClassTarget t) {
+        return AcademicLearningPackageClassTargetJpaEntity.builder()
+                .id(t.id()).organizationId(t.organizationId()).packageId(t.packageId())
+                .courseId(t.courseId()).classGroupId(t.classGroupId())
+                .learningClassId(t.learningClassId()).status(t.status())
+                .createdAt(t.createdAt()).updatedAt(t.updatedAt()).build();
+    }
+
+    private AcademicClassGroupMembershipJpaEntity toEntity(AcademicClassGroupMembership m) {
+        return AcademicClassGroupMembershipJpaEntity.builder()
+                .id(m.id()).organizationId(m.organizationId()).classGroupId(m.classGroupId())
+                .studentId(m.studentId()).status(m.status()).joinedAt(m.joinedAt()).leftAt(m.leftAt())
+                .createdAt(m.createdAt()).updatedAt(m.updatedAt()).build();
+    }
+
+    private AcademicLearningPackageEnrollmentJpaEntity toEntity(AcademicLearningPackageEnrollment e) {
+        return AcademicLearningPackageEnrollmentJpaEntity.builder()
+                .id(e.id()).organizationId(e.organizationId()).packageId(e.packageId()).studentId(e.studentId())
+                .status(e.status()).decisionNote(e.decisionNote())
+                .paymentAmount(e.paymentAmount()).paymentCurrency(e.paymentCurrency())
+                .paymentReference(e.paymentReference()).paymentConfirmedAt(e.paymentConfirmedAt())
+                .paymentConfirmedBy(e.paymentConfirmedBy()).requestedAt(e.requestedAt())
+                .decidedAt(e.decidedAt()).decidedBy(e.decidedBy())
+                .createdAt(e.createdAt()).updatedAt(e.updatedAt()).build();
+    }
+
+    private AcademicLearningPackagePaymentEventJpaEntity toEntity(AcademicLearningPackagePaymentEvent e) {
+        return AcademicLearningPackagePaymentEventJpaEntity.builder()
+                .id(e.id()).organizationId(e.organizationId()).enrollmentId(e.enrollmentId())
+                .packageId(e.packageId()).studentId(e.studentId()).eventType(e.eventType())
+                .amount(e.amount()).currency(e.currency()).reference(e.reference())
+                .actorId(e.actorId()).note(e.note()).occurredAt(e.occurredAt())
+                .createdAt(e.createdAt()).build();
+    }
+
+    private AcademicLearningPackageRevenueSplitJpaEntity toEntity(AcademicLearningPackageRevenueSplit s) {
+        return AcademicLearningPackageRevenueSplitJpaEntity.builder()
+                .id(s.id()).organizationId(s.organizationId()).enrollmentId(s.enrollmentId())
+                .packageId(s.packageId()).packageItemId(s.packageItemId()).subjectId(s.subjectId())
+                .courseId(s.courseId()).teacherId(s.teacherId()).grossAmount(s.grossAmount())
+                .currency(s.currency()).platformFeePct(s.platformFeePct())
+                .teacherSharePct(s.teacherSharePct()).orgSharePct(s.orgSharePct())
+                .platformAmount(s.platformAmount()).teacherAmount(s.teacherAmount())
+                .orgAmount(s.orgAmount()).paymentReference(s.paymentReference())
+                .createdAt(s.createdAt()).build();
     }
 }

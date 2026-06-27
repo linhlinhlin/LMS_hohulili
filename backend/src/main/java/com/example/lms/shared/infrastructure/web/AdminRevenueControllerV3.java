@@ -2,6 +2,7 @@ package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.shared.application.support.BankAccountMasking;
 import com.example.lms.shared.application.usecase.ProcessPayoutUseCase;
 import com.example.lms.shared.domain.model.PayoutRequest;
@@ -36,11 +37,13 @@ import java.util.stream.Collectors;
 @Tag(name = "Admin Revenue", description = "Platform revenue overview and payout management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRevenueControllerV3 {
+    private static final String ORG_PAYOUT_APPROVAL = "org_payout_approval";
 
     private final ProcessPayoutUseCase processPayoutUseCase;
     private final PayoutRequestRepository payoutRepo;
     private final UserJpaRepository userRepo;
     private final TeacherBankAccountRepository bankAccountRepo;
+    private final ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
 
     @GetMapping("/payouts")
     @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
@@ -50,6 +53,7 @@ public class AdminRevenueControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
+        requireOrgPayoutApproval(currentUser);
         PageRequest pageable = PageRequest.of(page, size);
         Page<PayoutRequest> pageResult = resolveScopedPayoutPage(status, pageable, currentUser);
 
@@ -73,6 +77,7 @@ public class AdminRevenueControllerV3 {
             @RequestBody(required = false) AdminNoteBody body,
             @AuthenticationPrincipal UserJpaEntity admin) {
         verifyPayoutAccess(id, admin);
+        requireOrgPayoutApproval(admin);
         var result = processPayoutUseCase.approve(id, admin.getId(), body != null ? body.adminNote() : null);
         return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã duyệt yêu cầu rút tiền"));
     }
@@ -85,6 +90,7 @@ public class AdminRevenueControllerV3 {
             @RequestBody AdminNoteBody body,
             @AuthenticationPrincipal UserJpaEntity admin) {
         verifyPayoutAccess(id, admin);
+        requireOrgPayoutApproval(admin);
         var result = processPayoutUseCase.reject(id, admin.getId(), body.adminNote());
         return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã từ chối yêu cầu rút tiền"));
     }
@@ -183,5 +189,14 @@ public class AdminRevenueControllerV3 {
 
     private boolean isSystemAdmin(UserJpaEntity viewer) {
         return viewer != null && viewer.getRole() == UserJpaEntity.UserRole.ADMIN;
+    }
+
+    private void requireOrgPayoutApproval(UserJpaEntity viewer) {
+        if (!isOrgAdmin(viewer) || viewer.getOrganizationId() == null) {
+            return;
+        }
+        if (!capabilitiesUseCase.isEnabled(viewer.getOrganizationId(), ORG_PAYOUT_APPROVAL)) {
+            throw new AccessDeniedException("Organization capability is disabled: " + ORG_PAYOUT_APPROVAL);
+        }
     }
 }

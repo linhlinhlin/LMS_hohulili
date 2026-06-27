@@ -1,7 +1,7 @@
 import { Component, inject, OnInit, signal, computed, ChangeDetectionStrategy } from '@angular/core';
 import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
-import { TeacherRevenueService, BankAccount } from '../infrastructure/services/teacher-revenue.service';
+import { TeacherRevenueService, BankAccount, RevenueHistoryItem } from '../infrastructure/services/teacher-revenue.service';
 import { ToastService } from '../../../core/services/toast.service';
 
 @Component({
@@ -154,7 +154,14 @@ import { ToastService } from '../../../core/services/toast.service';
                 <tbody class="bg-white divide-y divide-gray-100">
                   @for (item of revenueHistory(); track item.id) {
                     <tr class="hover:bg-gray-50">
-                      <td class="px-6 py-4 text-sm font-medium text-gray-900">{{ item.courseName }}</td>
+                      <td class="px-6 py-4 text-sm font-medium text-gray-900">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <span>{{ displayCourseName(item) }}</span>
+                          @if (item.source === 'PACKAGE') {
+                            <span class="rounded-full bg-[#0056D2]/10 px-2 py-0.5 text-xs font-semibold text-[#004BB5]">Gói học</span>
+                          }
+                        </div>
+                      </td>
                       <td class="px-6 py-4 text-sm text-gray-900 text-right">{{ formatCurrency(item.grossAmount) }}</td>
                       <td class="px-6 py-4 text-sm text-red-600 text-right">-{{ formatCurrency(item.platformAmount) }}</td>
                       <td class="px-6 py-4 text-sm font-medium text-green-600 text-right">{{ formatCurrency(item.teacherAmount) }}</td>
@@ -331,6 +338,12 @@ export class TeacherRevenueDashboardComponent implements OnInit {
 
     getBankDisplayName(bankCode: string): string {
         return this.revenueService.getBankDisplayName(bankCode);
+    }
+
+    displayCourseName(item: RevenueHistoryItem): string {
+        return item.source === 'PACKAGE'
+            ? item.courseName.replace(/\s*\(Gói học\)$/u, '')
+            : item.courseName;
     }
 
     formatCurrency(amount: number): string { return this.revenueService.formatCurrency(amount); }

@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,8 +40,8 @@ public interface RevenueSplitJpaRepository
         """, nativeQuery = true)
     BigDecimal sumTeacherAmountLastMonth(@Param("teacherId") UUID teacherId);
 
-    @Query("SELECT COUNT(DISTINCT r.courseId) FROM RevenueSplitJpaEntity r WHERE r.teacherId = :teacherId")
-    long countDistinctCoursesByTeacherId(@Param("teacherId") UUID teacherId);
+    @Query("SELECT DISTINCT r.courseId FROM RevenueSplitJpaEntity r WHERE r.teacherId = :teacherId")
+    List<UUID> findDistinctCourseIdsByTeacherId(@Param("teacherId") UUID teacherId);
 
     // ==================== Issue #260 (Phase 4 PR 4): cross-org aggregates ====================
 

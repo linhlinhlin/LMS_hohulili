@@ -18,14 +18,25 @@ public interface AcademicCatalogRepository {
     List<AcademicCurriculumSubject> findCurriculumSubjects(UUID organizationId);
     List<AcademicLearningPackage> findLearningPackages(UUID organizationId);
     List<AcademicLearningPackageItem> findLearningPackageItems(UUID organizationId);
+    List<AcademicLearningPackageClassTarget> findLearningPackageClassTargets(UUID organizationId);
+    List<AcademicClassGroupMembership> findClassGroupMemberships(UUID organizationId);
+    List<AcademicLearningPackageEnrollment> findLearningPackageEnrollments(UUID organizationId, String status);
+    List<AcademicLearningPackagePaymentEvent> findLearningPackagePaymentEvents(UUID organizationId, UUID enrollmentId);
+    List<AcademicLearningPackageRevenueSplit> findLearningPackageRevenueSplits(UUID organizationId, UUID enrollmentId);
 
     Optional<AcademicDepartment> findDepartment(UUID organizationId, UUID id);
     Optional<AcademicProgram> findProgram(UUID organizationId, UUID id);
     Optional<AcademicCohort> findCohort(UUID organizationId, UUID id);
+    Optional<AcademicClassGroup> findClassGroup(UUID organizationId, UUID id);
     Optional<AcademicSubject> findSubject(UUID organizationId, UUID id);
     Optional<AcademicTerm> findTerm(UUID organizationId, UUID id);
     Optional<AcademicCurriculumPlan> findCurriculumPlan(UUID organizationId, UUID id);
     Optional<AcademicLearningPackage> findLearningPackage(UUID organizationId, UUID id);
+    Optional<AcademicClassGroupMembership> findClassGroupMembership(UUID organizationId, UUID id);
+    Optional<AcademicClassGroupMembership> findActiveClassGroupMembership(UUID organizationId, UUID studentId);
+    Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID id);
+    Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID id);
+    Optional<AcademicLearningPackageEnrollment> findLearningPackageEnrollment(UUID organizationId, UUID packageId, UUID studentId);
 
     boolean departmentCodeExists(UUID organizationId, String code);
     boolean programCodeExists(UUID organizationId, String code);
@@ -39,6 +50,9 @@ public interface AcademicCatalogRepository {
     boolean learningPackageCodeExists(UUID organizationId, String code);
     boolean learningPackageSubjectExists(UUID organizationId, UUID packageId, UUID subjectId);
     boolean learningPackageCourseExists(UUID organizationId, UUID packageId, UUID courseId);
+    boolean learningPackageClassTargetExists(UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId);
+    boolean activeClassGroupMembershipExists(UUID organizationId, UUID studentId);
+    boolean learningPackageRevenueSplitsExist(UUID organizationId, UUID enrollmentId);
 
     AcademicDepartment saveDepartment(AcademicDepartment department);
     AcademicProgram saveProgram(AcademicProgram program);
@@ -51,4 +65,12 @@ public interface AcademicCatalogRepository {
     AcademicCurriculumSubject saveCurriculumSubject(AcademicCurriculumSubject subject);
     AcademicLearningPackage saveLearningPackage(AcademicLearningPackage learningPackage);
     AcademicLearningPackageItem saveLearningPackageItem(AcademicLearningPackageItem item);
+    AcademicLearningPackageClassTarget saveLearningPackageClassTarget(AcademicLearningPackageClassTarget target);
+    AcademicClassGroupMembership saveClassGroupMembership(AcademicClassGroupMembership membership);
+    AcademicClassGroupMembership replaceClassGroupMembership(
+            AcademicClassGroupMembership previous,
+            AcademicClassGroupMembership next);
+    AcademicLearningPackageEnrollment saveLearningPackageEnrollment(AcademicLearningPackageEnrollment enrollment);
+    AcademicLearningPackagePaymentEvent saveLearningPackagePaymentEvent(AcademicLearningPackagePaymentEvent event);
+    AcademicLearningPackageRevenueSplit saveLearningPackageRevenueSplit(AcademicLearningPackageRevenueSplit split);
 }

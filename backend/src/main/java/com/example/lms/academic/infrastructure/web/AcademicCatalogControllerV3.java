@@ -2,6 +2,7 @@ package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.*;
 import com.example.lms.academic.application.usecase.ManageAcademicCatalogUseCase;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
@@ -26,7 +27,12 @@ import java.util.UUID;
 @Tag(name = "Academic Catalog", description = "Organization-scoped academic structure")
 @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
 public class AcademicCatalogControllerV3 {
+    private static final String ACADEMIC_CATALOG = "academic_catalog";
+    private static final String CURRICULUM_PLAN = "curriculum_plan";
+    private static final String LEARNING_PACKAGES = "learning_packages";
+
     private final ManageAcademicCatalogUseCase useCase;
+    private final ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
 
     @GetMapping("/catalog")
     @Operation(summary = "Get academic catalog for an organization")
@@ -34,6 +40,7 @@ public class AcademicCatalogControllerV3 {
             @PathVariable UUID orgId,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.ok(ApiResponse.success(useCase.getCatalog(orgId)));
     }
 
@@ -44,6 +51,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateDepartmentCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createDepartment(orgId, command)));
     }
@@ -55,6 +63,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateProgramCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createProgram(orgId, command)));
     }
@@ -66,6 +75,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateCohortCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createCohort(orgId, command)));
     }
@@ -77,8 +87,44 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateClassGroupCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createClassGroup(orgId, command)));
+    }
+
+    @PostMapping("/class-group-memberships")
+    @Operation(summary = "Assign a student to an academic class group")
+    public ResponseEntity<ApiResponse<ClassGroupMembershipResponse>> assignClassGroupMembership(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody CreateClassGroupMembershipCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.assignClassGroupMembership(orgId, command)));
+    }
+
+    @PatchMapping("/class-group-memberships/{membershipId}/transfer")
+    @Operation(summary = "Transfer an active student membership to another academic class group")
+    public ResponseEntity<ApiResponse<ClassGroupMembershipResponse>> transferClassGroupMembership(
+            @PathVariable UUID orgId,
+            @PathVariable UUID membershipId,
+            @Valid @RequestBody TransferClassGroupMembershipCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
+        return ResponseEntity.ok(ApiResponse.success(useCase.transferClassGroupMembership(orgId, membershipId, command)));
+    }
+
+    @PostMapping("/class-group-memberships/bulk-import")
+    @Operation(summary = "Bulk import students into an academic class group by email")
+    public ResponseEntity<ApiResponse<BulkClassGroupRosterResponse>> importClassGroupRoster(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody BulkClassGroupRosterCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
+        return ResponseEntity.ok(ApiResponse.success(useCase.importClassGroupRoster(orgId, command)));
     }
 
     @PostMapping("/subjects")
@@ -88,6 +134,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateSubjectCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createSubject(orgId, command)));
     }
@@ -99,6 +146,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody LinkSubjectCourseCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.linkSubjectCourse(orgId, command)));
     }
@@ -110,6 +158,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateTermCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, CURRICULUM_PLAN);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createTerm(orgId, command)));
     }
@@ -121,6 +170,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateCurriculumPlanCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, CURRICULUM_PLAN);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createCurriculumPlan(orgId, command)));
     }
@@ -132,6 +182,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody AddCurriculumSubjectCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, CURRICULUM_PLAN);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.addCurriculumSubject(orgId, command)));
     }
@@ -143,6 +194,7 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody CreateLearningPackageCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, LEARNING_PACKAGES);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.createLearningPackage(orgId, command)));
     }
@@ -154,8 +206,33 @@ public class AcademicCatalogControllerV3 {
             @Valid @RequestBody AddLearningPackageItemCommand command,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, LEARNING_PACKAGES);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.success(useCase.addLearningPackageItem(orgId, command)));
+    }
+
+    @PostMapping("/learning-package-class-targets")
+    @Operation(summary = "Map a package course to a concrete learning class")
+    public ResponseEntity<ApiResponse<LearningPackageClassTargetResponse>> createLearningPackageClassTarget(
+            @PathVariable UUID orgId,
+            @Valid @RequestBody CreateLearningPackageClassTargetCommand command,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, LEARNING_PACKAGES);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success(useCase.createLearningPackageClassTarget(orgId, command)));
+    }
+
+    @GetMapping("/learning-packages/{packageId}/revenue-allocation-preview")
+    @Operation(summary = "Preview learning package tuition allocation by package item weight")
+    public ResponseEntity<ApiResponse<LearningPackageRevenueAllocationResponse>> previewLearningPackageRevenueAllocation(
+            @PathVariable UUID orgId,
+            @PathVariable UUID packageId,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, orgId);
+        requireCapabilities(orgId, ACADEMIC_CATALOG, LEARNING_PACKAGES);
+        return ResponseEntity.ok(ApiResponse.success(
+                useCase.previewLearningPackageRevenueAllocation(orgId, packageId)));
     }
 
     private void verifyOrgAccess(UserJpaEntity currentUser, UUID orgId) {
@@ -170,5 +247,13 @@ public class AcademicCatalogControllerV3 {
             return;
         }
         throw new AccessDeniedException("No access to this organization's academic catalog");
+    }
+
+    private void requireCapabilities(UUID orgId, String... keys) {
+        for (String key : keys) {
+            if (!capabilitiesUseCase.isEnabled(orgId, key)) {
+                throw new AccessDeniedException("Organization capability is disabled: " + key);
+            }
+        }
     }
 }

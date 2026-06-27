@@ -26,7 +26,9 @@ public final class AcademicCatalogDtos {
             List<CurriculumPlanResponse> curriculumPlans,
             List<CurriculumSubjectResponse> curriculumSubjects,
             List<LearningPackageResponse> learningPackages,
-            List<LearningPackageItemResponse> learningPackageItems
+            List<LearningPackageItemResponse> learningPackageItems,
+            List<LearningPackageClassTargetResponse> learningPackageClassTargets,
+            List<ClassGroupMembershipResponse> classGroupMemberships
     ) {}
 
     public record CreateDepartmentCommand(
@@ -110,7 +112,34 @@ public final class AcademicCatalogDtos {
             UUID subjectId,
             UUID courseId,
             @Min(0) Integer displayOrder,
-            Boolean required
+            Boolean required,
+            @DecimalMin("0.0000") BigDecimal revenueWeight
+    ) {}
+
+    public record CreateLearningPackageClassTargetCommand(
+            @NotNull UUID packageId,
+            @NotNull UUID courseId,
+            UUID classGroupId,
+            @NotNull UUID learningClassId
+    ) {}
+
+    public record CreateClassGroupMembershipCommand(
+            @NotNull UUID classGroupId,
+            @NotNull UUID studentId
+    ) {}
+
+    public record TransferClassGroupMembershipCommand(
+            @NotNull UUID classGroupId
+    ) {}
+
+    public record BulkClassGroupRosterCommand(
+            @NotNull UUID classGroupId,
+            @NotNull @Size(max = 500) List<String> studentEmails
+    ) {}
+
+    public record ReviewLearningPackageEnrollmentCommand(
+            @Size(max = 1000) String note,
+            @Size(max = 128) String paymentReference
     ) {}
 
     public record DepartmentResponse(UUID id, UUID organizationId, String code, String name, String status, Instant createdAt) {}
@@ -123,5 +152,127 @@ public final class AcademicCatalogDtos {
     public record CurriculumPlanResponse(UUID id, UUID organizationId, UUID programId, UUID cohortId, String code, String name, Integer totalCredits, String status, Instant createdAt) {}
     public record CurriculumSubjectResponse(UUID id, UUID organizationId, UUID curriculumPlanId, UUID subjectId, UUID termId, Integer displayOrder, Boolean required, Integer creditsOverride, String status, Instant createdAt) {}
     public record LearningPackageResponse(UUID id, UUID organizationId, UUID curriculumPlanId, String code, String name, String description, String packageType, BigDecimal price, String currency, String enrollmentPolicy, String status, Instant createdAt) {}
-    public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, String status, Instant createdAt) {}
+    public record LearningPackageItemResponse(UUID id, UUID organizationId, UUID packageId, UUID subjectId, UUID courseId, Integer displayOrder, Boolean required, BigDecimal revenueWeight, String status, Instant createdAt) {}
+    public record LearningPackageClassTargetResponse(UUID id, UUID organizationId, UUID packageId, UUID courseId, UUID classGroupId, UUID learningClassId, String status, Instant createdAt) {}
+    public record ClassGroupMembershipResponse(UUID id, UUID organizationId, UUID classGroupId, UUID studentId, String status, Instant joinedAt, Instant leftAt, Instant createdAt) {}
+    public record BulkClassGroupRosterRowResponse(String email, String action, String message, ClassGroupMembershipResponse membership) {}
+    public record BulkClassGroupRosterResponse(
+            int total,
+            int assigned,
+            int transferred,
+            int unchanged,
+            int failed,
+            List<BulkClassGroupRosterRowResponse> rows
+    ) {}
+    public record LearningPackageEnrollmentResponse(
+            UUID id,
+            UUID organizationId,
+            UUID packageId,
+            UUID studentId,
+            String status,
+            String decisionNote,
+            BigDecimal paymentAmount,
+            String paymentCurrency,
+            String paymentReference,
+            Instant paymentConfirmedAt,
+            UUID paymentConfirmedBy,
+            Instant requestedAt,
+            Instant decidedAt,
+            UUID decidedBy,
+            Instant createdAt) {}
+
+    public record LearningPackageEnrollmentExportRowResponse(
+            UUID id,
+            UUID organizationId,
+            UUID packageId,
+            String packageCode,
+            String packageName,
+            UUID studentId,
+            String studentEmail,
+            String studentName,
+            String status,
+            String decisionNote,
+            BigDecimal paymentAmount,
+            String paymentCurrency,
+            String paymentReference,
+            Instant paymentConfirmedAt,
+            UUID paymentConfirmedBy,
+            Instant requestedAt,
+            Instant decidedAt,
+            UUID decidedBy,
+            Instant createdAt) {}
+
+    public record LearningPackagePaymentEventResponse(
+            UUID id,
+            UUID organizationId,
+            UUID enrollmentId,
+            UUID packageId,
+            UUID studentId,
+            String eventType,
+            BigDecimal amount,
+            String currency,
+            String reference,
+            UUID actorId,
+            String note,
+            Instant occurredAt,
+            Instant createdAt
+    ) {}
+
+    public record LearningPackageRevenueSplitResponse(
+            UUID id,
+            UUID organizationId,
+            UUID enrollmentId,
+            UUID packageId,
+            UUID packageItemId,
+            UUID subjectId,
+            UUID courseId,
+            UUID teacherId,
+            BigDecimal grossAmount,
+            String currency,
+            BigDecimal platformFeePct,
+            BigDecimal teacherSharePct,
+            BigDecimal orgSharePct,
+            BigDecimal platformAmount,
+            BigDecimal teacherAmount,
+            BigDecimal orgAmount,
+            String paymentReference,
+            Instant createdAt
+    ) {}
+
+    public record LearningPackageAvailabilityResponse(
+            LearningPackageResponse learningPackage,
+            LearningPackageEnrollmentResponse enrollment
+    ) {}
+
+    public record LearningPackageRevenueAllocationResponse(
+            UUID packageId,
+            BigDecimal packagePrice,
+            String currency,
+            BigDecimal totalWeight,
+            BigDecimal allocatedTotal,
+            List<LearningPackageRevenueAllocationItemResponse> items
+    ) {}
+
+    public record LearningPackageRevenueAllocationItemResponse(
+            UUID itemId,
+            UUID subjectId,
+            UUID courseId,
+            Integer displayOrder,
+            BigDecimal revenueWeight,
+            BigDecimal allocationPct,
+            BigDecimal allocatedAmount
+    ) {}
+
+    public record LearningPackagePaymentQrResponse(
+            LearningPackageEnrollmentResponse enrollment,
+            UUID txnId,
+            String qrUrl,
+            String transferContent,
+            String bankCode,
+            String accountNumber,
+            String accountName,
+            BigDecimal amount,
+            String currency,
+            String packageName
+    ) {}
 }

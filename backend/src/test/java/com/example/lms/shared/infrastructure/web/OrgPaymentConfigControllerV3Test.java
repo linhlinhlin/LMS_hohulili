@@ -1,6 +1,7 @@
 package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.shared.application.usecase.ManageOrgPaymentConfigUseCase;
 import com.example.lms.shared.domain.model.OrgPaymentConfig;
 import org.junit.jupiter.api.DisplayName;
@@ -27,6 +28,9 @@ class OrgPaymentConfigControllerV3Test {
     @Mock
     private ManageOrgPaymentConfigUseCase useCase;
 
+    @Mock
+    private ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
+
     @InjectMocks
     private OrgPaymentConfigControllerV3 controller;
 
@@ -41,6 +45,7 @@ class OrgPaymentConfigControllerV3Test {
                 BigDecimal.valueOf(80),
                 BigDecimal.valueOf(100000)
         );
+        when(capabilitiesUseCase.isEnabled(orgId, "org_payment_config")).thenReturn(true);
         when(useCase.getConfig(orgId)).thenReturn(config);
 
         var response = controller.getConfig(orgId, orgAdmin);
@@ -74,6 +79,7 @@ class OrgPaymentConfigControllerV3Test {
                 BigDecimal.valueOf(80),
                 BigDecimal.valueOf(120000)
         );
+        when(capabilitiesUseCase.isEnabled(orgId, "org_payment_config")).thenReturn(true);
         when(useCase.upsertConfig(orgId, BigDecimal.valueOf(10.0), BigDecimal.valueOf(80.0), BigDecimal.valueOf(120000.0)))
                 .thenReturn(config);
 
@@ -86,6 +92,19 @@ class OrgPaymentConfigControllerV3Test {
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().isSuccess()).isTrue();
         verify(useCase).upsertConfig(orgId, BigDecimal.valueOf(10.0), BigDecimal.valueOf(80.0), BigDecimal.valueOf(120000.0));
+    }
+
+    @Test
+    @DisplayName("ORG_ADMIN cannot read payment config when capability is disabled")
+    void orgAdminCannotReadPaymentConfigWhenCapabilityDisabled() {
+        UUID orgId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UUID.randomUUID(), UserJpaEntity.UserRole.ORG_ADMIN, orgId);
+        when(capabilitiesUseCase.isEnabled(orgId, "org_payment_config")).thenReturn(false);
+
+        assertThatThrownBy(() -> controller.getConfig(orgId, orgAdmin))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining("org_payment_config");
+        verify(useCase, never()).getConfig(orgId);
     }
 
     private UserJpaEntity user(UUID id, UserJpaEntity.UserRole role, UUID organizationId) {

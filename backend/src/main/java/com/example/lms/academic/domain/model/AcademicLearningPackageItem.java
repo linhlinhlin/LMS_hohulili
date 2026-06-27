@@ -2,6 +2,7 @@ package com.example.lms.academic.domain.model;
 
 import com.example.lms.shared.exception.ValidationException;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
@@ -13,6 +14,7 @@ public record AcademicLearningPackageItem(
         UUID courseId,
         Integer displayOrder,
         boolean required,
+        BigDecimal revenueWeight,
         String status,
         Instant createdAt,
         Instant updatedAt
@@ -23,7 +25,8 @@ public record AcademicLearningPackageItem(
             UUID subjectId,
             UUID courseId,
             Integer displayOrder,
-            Boolean required) {
+            Boolean required,
+            BigDecimal revenueWeight) {
         if (packageId == null) {
             throw new ValidationException("packageId", "packageId is required");
         }
@@ -34,6 +37,10 @@ public record AcademicLearningPackageItem(
         if (safeDisplayOrder < 0) {
             throw new ValidationException("displayOrder", "displayOrder must be non-negative");
         }
+        var safeRevenueWeight = revenueWeight == null ? BigDecimal.ONE : revenueWeight;
+        if (safeRevenueWeight.compareTo(BigDecimal.ZERO) < 0) {
+            throw new ValidationException("revenueWeight", "revenueWeight must be non-negative");
+        }
         return new AcademicLearningPackageItem(
                 UUID.randomUUID(),
                 organizationId,
@@ -42,6 +49,7 @@ public record AcademicLearningPackageItem(
                 courseId,
                 safeDisplayOrder,
                 required == null || required,
+                safeRevenueWeight,
                 "ACTIVE",
                 Instant.now(),
                 null

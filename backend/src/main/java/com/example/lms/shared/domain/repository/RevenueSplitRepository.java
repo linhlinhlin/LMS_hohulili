@@ -18,7 +18,7 @@ public interface RevenueSplitRepository {
     BigDecimal sumTeacherAmountByTeacherId(UUID teacherId);
     BigDecimal sumTeacherAmountThisMonth(UUID teacherId);
     BigDecimal sumTeacherAmountLastMonth(UUID teacherId);
-    long countDistinctCoursesByTeacherId(UUID teacherId);
+    List<UUID> findDistinctCourseIdsByTeacherId(UUID teacherId);
 
     // ==================== Issue #260 (Phase 4 PR 4): cross-org aggregates ====================
 

@@ -6,15 +6,38 @@ import { OrganizationService, OrgPaymentConfig } from '../../infrastructure/serv
 import { ToastService } from '../../../../core/services/toast.service';
 import { ConfirmDialogService } from '../../../../core/services/confirm-dialog.service';
 import { AuthService } from '../../../../core/services/auth.service';
-import { Organization, OrganizationInvite, OrgMember, OrganizationType } from '../../../../shared/types/user.types';
+import { Organization, OrganizationCapability, OrganizationInvite, OrgMember, OrganizationType } from '../../../../shared/types/user.types';
 import { KpiCardComponent } from '../../../../shared/components/admin/kpi-card/kpi-card.component';
 import { KebabMenuComponent, KebabAction } from '../../../../shared/components/admin/kebab-menu/kebab-menu.component';
 
-type Tab = 'overview' | 'members' | 'invites' | 'settings' | 'payment-config' | 'stats';
+type Tab = 'overview' | 'members' | 'invites' | 'settings' | 'capabilities' | 'payment-config' | 'stats';
 
 const VALID_TABS: ReadonlySet<Tab> = new Set([
-  'overview', 'members', 'invites', 'settings', 'payment-config', 'stats'
+  'overview', 'members', 'invites', 'settings', 'capabilities', 'payment-config', 'stats'
 ]);
+
+const CAPABILITY_META: Record<string, { label: string; description: string }> = {
+  academic_catalog: {
+    label: 'Học vụ nền tảng',
+    description: 'Quản lý khoa, ngành, khóa, lớp hành chính và môn học của tổ chức.',
+  },
+  curriculum_plan: {
+    label: 'Chương trình đào tạo',
+    description: 'Thiết lập học kỳ, khung chương trình và danh sách môn trong từng chương trình.',
+  },
+  learning_packages: {
+    label: 'Gói học',
+    description: 'Tạo gói học, gắn course vào lớp triển khai và xử lý enrollment theo gói.',
+  },
+  org_payment_config: {
+    label: 'Cấu hình doanh thu',
+    description: 'Cấu hình tỷ lệ chia doanh thu và số tiền rút tối thiểu của tổ chức.',
+  },
+  org_payout_approval: {
+    label: 'Duyệt payout theo tổ chức',
+    description: 'Cho ORG_ADMIN xem, duyệt hoặc từ chối yêu cầu rút tiền trong phạm vi tổ chức.',
+  },
+};
 
 @Component({
   selector: 'app-organization-detail',
@@ -47,6 +70,11 @@ export class OrganizationDetailComponent implements OnInit {
 
   isUpdating = signal(false);
   editingTokenMemberId = signal('');
+
+  capabilities = signal<OrganizationCapability[]>([]);
+  isLoadingCapabilities = signal(false);
+  savingCapabilityKey = signal('');
+  canManageCapabilities = computed(() => this.authService.userRole() === 'admin');
 
   // Payment config state
   paymentConfig = signal<OrgPaymentConfig | null>(null);
@@ -99,6 +127,7 @@ export class OrganizationDetailComponent implements OnInit {
     { key: 'members' as Tab, label: 'Thành viên' },
     { key: 'invites' as Tab, label: 'Lời mời' },
     { key: 'stats' as Tab, label: 'Thống kê' },
+    { key: 'capabilities' as Tab, label: 'Phân hệ' },
     { key: 'payment-config' as Tab, label: 'Cấu hình doanh thu' },
     { key: 'settings' as Tab, label: 'Cài đặt' }
   ];
@@ -147,6 +176,7 @@ export class OrganizationDetailComponent implements OnInit {
         }
       });
     this.loadAll();
+    this.loadCapabilities();
     this.loadPaymentConfig();
   }
 
@@ -188,6 +218,55 @@ export class OrganizationDetailComponent implements OnInit {
     this.orgService.listInvites(this.orgId).subscribe({
       next: (invites) => this.invites.set(invites),
       error: () => this.toast.error('Không thể tải danh sách lời mời')
+    });
+  }
+
+  private loadCapabilities(): void {
+    this.isLoadingCapabilities.set(true);
+    this.orgService.listCapabilities(this.orgId).subscribe({
+      next: (capabilities) => {
+        this.capabilities.set(capabilities);
+        this.isLoadingCapabilities.set(false);
+      },
+      error: () => {
+        this.capabilities.set([]);
+        this.isLoadingCapabilities.set(false);
+        this.toast.error('Không thể tải cấu hình phân hệ');
+      }
+    });
+  }
+
+  capabilityLabel(key: string): string {
+    return CAPABILITY_META[key]?.label ?? key;
+  }
+
+  capabilityDescription(key: string): string {
+    return CAPABILITY_META[key]?.description ?? 'Phân hệ tùy chỉnh của tổ chức.';
+  }
+
+  toggleCapability(capability: OrganizationCapability, event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    if (!this.canManageCapabilities()) {
+      checkbox.checked = capability.enabled;
+      return;
+    }
+
+    const enabled = checkbox.checked;
+    this.savingCapabilityKey.set(capability.key);
+    this.orgService.setCapability(this.orgId, capability.key, enabled).subscribe({
+      next: (updated) => {
+        this.capabilities.update(items => items.map(item => item.key === updated.key ? updated : item));
+        this.savingCapabilityKey.set('');
+        this.toast.success(
+          enabled ? 'Đã bật phân hệ' : 'Đã tắt phân hệ',
+          `${this.capabilityLabel(updated.key)} đã được cập nhật`
+        );
+      },
+      error: (err) => {
+        checkbox.checked = capability.enabled;
+        this.savingCapabilityKey.set('');
+        this.toast.error(err.error?.message || 'Không thể cập nhật phân hệ');
+      }
     });
   }
 
