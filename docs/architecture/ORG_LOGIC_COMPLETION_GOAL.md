@@ -2836,3 +2836,56 @@ curl -H "Authorization: Bearer <ORG_ADMIN_TOKEN>" \
 # Content-Type: text/csv;charset=UTF-8
 # CSV header and ACTIVE enrollment rows returned.
 ```
+
+## 59. Phase 4.29 enrich learning package enrollment CSV for VMU reconciliation - 2026-06-27
+
+Mục tiêu của vòng này là làm file CSV ở Phase 4.28 đủ hữu ích cho người vận hành thật tại ORG/VMU. File chỉ có UUID giúp kiểm thử kỹ thuật, nhưng phòng/khoa/kế toán cần đọc được mã gói, tên gói, email học viên và họ tên học viên để đối soát nhanh với sao kê, danh sách lớp và hồ sơ học vụ.
+
+Thay đổi đã thực hiện:
+
+- Thêm `LearningPackageEnrollmentExportRowResponse` làm read model riêng cho export, không thay đổi response list enrollment hiện tại.
+- `ManageLearningPackageEnrollmentUseCase.exportEnrollments(...)` enrich enrollment bằng dữ liệu gói học từ `AcademicCatalogRepository` và thông tin học viên từ domain `UserRepository`.
+- Controller CSV chuyển sang dùng export read model mới và thêm các cột:
+  `package_code`, `package_name`, `student_email`, `student_name`.
+- Giữ UTF-8 BOM và CSV escaping để Excel vẫn mở được tiếng Việt và ghi chú có dấu phẩy/dấu ngoặc kép.
+- Cập nhật test controller để khóa header mới, tên gói, email, tên học viên và escape note.
+- Thêm test application layer chứng minh status filter vẫn normalize và export row có đủ package/student information.
+
+Quyết định thiết kế:
+
+- Không thêm schema, không thêm dependency CSV và không thêm reporting subsystem. Đây là read model xuất báo cáo tối thiểu.
+- Không hardcode VMU. VMU xuất hiện như dữ liệu seed/package/org; logic dùng chung cho mọi ORG bật `learning_packages`.
+- Không thêm batch user lookup port ở phase này. Export hiện tại phục vụ demo/đối soát vận hành nhỏ; khi xuất hàng chục nghìn dòng mới nên nâng cấp sang batch query hoặc async report job.
+- Controller chỉ render CSV; logic enrich nằm trong application use case để giữ boundary Clean Architecture.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 44, Failures: 0, Errors: 0, Skipped: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Runtime smoke:
+
+```text
+ORG_ADMIN orgId=a0000000-0000-0000-0000-000000000001
+GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments/export.csv?status=ACTIVE
+-> 200
+Content-Type: text/csv;charset=UTF-8
+Content-Disposition: attachment; filename="learning-package-enrollments.csv"
+
+CSV header:
+enrollment_id,package_id,package_code,package_name,student_id,student_email,student_name,status,payment_amount,currency,payment_reference,payment_confirmed_at,requested_at,decided_at,decision_note
+
+Sample row fields verified:
+package_code=SMOKE-PAY-COURSE-20260626172129
+student_email=nguyenvanan@sv.maritime.edu
+student_name=Nguyễn Văn An
+status=ACTIVE
+payment_reference=SMOKE-PACKAGE-SEP-001
+```

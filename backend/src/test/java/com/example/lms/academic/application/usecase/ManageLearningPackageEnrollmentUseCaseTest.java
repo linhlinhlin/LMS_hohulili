@@ -12,9 +12,14 @@ import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.identity.domain.model.Role;
+import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
 import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.application.port.SepayPaymentPort;
+import com.example.lms.shared.domain.valueobject.Email;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.domain.model.OrgPaymentConfig;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.ValidationException;
@@ -58,6 +63,9 @@ class ManageLearningPackageEnrollmentUseCaseTest {
 
     @Mock
     private RevenueConfigPort revenueConfigPort;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private ManageLearningPackageEnrollmentUseCase useCase;
@@ -620,6 +628,35 @@ class ManageLearningPackageEnrollmentUseCaseTest {
     }
 
     @Test
+    @DisplayName("exportEnrollments: enriches rows with package and student information")
+    void exportEnrollments_enrichesPackageAndStudentInformation() {
+        UUID orgId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+
+        when(repository.findLearningPackages(orgId))
+                .thenReturn(List.of(packageWithPolicy(orgId, packageId, "PAYMENT_REQUIRED")));
+        when(repository.findLearningPackageEnrollments(orgId, "ACTIVE"))
+                .thenReturn(List.of(paidEnrollment(enrollmentId, orgId, packageId, studentId)));
+        when(userRepository.findById(UserId.of(studentId)))
+                .thenReturn(Optional.of(user(studentId, orgId, "student@maritime.edu", "Nguyễn Văn An")));
+
+        var response = useCase.exportEnrollments(orgId, "active");
+
+        assertThat(response).hasSize(1);
+        var row = response.get(0);
+        assertThat(row.id()).isEqualTo(enrollmentId);
+        assertThat(row.packageId()).isEqualTo(packageId);
+        assertThat(row.packageCode()).isEqualTo("VMU-DKT-K63");
+        assertThat(row.packageName()).isEqualTo("Gói Điều khiển tàu biển K63");
+        assertThat(row.studentId()).isEqualTo(studentId);
+        assertThat(row.studentEmail()).isEqualTo("student@maritime.edu");
+        assertThat(row.studentName()).isEqualTo("Nguyễn Văn An");
+        assertThat(row.status()).isEqualTo("ACTIVE");
+    }
+
+    @Test
     @DisplayName("listAvailablePackagesForStudent: returns active packages with current enrollment")
     void listAvailablePackagesForStudent_returnsActivePackagesWithEnrollment() {
         UUID orgId = UUID.randomUUID();
@@ -832,5 +869,19 @@ class ManageLearningPackageEnrollmentUseCaseTest {
                 null,
                 Instant.now(),
                 null);
+    }
+
+    private User user(UUID id, UUID organizationId, String email, String fullName) {
+        return User.builder()
+                .id(UserId.of(id))
+                .username(email)
+                .email(Email.of(email))
+                .password("encoded")
+                .fullName(fullName)
+                .role(Role.STUDENT)
+                .enabled(true)
+                .organizationId(organizationId)
+                .createdAt(Instant.now())
+                .build();
     }
 }

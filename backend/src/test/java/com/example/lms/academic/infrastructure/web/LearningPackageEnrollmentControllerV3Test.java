@@ -1,6 +1,6 @@
 package com.example.lms.academic.infrastructure.web;
 
-import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentExportRowResponse;
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
 import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -148,12 +148,16 @@ class LearningPackageEnrollmentControllerV3Test {
         UUID actorId = UUID.randomUUID();
         UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId, false);
         when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
-        when(useCase.listEnrollments(organizationId, "ACTIVE")).thenReturn(List.of(
-                new LearningPackageEnrollmentResponse(
+        when(useCase.exportEnrollments(organizationId, "ACTIVE")).thenReturn(List.of(
+                new LearningPackageEnrollmentExportRowResponse(
                         enrollmentId,
                         organizationId,
                         packageId,
+                        "VMU-DKT-K63-FOUNDATION",
+                        "Huấn luyện an toàn cơ bản STCW",
                         studentId,
+                        "student@maritime.edu",
+                        "Nguyễn Văn An",
                         "ACTIVE",
                         "Đã đối soát, cần lưu \"sao kê\"",
                         new BigDecimal("1200000.00"),
@@ -174,10 +178,14 @@ class LearningPackageEnrollmentControllerV3Test {
         assertThat(response.getHeaders().getContentDisposition().getFilename())
                 .isEqualTo("learning-package-enrollments.csv");
         assertThat(response.getHeaders().getContentType().toString()).isEqualTo("text/csv;charset=UTF-8");
-        assertThat(csv).startsWith("\uFEFFenrollment_id,package_id,student_id,status");
+        assertThat(csv).startsWith("\uFEFFenrollment_id,package_id,package_code,package_name,student_id");
+        assertThat(csv).contains("VMU-DKT-K63-FOUNDATION");
+        assertThat(csv).contains("Huấn luyện an toàn cơ bản STCW");
+        assertThat(csv).contains("student@maritime.edu");
+        assertThat(csv).contains("Nguyễn Văn An");
         assertThat(csv).contains("SEPAY-001");
         assertThat(csv).contains("\"Đã đối soát, cần lưu \"\"sao kê\"\"\"");
-        verify(useCase).listEnrollments(organizationId, "ACTIVE");
+        verify(useCase).exportEnrollments(organizationId, "ACTIVE");
     }
 
     @Test

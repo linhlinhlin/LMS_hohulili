@@ -1,6 +1,7 @@
 package com.example.lms.academic.infrastructure.web;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentExportRowResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentEventResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
@@ -99,7 +100,7 @@ public class LearningPackageEnrollmentControllerV3 {
             @AuthenticationPrincipal UserJpaEntity currentUser) {
         verifyOrgAdminAccess(currentUser, orgId);
         requireLearningPackages(orgId);
-        byte[] body = toCsvBytes(useCase.listEnrollments(orgId, status));
+        byte[] body = toCsvBytes(useCase.exportEnrollments(orgId, status));
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"learning-package-enrollments.csv\"")
                 .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
@@ -211,12 +212,16 @@ public class LearningPackageEnrollmentControllerV3 {
         }
     }
 
-    private byte[] toCsvBytes(List<LearningPackageEnrollmentResponse> enrollments) {
+    private byte[] toCsvBytes(List<LearningPackageEnrollmentExportRowResponse> enrollments) {
         StringBuilder csv = new StringBuilder("\uFEFF");
         appendCsvRow(csv,
                 "enrollment_id",
                 "package_id",
+                "package_code",
+                "package_name",
                 "student_id",
+                "student_email",
+                "student_name",
                 "status",
                 "payment_amount",
                 "currency",
@@ -225,11 +230,15 @@ public class LearningPackageEnrollmentControllerV3 {
                 "requested_at",
                 "decided_at",
                 "decision_note");
-        for (LearningPackageEnrollmentResponse enrollment : enrollments) {
+        for (LearningPackageEnrollmentExportRowResponse enrollment : enrollments) {
             appendCsvRow(csv,
                     enrollment.id(),
                     enrollment.packageId(),
+                    enrollment.packageCode(),
+                    enrollment.packageName(),
                     enrollment.studentId(),
+                    enrollment.studentEmail(),
+                    enrollment.studentName(),
                     enrollment.status(),
                     enrollment.paymentAmount(),
                     enrollment.paymentCurrency(),

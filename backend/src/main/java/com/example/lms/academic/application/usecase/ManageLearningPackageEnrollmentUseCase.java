@@ -1,6 +1,7 @@
 package com.example.lms.academic.application.usecase;
 
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentExportRowResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageAvailabilityResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentEventResponse;
 import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackagePaymentQrResponse;
@@ -16,9 +17,12 @@ import com.example.lms.academic.domain.model.AcademicLearningPackageRevenueSplit
 import com.example.lms.academic.domain.model.AcademicSubjectCourse;
 import com.example.lms.academic.domain.repository.AcademicCatalogRepository;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
+import com.example.lms.identity.domain.model.User;
+import com.example.lms.identity.domain.repository.UserRepository;
 import com.example.lms.learning_delivery.application.usecase.GrantCourseAccessUseCase;
 import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.application.port.SepayPaymentPort;
+import com.example.lms.shared.domain.valueobject.UserId;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import com.example.lms.shared.exception.ValidationException;
@@ -46,6 +50,7 @@ public class ManageLearningPackageEnrollmentUseCase {
     private final GrantCourseAccessUseCase courseAccessGrant;
     private final SepayPaymentPort sepayPayment;
     private final RevenueConfigPort revenueConfigPort;
+    private final UserRepository userRepository;
 
     @Transactional
     public LearningPackageEnrollmentResponse requestEnrollment(UUID organizationId, UUID packageId, UUID studentId) {
@@ -78,6 +83,20 @@ public class ManageLearningPackageEnrollmentUseCase {
         var safeStatus = normalizeStatus(status);
         return repository.findLearningPackageEnrollments(organizationId, safeStatus).stream()
                 .map(this::toResponse)
+                .toList();
+    }
+
+    public List<LearningPackageEnrollmentExportRowResponse> exportEnrollments(UUID organizationId, String status) {
+        var safeStatus = normalizeStatus(status);
+        Map<UUID, AcademicLearningPackage> packagesById = new LinkedHashMap<>();
+        for (var learningPackage : repository.findLearningPackages(organizationId)) {
+            packagesById.putIfAbsent(learningPackage.id(), learningPackage);
+        }
+        return repository.findLearningPackageEnrollments(organizationId, safeStatus).stream()
+                .map(enrollment -> toExportRow(
+                        enrollment,
+                        packagesById.get(enrollment.packageId()),
+                        userRepository.findById(UserId.of(enrollment.studentId())).orElse(null)))
                 .toList();
     }
 
@@ -476,6 +495,32 @@ public class ManageLearningPackageEnrollmentUseCase {
                 e.organizationId(),
                 e.packageId(),
                 e.studentId(),
+                e.status(),
+                e.decisionNote(),
+                e.paymentAmount(),
+                e.paymentCurrency(),
+                e.paymentReference(),
+                e.paymentConfirmedAt(),
+                e.paymentConfirmedBy(),
+                e.requestedAt(),
+                e.decidedAt(),
+                e.decidedBy(),
+                e.createdAt());
+    }
+
+    private LearningPackageEnrollmentExportRowResponse toExportRow(
+            AcademicLearningPackageEnrollment e,
+            AcademicLearningPackage learningPackage,
+            User student) {
+        return new LearningPackageEnrollmentExportRowResponse(
+                e.id(),
+                e.organizationId(),
+                e.packageId(),
+                learningPackage != null ? learningPackage.code() : null,
+                learningPackage != null ? learningPackage.name() : null,
+                e.studentId(),
+                student != null && student.getEmail() != null ? student.getEmail().getValue() : null,
+                student != null ? student.getFullName() : null,
                 e.status(),
                 e.decisionNote(),
                 e.paymentAmount(),

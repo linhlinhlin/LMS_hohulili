@@ -181,6 +181,27 @@ public final class AcademicCatalogDtos {
             UUID decidedBy,
             Instant createdAt) {}
 
+    public record LearningPackageEnrollmentExportRowResponse(
+            UUID id,
+            UUID organizationId,
+            UUID packageId,
+            String packageCode,
+            String packageName,
+            UUID studentId,
+            String studentEmail,
+            String studentName,
+            String status,
+            String decisionNote,
+            BigDecimal paymentAmount,
+            String paymentCurrency,
+            String paymentReference,
+            Instant paymentConfirmedAt,
+            UUID paymentConfirmedBy,
+            Instant requestedAt,
+            Instant decidedAt,
+            UUID decidedBy,
+            Instant createdAt) {}
+
     public record LearningPackagePaymentEventResponse(
             UUID id,
             UUID organizationId,
