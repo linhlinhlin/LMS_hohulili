@@ -5,7 +5,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.example</groupId>
   <artifactId>backend-lms-postgres</artifactId>
-  <version>0.0.1-SNAPSHOT</version>
+  <version>0.2.0</version>
   <name>backend-lms-postgres</name>
   <description>LMS backend with PostgreSQL (Docker Compose)</description>
   <parent>
