@@ -2798,3 +2798,41 @@ cd fe
 npm run build
 # Build passed. Existing Angular/Sass/CommonJS warnings remain unrelated to this change.
 ```
+
+## 58. Phase 4.28 learning package enrollment CSV export for org reconciliation - 2026-06-27
+
+Mục tiêu của vòng này là thêm một điểm đối soát tối thiểu cho ORG_ADMIN sau khi luồng học phí gói học đã có payment event, revenue split, teacher history và payout. Với VMU, phòng/khoa cần tải danh sách đăng ký gói học theo trạng thái để kiểm tra mã chuyển khoản, thời điểm xác nhận và ghi chú xử lý mà không phải đọc từng enrollment trên UI.
+
+Thay đổi đã thực hiện:
+
+- Thêm endpoint `GET /api/v3/organizations/{orgId}/academic/learning-package-enrollments/export.csv`.
+- Endpoint dùng cùng rule quyền với danh sách enrollment: `ADMIN` hoặc `ORG_ADMIN` cùng tổ chức.
+- Endpoint vẫn enforce capability `learning_packages`; ORG chưa bật gói học không thể export dữ liệu gói học.
+- CSV xuất UTF-8 có BOM để Excel mở tiếng Việt tốt hơn.
+- CSV escape dấu phẩy, xuống dòng và dấu ngoặc kép theo chuẩn CSV.
+- Cột export hiện là audit/money ổn định: enrollment/package/student id, status, amount, currency, payment reference, payment confirmed/requested/decided timestamps và decision note.
+
+Quyết định thiết kế:
+
+- Không thêm schema, không thêm reporting subsystem và không thêm dependency CSV mới. Controller format CSV từ response hiện có là đủ cho bước đối soát đầu tiên.
+- Không hardcode VMU. VMU chỉ là dữ liệu org/package/enrollment; endpoint dùng chung cho mọi ORG có `learning_packages`.
+- Chưa enrich tên học viên/tên gói trong CSV để tránh kéo thêm read model lớn. Nếu phòng đào tạo cần file kế toán thân thiện hơn, phase sau có thể thêm read model có join user/package.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 18, Failures: 0, Errors: 0, Skipped: 0
+
+mvn "-Dtest=ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 43, Failures: 0, Errors: 0, Skipped: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl -H "Authorization: Bearer <ORG_ADMIN_TOKEN>" \
+  "http://localhost:8088/api/v3/organizations/<ORG_ID>/academic/learning-package-enrollments/export.csv?status=ACTIVE"
+# HTTP/1.1 200
+# Content-Disposition: attachment; filename="learning-package-enrollments.csv"
+# Content-Type: text/csv;charset=UTF-8
+# CSV header and ACTIVE enrollment rows returned.
+```

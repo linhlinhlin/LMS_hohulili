@@ -16,12 +16,15 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -85,6 +88,22 @@ public class LearningPackageEnrollmentControllerV3 {
         verifyOrgAdminAccess(currentUser, orgId);
         requireLearningPackages(orgId);
         return ResponseEntity.ok(ApiResponse.success(useCase.listEnrollments(orgId, status)));
+    }
+
+    @GetMapping(value = "/learning-package-enrollments/export.csv", produces = "text/csv;charset=UTF-8")
+    @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
+    @Operation(summary = "Export learning package enrollments as CSV for reconciliation")
+    public ResponseEntity<byte[]> exportEnrollmentsCsv(
+            @PathVariable UUID orgId,
+            @RequestParam(required = false) String status,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAdminAccess(currentUser, orgId);
+        requireLearningPackages(orgId);
+        byte[] body = toCsvBytes(useCase.listEnrollments(orgId, status));
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"learning-package-enrollments.csv\"")
+                .contentType(MediaType.parseMediaType("text/csv;charset=UTF-8"))
+                .body(body);
     }
 
     @PatchMapping("/learning-package-enrollments/{enrollmentId}/approve")
@@ -190,5 +209,59 @@ public class LearningPackageEnrollmentControllerV3 {
         if (!capabilitiesUseCase.isEnabled(orgId, LEARNING_PACKAGES)) {
             throw new AccessDeniedException("Organization capability is disabled: " + LEARNING_PACKAGES);
         }
+    }
+
+    private byte[] toCsvBytes(List<LearningPackageEnrollmentResponse> enrollments) {
+        StringBuilder csv = new StringBuilder("\uFEFF");
+        appendCsvRow(csv,
+                "enrollment_id",
+                "package_id",
+                "student_id",
+                "status",
+                "payment_amount",
+                "currency",
+                "payment_reference",
+                "payment_confirmed_at",
+                "requested_at",
+                "decided_at",
+                "decision_note");
+        for (LearningPackageEnrollmentResponse enrollment : enrollments) {
+            appendCsvRow(csv,
+                    enrollment.id(),
+                    enrollment.packageId(),
+                    enrollment.studentId(),
+                    enrollment.status(),
+                    enrollment.paymentAmount(),
+                    enrollment.paymentCurrency(),
+                    enrollment.paymentReference(),
+                    enrollment.paymentConfirmedAt(),
+                    enrollment.requestedAt(),
+                    enrollment.decidedAt(),
+                    enrollment.decisionNote());
+        }
+        return csv.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private void appendCsvRow(StringBuilder csv, Object... values) {
+        for (int i = 0; i < values.length; i++) {
+            if (i > 0) {
+                csv.append(',');
+            }
+            csv.append(csvValue(values[i]));
+        }
+        csv.append('\n');
+    }
+
+    private String csvValue(Object value) {
+        if (value == null) {
+            return "";
+        }
+        String text = value.toString();
+        boolean mustQuote = text.indexOf(',') >= 0
+                || text.indexOf('"') >= 0
+                || text.indexOf('\n') >= 0
+                || text.indexOf('\r') >= 0;
+        String escaped = text.replace("\"", "\"\"");
+        return mustQuote ? '"' + escaped + '"' : escaped;
     }
 }

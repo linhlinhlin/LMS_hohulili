@@ -1,5 +1,6 @@
 package com.example.lms.academic.infrastructure.web;
 
+import com.example.lms.academic.application.dto.AcademicCatalogDtos.LearningPackageEnrollmentResponse;
 import com.example.lms.academic.application.usecase.ManageLearningPackageEnrollmentUseCase;
 import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
@@ -11,8 +12,13 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 
+import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -130,6 +136,48 @@ class LearningPackageEnrollmentControllerV3Test {
         controller.listEnrollments(organizationId, "PENDING_APPROVAL", admin);
 
         verify(useCase).listEnrollments(organizationId, "PENDING_APPROVAL");
+    }
+
+    @Test
+    @DisplayName("exportEnrollmentsCsv: allows same-organization ORG_ADMIN and escapes reconciliation note")
+    void exportEnrollmentsCsv_allowsSameOrganizationOrgAdminAndEscapesNote() {
+        UUID organizationId = UUID.randomUUID();
+        UUID enrollmentId = UUID.randomUUID();
+        UUID packageId = UUID.randomUUID();
+        UUID studentId = UUID.randomUUID();
+        UUID actorId = UUID.randomUUID();
+        UserJpaEntity orgAdmin = user(UserJpaEntity.UserRole.ORG_ADMIN, organizationId, false);
+        when(capabilitiesUseCase.isEnabled(organizationId, "learning_packages")).thenReturn(true);
+        when(useCase.listEnrollments(organizationId, "ACTIVE")).thenReturn(List.of(
+                new LearningPackageEnrollmentResponse(
+                        enrollmentId,
+                        organizationId,
+                        packageId,
+                        studentId,
+                        "ACTIVE",
+                        "Đã đối soát, cần lưu \"sao kê\"",
+                        new BigDecimal("1200000.00"),
+                        "VND",
+                        "SEPAY-001",
+                        Instant.parse("2026-06-27T01:00:00Z"),
+                        actorId,
+                        Instant.parse("2026-06-27T00:00:00Z"),
+                        Instant.parse("2026-06-27T01:00:00Z"),
+                        actorId,
+                        Instant.parse("2026-06-27T00:00:00Z")
+                )
+        ));
+
+        var response = controller.exportEnrollmentsCsv(organizationId, "ACTIVE", orgAdmin);
+        String csv = new String(response.getBody(), StandardCharsets.UTF_8);
+
+        assertThat(response.getHeaders().getContentDisposition().getFilename())
+                .isEqualTo("learning-package-enrollments.csv");
+        assertThat(response.getHeaders().getContentType().toString()).isEqualTo("text/csv;charset=UTF-8");
+        assertThat(csv).startsWith("\uFEFFenrollment_id,package_id,student_id,status");
+        assertThat(csv).contains("SEPAY-001");
+        assertThat(csv).contains("\"Đã đối soát, cần lưu \"\"sao kê\"\"\"");
+        verify(useCase).listEnrollments(organizationId, "ACTIVE");
     }
 
     @Test
