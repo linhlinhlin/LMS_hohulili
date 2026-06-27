@@ -2773,3 +2773,28 @@ Trạng thái sau Phase 4.26:
 - Chuỗi VMU package payment đã nhất quán hơn: package enrollment active -> revenue split -> teacher summary/balance -> teacher history -> payout balance.
 - Giảng viên không còn thấy lệch giữa số tổng và lịch sử khi doanh thu đến từ gói học.
 - Debt tài chính còn lại chuyển sang cấp accounting/reporting: invoice/receipt chính thức, export đối soát, và UI badge chi tiết nguồn doanh thu nếu cần trình diễn sâu hơn.
+
+## 57. Phase 4.27 teacher revenue UI labels package revenue source - 2026-06-27
+
+Mục tiêu của vòng này là làm rõ phần trình diễn cho giảng viên sau Phase 4.26: backend đã trả `source=PACKAGE`, vì vậy UI không nên chỉ dựa vào hậu tố trong `courseName` để người dùng nhận ra dòng doanh thu đến từ gói học. Đây là thay đổi frontend tối thiểu, không đổi logic tính tiền.
+
+Thay đổi đã thực hiện:
+
+- Bổ sung field `source?: 'COURSE' | 'PACKAGE'` cho `RevenueHistoryItem`.
+- Teacher revenue dashboard hiển thị badge `Gói học` khi dòng lịch sử có `source=PACKAGE`.
+- Tên khóa học trên UI tự bỏ hậu tố fallback `(Gói học)` khi đã có badge, tránh lặp chữ và giữ màn hình gọn.
+
+Quyết định thiết kế:
+
+- Không đổi API backend vì Phase 4.26 đã cung cấp contract đủ dùng.
+- Không hardcode VMU. Badge dựa trên loại nguồn doanh thu, áp dụng cho mọi ORG dùng learning package.
+- Không redesign dashboard doanh thu trong vòng này; chỉ sửa micro-UX để dữ liệu package được đọc đúng.
+- Giữ `source` optional để FE vẫn tương thích với response cũ hoặc dữ liệu cache chưa có field này.
+
+Verification:
+
+```bash
+cd fe
+npm run build
+# Build passed. Existing Angular/Sass/CommonJS warnings remain unrelated to this change.
+```
