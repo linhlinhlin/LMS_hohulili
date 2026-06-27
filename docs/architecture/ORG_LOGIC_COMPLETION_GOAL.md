@@ -2714,3 +2714,62 @@ POST /api/v3/organizations/{orgId}/academic/learning-packages/{packageId}/enroll
 # DB before cleanup: PENDING_APPROVAL:1; REFUNDED:1
 # temporary package deleted after smoke
 ```
+
+## 56. Phase 4.26 teacher revenue history includes package revenue - 2026-06-27
+
+Mục tiêu của vòng này là đóng debt còn lại ở dashboard giảng viên: sau Phase 4.22, tổng doanh thu và số dư rút tiền đã cộng `learning_package_revenue_splits`, nhưng endpoint lịch sử `/api/v3/teacher/revenue/history` vẫn chỉ đọc `revenue_splits` course-level. Với VMU, học phí theo gói học phải đối soát được tới từng giảng viên, nếu không giảng viên thấy số tổng đúng nhưng không thấy dòng nguồn tiền tương ứng.
+
+Thay đổi đã thực hiện:
+
+- Mở rộng `LearningPackageRevenuePort` bằng read model `TeacherRevenueLine`.
+- `LearningPackageRevenuePortAdapter` đọc từ `learning_package_revenue_splits` và chỉ trả các split thuộc enrollment `ACTIVE`.
+- `GetTeacherRevenueUseCase.getHistory(...)` gộp course revenue và package revenue vào cùng timeline, sort theo `createdAt DESC`, phân trang sau khi merge, và trả `totalElements` bằng tổng hai nguồn.
+- `RevenueSplitDto` có thêm field `source` với giá trị `COURSE` hoặc `PACKAGE`; contract cũ vẫn giữ các field đang dùng bởi FE.
+- Package revenue line dùng `paymentId = null` vì nguồn package đang lưu `paymentReference` dạng chuỗi ở enrollment ledger, không phải UUID payment transaction course-level.
+- Label package revenue thêm hậu tố `(Gói học)` để teacher dashboard hiện tại nhìn ra nguồn doanh thu mà chưa cần đổi FE.
+- Thêm test chứng minh history merge đúng thứ tự, đúng total và dòng package có `source=PACKAGE`.
+
+Quyết định thiết kế:
+
+- Không tạo bảng/reporting subsystem mới. Đây là read-model merge nhỏ trong modular monolith.
+- Không hardcode VMU. VMU vẫn là dữ liệu organization/package/course/teacher; logic áp dụng cho mọi ORG dùng learning package.
+- Không tính revenue của enrollment `REFUNDED`, `CANCELLED`, `REJECTED` trong history vì port query chỉ join enrollment `ACTIVE`, thống nhất với aggregate ở các phase trước.
+- Không đổi giao diện teacher ngay trong vòng này. Backend đã trả `source`, FE có thể tận dụng sau nếu cần badge "Gói học"; hiện tại hậu tố trong `courseName` đủ cho demo không phá UI.
+
+Verification:
+
+```bash
+cd backend
+mvn "-Dtest=GetTeacherRevenueUseCaseTest" test
+# Tests run: 3, Failures: 0, Errors: 0, Skipped: 0
+
+mvn "-Dtest=GetTeacherRevenueUseCaseTest,RequestPayoutUseCaseTest,GetCrossOrgRevenueUseCaseTest,ManageLearningPackageEnrollmentUseCaseTest,LearningPackageEnrollmentControllerV3Test" test
+# Tests run: 51, Failures: 0, Errors: 0, Skipped: 0
+
+mvn test
+# Tests run: 1256, Failures: 0, Errors: 0, Skipped: 0
+
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build backend
+curl http://localhost:8088/actuator/health
+# {"status":"UP"}
+```
+
+Runtime smoke:
+
+```text
+teacher@maritime.edu:
+GET /api/v3/teacher/revenue/history?page=0&size=5 -> 200, totalElements=0
+
+vudinhthang@maritime.edu:
+GET /api/v3/teacher/revenue/history?page=0&size=5 -> 200
+totalElements=1
+firstSource=PACKAGE
+firstCourseName=Huấn Luyện An Toàn Cơ Bản STCW (Gói học)
+firstTeacherAmount=875000.00
+```
+
+Trạng thái sau Phase 4.26:
+
+- Chuỗi VMU package payment đã nhất quán hơn: package enrollment active -> revenue split -> teacher summary/balance -> teacher history -> payout balance.
+- Giảng viên không còn thấy lệch giữa số tổng và lịch sử khi doanh thu đến từ gói học.
+- Debt tài chính còn lại chuyển sang cấp accounting/reporting: invoice/receipt chính thức, export đối soát, và UI badge chi tiết nguồn doanh thu nếu cần trình diễn sâu hơn.

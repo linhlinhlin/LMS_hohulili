@@ -4,6 +4,8 @@ import com.example.lms.academic.infrastructure.persistence.repository.AcademicLe
 import com.example.lms.shared.application.port.LearningPackageRevenuePort;
 import com.example.lms.shared.domain.model.OrgRevenueAggregate;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -34,6 +36,22 @@ public class LearningPackageRevenuePortAdapter implements LearningPackageRevenue
     @Override
     public List<UUID> findDistinctCourseIdsByTeacherId(UUID teacherId) {
         return repository.findDistinctCourseIdsByTeacherId(teacherId);
+    }
+
+    @Override
+    public Page<TeacherRevenueLine> findTeacherRevenueLines(UUID teacherId, Pageable pageable) {
+        return repository.findTeacherRevenueLines(teacherId, pageable)
+                .map(e -> new TeacherRevenueLine(
+                        e.getId(),
+                        e.getEnrollmentId(),
+                        e.getPackageId(),
+                        e.getCourseId(),
+                        e.getGrossAmount(),
+                        e.getPlatformFeePct(),
+                        e.getTeacherSharePct(),
+                        e.getPlatformAmount(),
+                        e.getTeacherAmount(),
+                        e.getCreatedAt()));
     }
 
     @Override

@@ -13,6 +13,7 @@ import com.example.lms.shared.domain.repository.TeacherBankAccountRepository;
 import com.example.lms.shared.infrastructure.service.RevenueConfigService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -38,8 +41,6 @@ public class GetTeacherRevenueUseCase {
     private final UserJpaRepository             userRepository;
     private final RevenueConfigService          revenueConfigService;
     private final LearningPackageRevenuePort    learningPackageRevenuePort;
-
-    // ── DTOs ─────────────────────────────────────────────────────────────
 
     public record RevenueSummaryDto(
             BigDecimal totalRevenue,
@@ -60,7 +61,8 @@ public class GetTeacherRevenueUseCase {
             BigDecimal teacherSharePct,
             BigDecimal platformAmount,
             BigDecimal teacherAmount,
-            Instant    createdAt
+            Instant    createdAt,
+            String     source
     ) {}
 
     public record PayoutBalanceDto(
@@ -83,11 +85,9 @@ public class GetTeacherRevenueUseCase {
             String     accountNumberMasked
     ) {}
 
-    // ── Methods ──────────────────────────────────────────────────────────
-
     @Transactional(readOnly = true)
     public RevenueSummaryDto getSummary(UUID teacherId) {
-        BigDecimal total     = sumRevenue(
+        BigDecimal total = sumRevenue(
                 revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId),
                 learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId));
         BigDecimal thisMonth = sumRevenue(
@@ -96,7 +96,7 @@ public class GetTeacherRevenueUseCase {
         BigDecimal lastMonth = sumRevenue(
                 revenueSplitRepository.sumTeacherAmountLastMonth(teacherId),
                 learningPackageRevenuePort.sumTeacherAmountLastMonth(teacherId));
-        long       sold      = countDistinctRevenueCourses(teacherId);
+        long sold = countDistinctRevenueCourses(teacherId);
 
         double growth = 0.0;
         if (lastMonth.compareTo(BigDecimal.ZERO) > 0) {
@@ -110,21 +110,34 @@ public class GetTeacherRevenueUseCase {
 
     @Transactional(readOnly = true)
     public Page<RevenueSplitDto> getHistory(UUID teacherId, int page, int size) {
-        Page<RevenueSplit> splits = revenueSplitRepository.findByTeacherId(
-                teacherId, PageRequest.of(page, size));
+        int safePage = Math.max(page, 0);
+        int safeSize = Math.max(size, 1);
+        long offset = (long) safePage * safeSize;
+        int fetchSize = (int) Math.min(Integer.MAX_VALUE, offset + safeSize);
+        var sourceWindow = PageRequest.of(0, fetchSize);
+        var targetPage = PageRequest.of(safePage, safeSize);
 
-        // Batch-load course titles
-        List<UUID> courseIds = splits.stream().map(RevenueSplit::getCourseId).distinct().toList();
-        Map<UUID, String> courseTitles = courseRepository.findAllById(courseIds)
-                .stream().collect(Collectors.toMap(c -> c.getId(), c -> c.getTitle()));
+        Page<RevenueSplit> courseSplits = revenueSplitRepository.findByTeacherId(teacherId, sourceWindow);
+        Page<LearningPackageRevenuePort.TeacherRevenueLine> packageSplits =
+                learningPackageRevenuePort.findTeacherRevenueLines(teacherId, sourceWindow);
 
-        return splits.map(s -> new RevenueSplitDto(
-                s.getId(), s.getPaymentId(), s.getCourseId(),
-                courseTitles.getOrDefault(s.getCourseId(), "—"),
-                "—",   // student name not stored in split (privacy)
-                s.getGrossAmount(), s.getPlatformFeePct(), s.getTeacherSharePct(),
-                s.getPlatformAmount(), s.getTeacherAmount(), s.getCreatedAt()
-        ));
+        Map<UUID, String> courseTitles = loadCourseTitles(courseSplits, packageSplits);
+        List<RevenueSplitDto> history = new ArrayList<>();
+        history.addAll(courseSplits.stream()
+                .map(split -> toCourseRevenueDto(split, courseTitles))
+                .toList());
+        history.addAll(packageSplits.stream()
+                .map(split -> toPackageRevenueDto(split, courseTitles))
+                .toList());
+
+        List<RevenueSplitDto> content = history.stream()
+                .sorted(Comparator.comparing(RevenueSplitDto::createdAt).reversed())
+                .skip(offset)
+                .limit(safeSize)
+                .toList();
+
+        long total = courseSplits.getTotalElements() + packageSplits.getTotalElements();
+        return new PageImpl<>(content, targetPage, total);
     }
 
     @Transactional(readOnly = true)
@@ -132,41 +145,102 @@ public class GetTeacherRevenueUseCase {
         Page<PayoutRequest> requests = payoutRequestRepository.findByTeacherId(
                 teacherId, PageRequest.of(page, size));
 
-        // Build bank account lookup map for this page
         List<UUID> bankAccountIds = requests.stream()
                 .map(PayoutRequest::getBankAccountId)
-                .distinct().toList();
+                .distinct()
+                .toList();
         Map<UUID, TeacherBankAccount> bankAccounts = bankAccountRepository.findByIds(bankAccountIds).stream()
                 .collect(Collectors.toMap(TeacherBankAccount::getId, account -> account));
 
-        return requests.map(p -> {
-            TeacherBankAccount acct = bankAccounts.get(p.getBankAccountId());
-            String bankCode = acct != null ? acct.getBankCode() : "—";
-            String num      = acct != null ? acct.getAccountNumber() : "";
-            String masked   = BankAccountMasking.mask(num);
+        return requests.map(payout -> {
+            TeacherBankAccount account = bankAccounts.get(payout.getBankAccountId());
+            String bankCode = account != null ? account.getBankCode() : "-";
+            String accountNumber = account != null ? account.getAccountNumber() : "";
             return new PayoutHistoryDto(
-                    p.getId(), p.getAmount(), p.getStatus().name(),
-                    p.getTeacherNote(), p.getAdminNote(),
-                    p.getRequestedAt(), p.getProcessedAt(),
-                    p.getBankAccountId(), bankCode, masked);
+                    payout.getId(),
+                    payout.getAmount(),
+                    payout.getStatus().name(),
+                    payout.getTeacherNote(),
+                    payout.getAdminNote(),
+                    payout.getRequestedAt(),
+                    payout.getProcessedAt(),
+                    payout.getBankAccountId(),
+                    bankCode,
+                    BankAccountMasking.mask(accountNumber));
         });
     }
 
     @Transactional(readOnly = true)
     public PayoutBalanceDto getBalance(UUID teacherId) {
-        BigDecimal totalEarned  = sumRevenue(
+        BigDecimal totalEarned = sumRevenue(
                 revenueSplitRepository.sumTeacherAmountByTeacherId(teacherId),
                 learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId));
-        BigDecimal completed    = payoutRequestRepository.sumCompletedByTeacherId(teacherId);
-        BigDecimal inFlight     = payoutRequestRepository.sumPendingAndApprovedByTeacherId(teacherId);
-        BigDecimal available    = totalEarned.subtract(completed).subtract(inFlight);
-        if (available.compareTo(BigDecimal.ZERO) < 0) available = BigDecimal.ZERO;
+        BigDecimal completed = payoutRequestRepository.sumCompletedByTeacherId(teacherId);
+        BigDecimal inFlight = payoutRequestRepository.sumPendingAndApprovedByTeacherId(teacherId);
+        BigDecimal available = totalEarned.subtract(completed).subtract(inFlight);
+        if (available.compareTo(BigDecimal.ZERO) < 0) {
+            available = BigDecimal.ZERO;
+        }
 
         UUID orgId = userRepository.findById(teacherId)
-                .map(u -> u.getOrganizationId()).orElse(null);
+                .map(user -> user.getOrganizationId())
+                .orElse(null);
         BigDecimal minPayout = revenueConfigService.resolveConfig(orgId).getMinPayoutAmount();
 
         return new PayoutBalanceDto(available, inFlight, completed, minPayout);
+    }
+
+    private Map<UUID, String> loadCourseTitles(
+            Page<RevenueSplit> courseSplits,
+            Page<LearningPackageRevenuePort.TeacherRevenueLine> packageSplits) {
+        List<UUID> courseIds = new ArrayList<>();
+        courseIds.addAll(courseSplits.stream().map(RevenueSplit::getCourseId).distinct().toList());
+        courseIds.addAll(packageSplits.stream()
+                .map(LearningPackageRevenuePort.TeacherRevenueLine::courseId)
+                .distinct()
+                .toList());
+        return courseRepository.findAllById(courseIds).stream()
+                .collect(Collectors.toMap(course -> course.getId(), course -> course.getTitle()));
+    }
+
+    private RevenueSplitDto toCourseRevenueDto(RevenueSplit split, Map<UUID, String> courseTitles) {
+        return new RevenueSplitDto(
+                split.getId(),
+                split.getPaymentId(),
+                split.getCourseId(),
+                courseTitles.getOrDefault(split.getCourseId(), "-"),
+                "-",
+                split.getGrossAmount(),
+                split.getPlatformFeePct(),
+                split.getTeacherSharePct(),
+                split.getPlatformAmount(),
+                split.getTeacherAmount(),
+                split.getCreatedAt(),
+                "COURSE");
+    }
+
+    private RevenueSplitDto toPackageRevenueDto(
+            LearningPackageRevenuePort.TeacherRevenueLine split,
+            Map<UUID, String> courseTitles) {
+        return new RevenueSplitDto(
+                split.id(),
+                null,
+                split.courseId(),
+                packageCourseLabel(courseTitles.get(split.courseId())),
+                "-",
+                split.grossAmount(),
+                split.platformFeePct(),
+                split.teacherSharePct(),
+                split.platformAmount(),
+                split.teacherAmount(),
+                split.createdAt(),
+                "PACKAGE");
+    }
+
+    private String packageCourseLabel(String courseTitle) {
+        return courseTitle == null || courseTitle.isBlank()
+                ? "Gói học"
+                : courseTitle + " (Gói học)";
     }
 
     private BigDecimal sumRevenue(BigDecimal courseRevenue, BigDecimal packageRevenue) {

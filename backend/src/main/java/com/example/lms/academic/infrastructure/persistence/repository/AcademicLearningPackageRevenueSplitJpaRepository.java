@@ -1,6 +1,8 @@
 package com.example.lms.academic.infrastructure.persistence.repository;
 
 import com.example.lms.academic.infrastructure.persistence.entity.AcademicLearningPackageRevenueSplitJpaEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +18,30 @@ public interface AcademicLearningPackageRevenueSplitJpaRepository
 
     List<AcademicLearningPackageRevenueSplitJpaEntity>
     findByOrganizationIdAndEnrollmentIdOrderByCreatedAtAsc(UUID organizationId, UUID enrollmentId);
+
+    @Query(value = """
+        SELECT s.*
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE s.teacher_id = :teacherId
+          AND e.status = 'ACTIVE'
+        ORDER BY s.created_at DESC
+        """,
+        countQuery = """
+        SELECT COUNT(*)
+        FROM learning_package_revenue_splits s
+        JOIN learning_package_enrollments e
+          ON e.id = s.enrollment_id
+         AND e.organization_id = s.organization_id
+        WHERE s.teacher_id = :teacherId
+          AND e.status = 'ACTIVE'
+        """,
+        nativeQuery = true)
+    Page<AcademicLearningPackageRevenueSplitJpaEntity> findTeacherRevenueLines(
+            @Param("teacherId") UUID teacherId,
+            Pageable pageable);
 
     @Query(value = """
         SELECT COALESCE(SUM(s.teacher_amount), 0)
