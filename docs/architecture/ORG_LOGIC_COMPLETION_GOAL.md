@@ -1,6 +1,6 @@
 # ORG Logic Completion Goal
 
-> Status: active goal, created 2026-06-25
+> Status: completed checkpoint, created 2026-06-25, completed 2026-06-27
 > Owner mode: Codex + team, minimal-change execution
 > Goal: hoàn thiện logic ORG theo hướng tenant + academic domain, không hardcode VMU, không phá Clean Architecture.
 
@@ -2932,6 +2932,26 @@ enrollment_id,package_id,package_code,package_name,student_id,student_email,stud
 Browser console errors: 0
 Page errors: 0
 ```
+
+## 62. Completion checkpoint - 2026-06-27
+
+Goal ORG logic completion đạt checkpoint hoàn thành theo Definition of Done của tài liệu này. Hệ thống hiện có đủ nền tảng để trình bày và tiếp tục phát triển mô hình ORG theo hướng phù hợp Đại học Hàng Hải Việt Nam mà không hardcode VMU:
+
+- Tenant boundary: `ADMIN` và `ORG_ADMIN` đã tách quyền; `ORG_ADMIN` bị scope theo `organization_id` và không thao tác system-only.
+- Ownership: course, learning class, payment, payout, academic catalog, package, package enrollment và package revenue đều truy được về org.
+- Academic model: VMU có dữ liệu và workflow cho khoa/bộ môn, ngành/chương trình, khóa tuyển sinh, lớp hành chính, học kỳ, môn học, khung chương trình, gói học, lớp triển khai trong gói và subject/course mapping.
+- Org capabilities: tổ chức bật/tắt được các năng lực như academic catalog, curriculum plan, learning packages, org payment config và org payout approval.
+- Package/enrollment policy: gói học có chính sách ghi danh, thanh toán, duyệt, kích hoạt, hoàn tiền, đăng ký lại sau trạng thái terminal và cấp/thu hồi quyền học theo package.
+- Payment/SePay/revenue: package payment có QR/SePay bridge, event ledger, revenue allocation weight, revenue split ledger, teacher balance/history, admin aggregate, payout impact và refund invariant.
+- Org-admin portal: `/org-admin/academic`, payment config và payout queue đã tách workflow vận hành tổ chức; package enrollment queue có lọc trạng thái, hiển thị học viên rõ nghĩa và export CSV đối soát.
+- Verification: các phase đã ghi lại backend tests, FE build, Docker/backend health, API smoke và browser smoke ngay trong tài liệu này.
+
+Các việc còn lại không phải blocker của goal hiện tại, nhưng là hướng phát triển sau checkpoint:
+
+- Hóa đơn/biên nhận chính thức cho package payment.
+- Report async/batch export nếu dữ liệu package enrollment lên hàng chục nghìn dòng.
+- Bảng `organization_policies` tổng quát chỉ khi có ít nhất hai rule ORG khác nhau cần runtime config ngoài model hiện tại.
+- Production deploy/merge tùy theo lịch review, vì goal hiện tại đã được hoàn thiện và push trên branch `codex/org-capabilities`.
 
 ## 61. Phase 4.31 package enrollment queue status filter and student identity - 2026-06-27
 
