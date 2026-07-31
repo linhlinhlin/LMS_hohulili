@@ -42,6 +42,15 @@ public class TokenServiceAdapter implements TokenService {
     }
 
     @Override
+    public boolean isRefreshToken(String token) {
+        try {
+            return jwtService.isRefreshToken(token);
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    @Override
     public String generateAccessToken(UUID userId, String email, String role) {
         Map<String, Object> claims = Map.of(
             "userId", userId.toString(),

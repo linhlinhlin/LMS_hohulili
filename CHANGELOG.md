@@ -6,6 +6,10 @@ This file follows the spirit of [Keep a Changelog](https://keepachangelog.com/en
 
 ## [Unreleased]
 
+### Security
+
+- Enforced conversation-topic membership, access/refresh JWT type separation, and rich-content sanitization at authoring and delivery boundaries
+
 ### Documentation
 
 - Rebuilt the canonical entrypoint docs: `README.md`, `backend/README.md`, `docs/README.md`, `docs/reference/PRODUCTION_SURFACES.md`, and `docs/testing/*`

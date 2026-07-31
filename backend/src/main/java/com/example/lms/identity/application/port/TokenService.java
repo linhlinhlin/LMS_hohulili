@@ -20,6 +20,11 @@ public interface TokenService {
     boolean isTokenValid(String token, String email);
 
     /**
+     * Returns true only when the token is explicitly marked for refresh use.
+     */
+    boolean isRefreshToken(String token);
+
+    /**
      * Generate a new access token for the given user.
      */
     String generateAccessToken(UUID userId, String email, String role);

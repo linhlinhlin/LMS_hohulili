@@ -31,6 +31,7 @@ import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmen
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaLearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.persistence.entity.EnrollmentJpaEntity;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.domain.service.ContentBlockSanitizer;
 import com.example.lms.shared.infrastructure.persistence.entity.PaymentTransactionJpaEntity;
 import com.example.lms.shared.infrastructure.persistence.repository.PaymentTransactionJpaRepository;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
@@ -1161,10 +1162,11 @@ public class QuizControllerV3 {
     }
 
     private Map<String, Object> toQuestionMap(QuestionJpaEntity q) {
+        List<ContentBlock> contentBlocks = ContentBlockSanitizer.sanitizeBlocks(q.getContentBlocks());
         Map<String, Object> map = new HashMap<>();
         map.put("id", q.getId().toString());
-        map.put("content", extractTextFromBlocks(q.getContentBlocks()));
-        map.put("contentBlocks", q.getContentBlocks());
+        map.put("content", extractTextFromBlocks(contentBlocks));
+        map.put("contentBlocks", contentBlocks);
         map.put("questionType", q.getQuestionType() != null ? q.getQuestionType().name() : "SINGLE_CHOICE");
         map.put("correctOption", q.getCorrectOption());
         map.put("answerKey", q.getAnswerKey());
@@ -1178,11 +1180,13 @@ public class QuizControllerV3 {
 
         if (q.getOptions() != null) {
             var options = q.getOptions().stream().map(opt -> {
+                List<ContentBlock> optionBlocks =
+                        ContentBlockSanitizer.sanitizeBlocks(opt.getContentBlocks());
                 Map<String, Object> optMap = new HashMap<>();
                 optMap.put("id", opt.getId() != null ? opt.getId().toString() : null);
                 optMap.put("optionKey", opt.getKey());
-                optMap.put("content", extractTextFromBlocks(opt.getContentBlocks()));
-                optMap.put("contentBlocks", opt.getContentBlocks());
+                optMap.put("content", extractTextFromBlocks(optionBlocks));
+                optMap.put("contentBlocks", optionBlocks);
                 optMap.put("displayOrder", opt.getOrderIndex());
                 return (Map<String, Object>) optMap;
             }).toList();
@@ -1196,10 +1200,11 @@ public class QuizControllerV3 {
      * to prevent answer key leakage before submission.
      */
     private Map<String, Object> toStudentQuestionMap(QuestionJpaEntity q) {
+        List<ContentBlock> contentBlocks = ContentBlockSanitizer.sanitizeBlocks(q.getContentBlocks());
         Map<String, Object> map = new HashMap<>();
         map.put("id", q.getId().toString());
-        map.put("content", extractTextFromBlocks(q.getContentBlocks()));
-        map.put("contentBlocks", q.getContentBlocks());
+        map.put("content", extractTextFromBlocks(contentBlocks));
+        map.put("contentBlocks", contentBlocks);
         map.put("questionType", q.getQuestionType() != null ? q.getQuestionType().name() : "SINGLE_CHOICE");
         map.put("difficulty", q.getDifficulty() != null ? q.getDifficulty().name() : "MEDIUM");
         map.put("tags", q.getTags());
@@ -1209,11 +1214,13 @@ public class QuizControllerV3 {
 
         if (q.getOptions() != null) {
             var options = q.getOptions().stream().map(opt -> {
+                List<ContentBlock> optionBlocks =
+                        ContentBlockSanitizer.sanitizeBlocks(opt.getContentBlocks());
                 Map<String, Object> optMap = new HashMap<>();
                 optMap.put("id", opt.getId() != null ? opt.getId().toString() : null);
                 optMap.put("optionKey", opt.getKey());
-                optMap.put("content", extractTextFromBlocks(opt.getContentBlocks()));
-                optMap.put("contentBlocks", opt.getContentBlocks());
+                optMap.put("content", extractTextFromBlocks(optionBlocks));
+                optMap.put("contentBlocks", optionBlocks);
                 optMap.put("displayOrder", opt.getOrderIndex());
                 return (Map<String, Object>) optMap;
             }).toList();
@@ -1341,7 +1348,7 @@ public class QuizControllerV3 {
         StringBuilder sb = new StringBuilder();
         for (var block : blocks) {
             if (block.getData() == null) continue;
-            var data = block.getData();
+            var data = ContentBlockSanitizer.sanitizeData(block.getData());
             boolean found = false;
             for (String key : List.of("html", "text", "content")) {
                 Object val = data.get(key);
