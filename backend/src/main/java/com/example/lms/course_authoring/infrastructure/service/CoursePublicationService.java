@@ -19,6 +19,7 @@ import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRep
 import com.example.lms.learning_delivery.infrastructure.persistence.JpaEnrollmentRepository;
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.domain.service.ContentBlockSanitizer;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -190,7 +191,7 @@ public class CoursePublicationService {
         Map<String, Object> detail = new LinkedHashMap<>();
         detail.put("id", course.getId().toString());
         detail.put("title", course.getTitle());
-        detail.put("description", course.getDescription());
+        detail.put("description", ContentBlockSanitizer.sanitizeHtml(course.getDescription()));
         detail.put("thumbnailUrl", course.getThumbnailUrl());
         detail.put("status", course.getStatus().name().toLowerCase(Locale.ROOT));
         detail.put("code", course.getCode() != null ? course.getCode().getValue() : null);
@@ -201,9 +202,9 @@ public class CoursePublicationService {
         detail.put("categoryId", course.getCategoryId() != null ? course.getCategoryId().toString() : null);
         detail.put("categoryName", resolveCategoryName(course.getCategoryId()));
         detail.put("tags", course.getTags() != null ? new ArrayList<>(course.getTags()) : List.of());
-        detail.put("welcomeMessage", course.getWelcomeMessage());
-        detail.put("courseInformation", course.getCourseInformation());
-        detail.put("benefits", course.getBenefits());
+        detail.put("welcomeMessage", ContentBlockSanitizer.sanitizeHtml(course.getWelcomeMessage()));
+        detail.put("courseInformation", ContentBlockSanitizer.sanitizeHtml(course.getCourseInformation()));
+        detail.put("benefits", ContentBlockSanitizer.sanitizeHtml(course.getBenefits()));
         detail.put("introVideoUrl", course.getIntroVideoAssetId() == null ? course.getIntroVideoUrl() : null);
         if (course.getIntroVideoAssetId() != null) {
             detail.put("introVideoAssetId", course.getIntroVideoAssetId().toString());
@@ -228,6 +229,7 @@ public class CoursePublicationService {
         }
 
         Map<String, Object> detail = new LinkedHashMap<>(detailSnapshot);
+        sanitizeCourseDetailFields(detail);
         applyIntroVideoAssetView(detail, parseVideoAssetId(detail.get("introVideoAssetId")));
         return detail;
     }
@@ -243,7 +245,18 @@ public class CoursePublicationService {
             return null;
         }
 
-        return new LinkedHashMap<>((Map<String, Object>) detail);
+        Map<String, Object> snapshot = new LinkedHashMap<>((Map<String, Object>) detail);
+        sanitizeCourseDetailFields(snapshot);
+        return snapshot;
+    }
+
+    private void sanitizeCourseDetailFields(Map<String, Object> detail) {
+        for (String key : List.of("description", "welcomeMessage", "courseInformation", "benefits")) {
+            Object value = detail.get(key);
+            if (value instanceof String text) {
+                detail.put(key, ContentBlockSanitizer.sanitizeHtml(text));
+            }
+        }
     }
 
     private List<Map<String, Object>> buildCourseContent(UUID courseId) {
@@ -320,7 +333,7 @@ public class CoursePublicationService {
         );
 
         for (ContentBlock block : lesson.getContentBlocks()) {
-            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
+            Map<String, Object> data = ContentBlockSanitizer.sanitizeData(block.getData());
             String streamVideoUid = resolveSectionStreamVideoUid(lesson, block, data, videoSectionCount);
             String videoType = resolveSectionVideoType(data, streamVideoUid);
 
@@ -529,8 +542,8 @@ public class CoursePublicationService {
         Map<String, Object> simulation = new LinkedHashMap<>();
         copyIfPresent(simulation, data, "simulationPackageId");
         copyIfPresent(simulation, data, "simulationVersion");
-        copyIfPresent(simulation, data, "entryUrl");
-        copyIfPresent(simulation, data, "manifestUrl");
+        copyAllowedSimulationUrl(simulation, data, "entryUrl");
+        copyAllowedSimulationUrl(simulation, data, "manifestUrl");
         copyIfPresent(simulation, data, "estimatedSizeBytes");
         copyIfPresent(simulation, data, "allowOffline");
         copyIfPresent(simulation, data, "completionPolicy");
@@ -542,7 +555,14 @@ public class CoursePublicationService {
     private void copyIfPresent(Map<String, Object> target, Map<String, Object> source, String key) {
         Object value = source.get(key);
         if (value != null) {
-            target.put(key, value);
+            target.put(key, ContentBlockSanitizer.sanitizeValue(value));
+        }
+    }
+
+    private void copyAllowedSimulationUrl(Map<String, Object> target, Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (ContentBlockSanitizer.isAllowedSimulationUrl(value)) {
+            target.put(key, ContentBlockSanitizer.sanitizeValue(value));
         }
     }
 
@@ -656,8 +676,10 @@ public class CoursePublicationService {
     private Map<String, Object> buildSectionQuizQuestion(QuestionJpaEntity question) {
         Map<String, Object> questionDto = new LinkedHashMap<>();
         questionDto.put("id", question.getId().toString());
-        questionDto.put("content", extractTextFromBlocks(question.getContentBlocks()));
-        questionDto.put("contentBlocks", question.getContentBlocks() != null ? question.getContentBlocks() : List.of());
+        List<ContentBlock> contentBlocks =
+                ContentBlockSanitizer.sanitizeBlocks(question.getContentBlocks());
+        questionDto.put("content", extractTextFromBlocks(contentBlocks));
+        questionDto.put("contentBlocks", contentBlocks != null ? contentBlocks : List.of());
         questionDto.put("questionType", question.getQuestionType() != null ? question.getQuestionType().name() : "SINGLE_CHOICE");
         questionDto.put("difficulty", question.getDifficulty() != null ? question.getDifficulty().name() : "MEDIUM");
         questionDto.put("correctOption", question.getCorrectOption());
@@ -667,8 +689,10 @@ public class CoursePublicationService {
             for (QuestionOptionJpaEntity option : question.getOptions()) {
                 Map<String, Object> optionDto = new LinkedHashMap<>();
                 optionDto.put("optionKey", option.getKey());
-                optionDto.put("content", extractTextFromBlocks(option.getContentBlocks()));
-                optionDto.put("contentBlocks", option.getContentBlocks() != null ? option.getContentBlocks() : List.of());
+                List<ContentBlock> optionBlocks =
+                        ContentBlockSanitizer.sanitizeBlocks(option.getContentBlocks());
+                optionDto.put("content", extractTextFromBlocks(optionBlocks));
+                optionDto.put("contentBlocks", optionBlocks != null ? optionBlocks : List.of());
                 optionDto.put("displayOrder", option.getOrderIndex() != null ? option.getOrderIndex() : 0);
                 options.add(optionDto);
             }
@@ -687,7 +711,7 @@ public class CoursePublicationService {
             if (builder.length() > 0) {
                 builder.append('\n');
             }
-            Map<String, Object> data = block.getData() != null ? block.getData() : Map.of();
+            Map<String, Object> data = ContentBlockSanitizer.sanitizeData(block.getData());
 
             // Text content (html, text, content fields)
             String html = asString(data.get("html"), null);
@@ -784,7 +808,8 @@ public class CoursePublicationService {
             return null;
         }
 
-        Map<String, Object> normalized = new LinkedHashMap<>(spec);
+        Map<String, Object> normalized =
+                new LinkedHashMap<>(ContentBlockSanitizer.sanitizeData(spec));
         normalized.putIfAbsent("version", 1);
         Object timeline = normalized.get("timeline");
         if (!(timeline instanceof List<?>)) {

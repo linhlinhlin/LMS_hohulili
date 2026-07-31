@@ -4,6 +4,7 @@ import com.example.lms.assessment.domain.model.Question;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.shared.application.port.FileManagementPort;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.domain.service.ContentBlockSanitizer;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -36,7 +37,7 @@ public class UpdateQuestionUseCaseV3 {
         Question question = questionRepository.findById(questionId)
                 .orElseThrow(() -> new EntityNotFoundException("Question", questionId));
 
-        question.updateContentBlocks(command.blocks());
+        question.updateContentBlocks(ContentBlockSanitizer.sanitizeBlocks(command.blocks()));
         question.updateDifficulty(command.difficulty());
         question.updateTags(command.tags());
         question.updateQuestionType(command.questionType());
@@ -53,7 +54,7 @@ public class UpdateQuestionUseCaseV3 {
 
                 Question.QuestionOption option = Question.QuestionOption.create(
                         key,
-                        optionCommand.contentBlocks(),
+                        ContentBlockSanitizer.sanitizeBlocks(optionCommand.contentBlocks()),
                         optionCommand.orderIndex() != null ? optionCommand.orderIndex() : i
                 );
                 domainOptions.add(option);
@@ -69,7 +70,8 @@ public class UpdateQuestionUseCaseV3 {
 
                 Map<String, Object> data = new HashMap<>();
                 data.put("text", optText);
-                ContentBlock block = ContentBlock.create("text", data);
+                ContentBlock block =
+                        ContentBlock.create("text", ContentBlockSanitizer.sanitizeData(data));
 
                 Question.QuestionOption option = Question.QuestionOption.create(
                         key, List.of(block), i

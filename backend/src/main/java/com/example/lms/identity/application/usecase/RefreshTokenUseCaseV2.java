@@ -31,6 +31,10 @@ public class RefreshTokenUseCaseV2 {
             throw new BusinessRuleException("INVALID_TOKEN", "Token không hợp lệ");
         }
 
+        if (!tokenService.isRefreshToken(refreshToken)) {
+            throw new BusinessRuleException("INVALID_TOKEN_TYPE", "Token không phải refresh token");
+        }
+
         User user = userRepository.findByEmail(userEmail)
                 .orElseThrow(() -> new BusinessRuleException("USER_NOT_FOUND", "Không tìm thấy người dùng"));
 

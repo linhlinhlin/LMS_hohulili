@@ -81,12 +81,29 @@ class RefreshTokenUseCaseV2Test {
                 .build();
 
         when(tokenService.extractEmail(OLD_REFRESH_TOKEN)).thenReturn(TEST_EMAIL);
+        when(tokenService.isRefreshToken(OLD_REFRESH_TOKEN)).thenReturn(true);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(disabledUser));
 
         assertThatThrownBy(() -> useCase.execute(OLD_REFRESH_TOKEN))
                 .isInstanceOfSatisfying(BusinessRuleException.class,
                         exception -> assertThat(exception.getRuleName()).isEqualTo("ACCOUNT_DISABLED"));
 
+        verify(tokenService, never()).isTokenValid(anyString(), anyString());
+        verify(tokenService, never()).generateAccessToken(any(), anyString(), anyString(), any());
+        verify(tokenService, never()).generateRefreshToken(any(), anyString(), anyString(), anyLong());
+    }
+
+    @Test
+    @DisplayName("Should reject access token replayed at refresh endpoint")
+    void shouldRejectAccessTokenUsedAsRefreshToken() {
+        when(tokenService.extractEmail(OLD_REFRESH_TOKEN)).thenReturn(TEST_EMAIL);
+        when(tokenService.isRefreshToken(OLD_REFRESH_TOKEN)).thenReturn(false);
+
+        assertThatThrownBy(() -> useCase.execute(OLD_REFRESH_TOKEN))
+                .isInstanceOfSatisfying(BusinessRuleException.class,
+                        exception -> assertThat(exception.getRuleName()).isEqualTo("INVALID_TOKEN_TYPE"));
+
+        verify(userRepository, never()).findByEmail(anyString());
         verify(tokenService, never()).isTokenValid(anyString(), anyString());
         verify(tokenService, never()).generateAccessToken(any(), anyString(), anyString(), any());
         verify(tokenService, never()).generateRefreshToken(any(), anyString(), anyString(), anyLong());
@@ -121,6 +138,7 @@ class RefreshTokenUseCaseV2Test {
                 .build();
 
         when(tokenService.extractEmail(OLD_REFRESH_TOKEN)).thenReturn(TEST_EMAIL);
+        when(tokenService.isRefreshToken(OLD_REFRESH_TOKEN)).thenReturn(true);
         when(userRepository.findByEmail(TEST_EMAIL)).thenReturn(Optional.of(enabledUser));
         when(tokenService.isTokenValid(OLD_REFRESH_TOKEN, TEST_EMAIL)).thenReturn(true);
         when(tokenService.generateAccessToken(eq(userId.value()), eq(TEST_EMAIL), eq("STUDENT"), isNull()))

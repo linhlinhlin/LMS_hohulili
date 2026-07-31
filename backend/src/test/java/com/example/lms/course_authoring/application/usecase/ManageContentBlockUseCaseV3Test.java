@@ -87,6 +87,22 @@ class ManageContentBlockUseCaseV3Test {
         }
 
         @Test
+        @DisplayName("Should sanitize dangerous HTML before adding a block")
+        void shouldSanitizeDangerousHtmlBeforeAddingBlock() {
+            when(lessonRepository.getContentBlocks(lessonId)).thenReturn(Optional.of(existingBlocks));
+            Map<String, Object> data = Map.of(
+                    "html", "<p onclick=\"steal()\">Safe</p><script>alert(1)</script>",
+                    "nested", Map.of("url", "javascript:alert(1)"));
+
+            ContentBlock result = useCase.addBlock(lessonId, "text", data, userId, true);
+
+            assertThat(result.getData().get("html").toString())
+                    .isEqualTo("<p>Safe</p>");
+            assertThat(((Map<?, ?>) result.getData().get("nested")).get("url"))
+                    .isEqualTo("about:blank");
+        }
+
+        @Test
         @DisplayName("Should add block as admin without ownership")
         void shouldAddBlockAsAdmin() {
             UUID adminId = UUID.randomUUID();

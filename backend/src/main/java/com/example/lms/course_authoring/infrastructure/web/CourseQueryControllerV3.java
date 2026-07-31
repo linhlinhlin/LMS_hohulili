@@ -18,6 +18,7 @@ import com.example.lms.learning_delivery.domain.model.LearningClass;
 import com.example.lms.learning_delivery.domain.repository.LearningClassRepository;
 import com.example.lms.learning_delivery.infrastructure.service.VideoAssetPresentationService;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.shared.domain.service.ContentBlockSanitizer;
 import com.example.lms.shared.infrastructure.web.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -481,7 +482,9 @@ public class CourseQueryControllerV3 {
                                             contentText = lesson.getContentBlocks().stream()
                                                 .filter(b -> "TEXT".equalsIgnoreCase(b.getType()) && b.getData() != null)
                                                 .map(b -> {
-                                                    Object c = b.getData().get("content");
+                                                    Object c = ContentBlockSanitizer
+                                                            .sanitizeData(b.getData())
+                                                            .get("content");
                                                     return c != null ? c.toString() : null;
                                                 })
                                                 .filter(java.util.Objects::nonNull)
@@ -829,7 +832,7 @@ public class CourseQueryControllerV3 {
         return CourseSummaryResponse.builder()
                 .id(course.getId().toString())
                 .title(course.getTitle())
-                .description(course.getDescription())
+                .description(ContentBlockSanitizer.sanitizeHtml(course.getDescription()))
                 .thumbnailUrl(course.getThumbnailUrl())
                 .status(course.getStatus().name().toLowerCase())
                 .teacherName(teacherName)
@@ -905,9 +908,9 @@ public class CourseQueryControllerV3 {
                 .categoryName(categoryName)
                 // Extended info
                 .tags(course.getTags() != null ? new ArrayList<>(course.getTags()) : List.of())
-                .welcomeMessage(course.getWelcomeMessage())
-                .courseInformation(course.getCourseInformation())
-                .benefits(course.getBenefits())
+                .welcomeMessage(ContentBlockSanitizer.sanitizeHtml(course.getWelcomeMessage()))
+                .courseInformation(ContentBlockSanitizer.sanitizeHtml(course.getCourseInformation()))
+                .benefits(ContentBlockSanitizer.sanitizeHtml(course.getBenefits()))
                 .introVideoUrl(introVideoUrl)
                 .introVideoAssetId(course.getIntroVideoAssetId() != null ? course.getIntroVideoAssetId().toString() : null)
                 .introVideoProcessingStatus(introAssetView != null ? introAssetView.status() : null)
@@ -1130,7 +1133,7 @@ public class CourseQueryControllerV3 {
                 extractVideoAssetIds(lesson.getContentBlocks())
         );
         for (var block : lesson.getContentBlocks()) {
-            Map<String, Object> data = block.getData() != null ? block.getData() : new HashMap<>();
+            Map<String, Object> data = ContentBlockSanitizer.sanitizeData(block.getData());
             String streamVideoUid = resolveSectionStreamVideoUid(lesson, block, data, videoSectionCount);
             String videoType = resolveSectionVideoType(data, streamVideoUid);
             SectionResponse response = SectionResponse.builder()
@@ -1183,8 +1186,8 @@ public class CourseQueryControllerV3 {
         Map<String, Object> simulation = new LinkedHashMap<>();
         copyIfPresent(simulation, data, "simulationPackageId");
         copyIfPresent(simulation, data, "simulationVersion");
-        copyIfPresent(simulation, data, "entryUrl");
-        copyIfPresent(simulation, data, "manifestUrl");
+        copyAllowedSimulationUrl(simulation, data, "entryUrl");
+        copyAllowedSimulationUrl(simulation, data, "manifestUrl");
         copyIfPresent(simulation, data, "estimatedSizeBytes");
         copyIfPresent(simulation, data, "allowOffline");
         copyIfPresent(simulation, data, "completionPolicy");
@@ -1196,7 +1199,14 @@ public class CourseQueryControllerV3 {
     private void copyIfPresent(Map<String, Object> target, Map<String, Object> source, String key) {
         Object value = source.get(key);
         if (value != null) {
-            target.put(key, value);
+            target.put(key, ContentBlockSanitizer.sanitizeValue(value));
+        }
+    }
+
+    private void copyAllowedSimulationUrl(Map<String, Object> target, Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (ContentBlockSanitizer.isAllowedSimulationUrl(value)) {
+            target.put(key, ContentBlockSanitizer.sanitizeValue(value));
         }
     }
 
@@ -1336,7 +1346,8 @@ public class CourseQueryControllerV3 {
             return null;
         }
 
-        Map<String, Object> normalized = new LinkedHashMap<>(spec);
+        Map<String, Object> normalized =
+                new LinkedHashMap<>(ContentBlockSanitizer.sanitizeData(spec));
         normalized.putIfAbsent("version", 1);
         Object timeline = normalized.get("timeline");
         if (!(timeline instanceof List<?>)) {
@@ -1411,7 +1422,10 @@ public class CourseQueryControllerV3 {
 
             Map<String, Object> item = new LinkedHashMap<>();
             item.put("id", question.get("id") != null ? question.get("id").toString() : null);
-            item.put("content", asString(question.get("content"), ""));
+            item.put(
+                    "content",
+                    ContentBlockSanitizer.sanitizeHtml(asString(question.get("content"), ""))
+            );
             item.put("difficulty", asString(question.get("difficulty"), "MEDIUM"));
             normalized.add(item);
         }
@@ -1465,7 +1479,7 @@ public class CourseQueryControllerV3 {
         StringBuilder sb = new StringBuilder();
         for (var block : blocks) {
             if (block.getData() == null) continue;
-            var data = block.getData();
+            var data = ContentBlockSanitizer.sanitizeData(block.getData());
             Object rawText = firstNonNull(data.get("content"), data.get("text"), data.get("html"));
             if (rawText != null && !rawText.toString().isBlank()) {
                 if (!sb.isEmpty()) sb.append(" ");

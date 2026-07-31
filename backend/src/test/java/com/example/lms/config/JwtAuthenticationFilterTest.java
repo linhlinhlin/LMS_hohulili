@@ -155,6 +155,7 @@ class JwtAuthenticationFilterTest {
 
         given(jwtService.extractUsername("valid-token")).willReturn("student@maritime.edu");
         given(userDetailsService.loadUserByUsername("student@maritime.edu")).willReturn(userDetails);
+        given(jwtService.isAccessToken("valid-token")).willReturn(true);
         given(jwtService.isTokenValid("valid-token", userDetails)).willReturn(true);
 
         filter.doFilter(request, response, chain);
@@ -162,6 +163,38 @@ class JwtAuthenticationFilterTest {
         assertThat(response.getStatus()).isEqualTo(200);
         assertThat(authenticationRef.get()).isNotNull();
         assertThat(authenticationRef.get().getName()).isEqualTo("student@maritime.edu");
+    }
+
+    @Test
+    @DisplayName("refresh token on protected route returns 401 and is not authenticated")
+    void refreshTokenOnProtectedRouteReturns401() throws Exception {
+        JwtAuthenticationFilter filter = new JwtAuthenticationFilter(
+                jwtService,
+                userDetailsService,
+                new PublicApiEndpointMatcher(),
+                testObjectMapper()
+        );
+
+        MockHttpServletRequest request = new MockHttpServletRequest("GET", "/api/v3/student/courses/enrolled");
+        request.addHeader("Authorization", "Bearer refresh-token");
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        AtomicBoolean chainCalled = new AtomicBoolean(false);
+        FilterChain chain = (req, res) -> chainCalled.set(true);
+
+        UserDetails userDetails = User.withUsername("student@maritime.edu")
+                .password("ignored")
+                .authorities("ROLE_STUDENT")
+                .build();
+
+        given(jwtService.extractUsername("refresh-token")).willReturn("student@maritime.edu");
+        given(userDetailsService.loadUserByUsername("student@maritime.edu")).willReturn(userDetails);
+        given(jwtService.isAccessToken("refresh-token")).willReturn(false);
+
+        filter.doFilter(request, response, chain);
+
+        assertThat(chainCalled.get()).isFalse();
+        assertThat(response.getStatus()).isEqualTo(401);
+        assertThat(SecurityContextHolder.getContext().getAuthentication()).isNull();
     }
 
     private ObjectMapper testObjectMapper() {
