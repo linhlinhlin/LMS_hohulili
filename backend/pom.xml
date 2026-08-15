@@ -8,6 +8,13 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>backend-lms-postgres</name>
   <description>LMS backend with PostgreSQL (Docker Compose)</description>
+  <licenses>
+    <license>
+      <name>GNU Affero General Public License v3.0 only</name>
+      <url>https://www.gnu.org/licenses/agpl-3.0.html</url>
+      <distribution>repo</distribution>
+    </license>
+  </licenses>
   <parent>
     <groupId>org.springframework.boot</groupId>
     <artifactId>spring-boot-starter-parent</artifactId>
