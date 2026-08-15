@@ -1,8 +1,15 @@
 # Maritime LMS / HoLiLiHu licensing
 
-This repository is being prepared for a split-license model. The intended
-public policy for source distributions made on or after the licensing
-transition is:
+Effective for source distributions made from this repository on or after
+2026-08-16, Maritime LMS / HoLiLiHu uses a split-license model.
+
+## Ownership record
+
+On 2026-08-16, the project owner confirmed that **Meiiie** owns and controls
+the rights needed to license Maritime LMS / HoLiLiHu. **The Wiii Lab** is the
+project and brand identity operated by Meiiie. This record does not replace or
+remove third-party licenses, contributor attribution, or rights that remain
+with their respective owners.
 
 ## License map
 
@@ -22,17 +29,13 @@ library, must not import LMS implementation modules, must carry
 `SPDX-License-Identifier: Apache-2.0`, and must ship its own `LICENSE` and
 `NOTICE` files.
 
-## Rights-clearance gate
+## Rights record
 
-No repository-wide license file existed before this transition, and the Git
-history contains multiple human contributor identities. A license notice
-cannot grant rights that its issuer does not own or control.
-
-Therefore the first public AGPL release is blocked until the checklist in
-[`docs/legal/RIGHTS-REVIEW.md`](docs/legal/RIGHTS-REVIEW.md) is complete.
-Until then, the AGPL text expresses the intended license only for material
-whose copyright holder or authorized licensor has approved that grant. It
-does not override third-party rights.
+The owner attestation above clears the repository-level ownership gate for
+the split-license transition. Supporting private records should still be
+retained for commercial diligence, and third-party material remains governed
+by its own licenses. See
+[`docs/legal/RIGHTS-REVIEW.md`](docs/legal/RIGHTS-REVIEW.md).
 
 ## AGPL source availability
 
@@ -44,9 +47,9 @@ exact source tag or commit used to build them.
 ## Commercial dual licensing
 
 The AGPL-covered material may also be offered under a separate written
-commercial agreement by the applicable copyright holder or an authorized
-licensor. The public repository does not itself grant that commercial
-license. See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
+commercial agreement by Meiiie or an expressly authorized representative of
+Meiiie. The public repository does not itself grant that commercial license.
+See [COMMERCIAL-LICENSE.md](COMMERCIAL-LICENSE.md).
 
 The Apache SDK does not require a commercial license for uses already allowed
 by Apache-2.0.

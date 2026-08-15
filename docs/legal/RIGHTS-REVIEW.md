@@ -1,31 +1,27 @@
 # Licensing rights review
 
-Status: **BLOCKS THE FIRST PUBLIC AGPL OR COMMERCIAL RELEASE**
+Status: **OWNER ATTESTATION RECORDED - REPOSITORY RELEASE GATE CLEARED**
 
-The repository had no repo-wide license file before the 2026-08-15 licensing
-transition and its history contains multiple human contributor identities.
-Project administration or repository ownership alone does not prove ownership
-of every contribution.
+On 2026-08-16, Meiiie confirmed that Meiiie owns Maritime LMS / HoLiLiHu and
+controls the rights needed to license the original project material under the
+repository's AGPL and commercial licensing model. The Wiii Lab is the project
+and brand identity operated by Meiiie. This owner attestation clears the
+repository-level rights gate introduced during the licensing transition.
 
-Complete and retain evidence for every item below before publishing the first
-AGPL release or signing a commercial license:
+This public record is not a substitute for private signed assignments,
+employment agreements, or legal opinions when a commercial transaction
+requires them. Meiiie should retain any supporting evidence privately; do not
+commit signatures, identity documents, or private contracts here.
 
-- [ ] Inventory every non-bot contributor and map duplicate identities.
-- [ ] Identify the copyright owner for each material contribution.
-- [ ] Obtain written consent, assignment, or a sufficiently broad existing
-      license for AGPL distribution and commercial sublicensing.
-- [ ] Exclude, replace, or separately license material whose rights are not
-      cleared.
-- [ ] Preserve all third-party licenses, copyright notices, and required
-      attributions in source and binary distributions.
-- [ ] Have qualified counsel review the contributor agreement, commercial
-      agreement, and trademark ownership for the governing jurisdiction.
-- [ ] Record the last pre-transition commit and the first licensed commit.
-- [ ] Make build outputs expose the exact Corresponding Source commit to
-      network users as required by the AGPL.
-- [ ] Store the signed evidence outside the public repository with controlled
-      access and record only non-sensitive completion metadata here.
+The following are continuing diligence controls, not release blockers created
+by this record:
 
-Once complete, replace this status with the approval date, approving authority,
-scope, and immutable evidence reference. Do not commit personal signatures,
-identity documents, or private contracts to this repository.
+- preserve all third-party licenses, copyright notices, and required
+  attributions in source and binary distributions;
+- require appropriate inbound rights for future contributions under
+  `CONTRIBUTOR-LICENSE-POLICY.md`;
+- exclude, replace, or separately license material that is later shown not to
+  be within the project owner's licensing authority;
+- have qualified counsel review contributor and commercial agreements for
+  high-value transactions in the relevant jurisdiction; and
+- record the exact source commit used by every AGPL network distribution.

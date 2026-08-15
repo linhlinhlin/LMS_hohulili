@@ -1,9 +1,9 @@
 # Trademark and brand policy
 
-The project maintainers claim rights, where applicable, in the `HoLiLiHu`
-and `Maritime LMS` names, their official logos, and their distinctive
-official branding (the "Marks"). These marks are not declared registered
-marks unless an official registration says so.
+Meiiie, operating the project under The Wiii Lab brand, claims rights in the
+`HoLiLiHu` and `Maritime LMS` names, their official logos, and their
+distinctive official branding (the "Marks"). These marks are not declared
+registered marks unless an official registration says so.
 
 The AGPL and Apache licenses cover copyright and patent permissions in their
 respective code. They do not grant permission to use the Marks.
