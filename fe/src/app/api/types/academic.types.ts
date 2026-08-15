@@ -1,0 +1,369 @@
+export interface AcademicCatalog {
+  departments: AcademicDepartment[];
+  programs: AcademicProgram[];
+  cohorts: AcademicCohort[];
+  classGroups: AcademicClassGroup[];
+  subjects: AcademicSubject[];
+  subjectCourses: AcademicSubjectCourse[];
+  terms: AcademicTerm[];
+  curriculumPlans: AcademicCurriculumPlan[];
+  curriculumSubjects: AcademicCurriculumSubject[];
+  learningPackages: AcademicLearningPackage[];
+  learningPackageItems: AcademicLearningPackageItem[];
+  learningPackageClassTargets: AcademicLearningPackageClassTarget[];
+  classGroupMemberships: AcademicClassGroupMembership[];
+}
+
+export interface AcademicDepartment {
+  id: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicProgram {
+  id: string;
+  organizationId: string;
+  departmentId: string | null;
+  code: string;
+  name: string;
+  level: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicCohort {
+  id: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  startYear: number;
+  graduationYear: number | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicClassGroup {
+  id: string;
+  organizationId: string;
+  programId: string;
+  cohortId: string;
+  code: string;
+  name: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicSubject {
+  id: string;
+  organizationId: string;
+  departmentId: string | null;
+  code: string;
+  name: string;
+  credits: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicSubjectCourse {
+  id: string;
+  organizationId: string;
+  subjectId: string;
+  courseId: string;
+  primary: boolean;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicTerm {
+  id: string;
+  organizationId: string;
+  code: string;
+  name: string;
+  academicYear: string;
+  termNumber: number;
+  startsOn: string | null;
+  endsOn: string | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicCurriculumPlan {
+  id: string;
+  organizationId: string;
+  programId: string;
+  cohortId: string | null;
+  code: string;
+  name: string;
+  totalCredits: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicCurriculumSubject {
+  id: string;
+  organizationId: string;
+  curriculumPlanId: string;
+  subjectId: string;
+  termId: string | null;
+  displayOrder: number;
+  required: boolean;
+  creditsOverride: number | null;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicLearningPackage {
+  id: string;
+  organizationId: string;
+  curriculumPlanId: string | null;
+  code: string;
+  name: string;
+  description: string | null;
+  packageType: string;
+  price: number;
+  currency: string;
+  enrollmentPolicy: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicLearningPackageItem {
+  id: string;
+  organizationId: string;
+  packageId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  displayOrder: number;
+  required: boolean;
+  revenueWeight: number;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicLearningPackageClassTarget {
+  id: string;
+  organizationId: string;
+  packageId: string;
+  courseId: string;
+  classGroupId: string | null;
+  learningClassId: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface AcademicClassGroupMembership {
+  id: string;
+  organizationId: string;
+  classGroupId: string;
+  studentId: string;
+  status: string;
+  joinedAt: string;
+  leftAt: string | null;
+  createdAt: string;
+}
+
+export interface AcademicLearningPackageEnrollment {
+  id: string;
+  organizationId: string;
+  packageId: string;
+  studentId: string;
+  status: string;
+  decisionNote: string | null;
+  paymentAmount: number;
+  paymentCurrency: string;
+  paymentReference: string | null;
+  paymentConfirmedAt: string | null;
+  paymentConfirmedBy: string | null;
+  requestedAt: string;
+  decidedAt: string | null;
+  decidedBy: string | null;
+  createdAt: string;
+}
+
+export interface AcademicLearningPackageAvailability {
+  learningPackage: AcademicLearningPackage;
+  enrollment: AcademicLearningPackageEnrollment | null;
+}
+
+export interface AcademicLearningPackagePaymentQr {
+  enrollment: AcademicLearningPackageEnrollment;
+  txnId: string;
+  qrUrl: string;
+  transferContent: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  amount: number;
+  currency: string;
+  packageName: string;
+}
+
+export interface AcademicLearningPackageRevenueAllocation {
+  packageId: string;
+  packagePrice: number;
+  currency: string;
+  totalWeight: number;
+  allocatedTotal: number;
+  items: AcademicLearningPackageRevenueAllocationItem[];
+}
+
+export interface AcademicLearningPackageRevenueAllocationItem {
+  itemId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  displayOrder: number;
+  revenueWeight: number;
+  allocationPct: number;
+  allocatedAmount: number;
+}
+
+export interface AcademicLearningPackageRevenueSplit {
+  id: string;
+  organizationId: string;
+  enrollmentId: string;
+  packageId: string;
+  packageItemId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  teacherId: string;
+  grossAmount: number;
+  currency: string;
+  platformFeePct: number;
+  teacherSharePct: number;
+  orgSharePct: number;
+  platformAmount: number;
+  teacherAmount: number;
+  orgAmount: number;
+  paymentReference: string | null;
+  createdAt: string;
+}
+
+export interface CreateAcademicDepartmentRequest {
+  code: string;
+  name: string;
+}
+
+export interface CreateAcademicProgramRequest {
+  departmentId: string | null;
+  code: string;
+  name: string;
+  level: string | null;
+}
+
+export interface CreateAcademicCohortRequest {
+  code: string;
+  name: string;
+  startYear: number;
+  graduationYear: number | null;
+}
+
+export interface CreateAcademicClassGroupRequest {
+  programId: string;
+  cohortId: string;
+  code: string;
+  name: string;
+}
+
+export interface CreateAcademicSubjectRequest {
+  departmentId: string | null;
+  code: string;
+  name: string;
+  credits: number;
+}
+
+export interface LinkAcademicSubjectCourseRequest {
+  subjectId: string;
+  courseId: string;
+  primary: boolean;
+}
+
+export interface CreateAcademicTermRequest {
+  code: string;
+  name: string;
+  academicYear: string;
+  termNumber: number;
+  startsOn: string | null;
+  endsOn: string | null;
+}
+
+export interface CreateAcademicCurriculumPlanRequest {
+  programId: string;
+  cohortId: string | null;
+  code: string;
+  name: string;
+  totalCredits: number;
+}
+
+export interface AddAcademicCurriculumSubjectRequest {
+  curriculumPlanId: string;
+  subjectId: string;
+  termId: string | null;
+  displayOrder: number;
+  required: boolean;
+  creditsOverride: number | null;
+}
+
+export interface CreateAcademicLearningPackageRequest {
+  curriculumPlanId: string | null;
+  code: string;
+  name: string;
+  description: string | null;
+  packageType: string;
+  price: number;
+  currency: string;
+  enrollmentPolicy: string;
+}
+
+export interface AddAcademicLearningPackageItemRequest {
+  packageId: string;
+  subjectId: string | null;
+  courseId: string | null;
+  displayOrder: number;
+  required: boolean;
+  revenueWeight: number;
+}
+
+export interface CreateAcademicLearningPackageClassTargetRequest {
+  packageId: string;
+  courseId: string;
+  classGroupId: string | null;
+  learningClassId: string;
+}
+
+export interface CreateAcademicClassGroupMembershipRequest {
+  classGroupId: string;
+  studentId: string;
+}
+
+export interface TransferAcademicClassGroupMembershipRequest {
+  classGroupId: string;
+}
+
+export interface BulkAcademicClassGroupRosterRequest {
+  classGroupId: string;
+  studentEmails: string[];
+}
+
+export interface BulkAcademicClassGroupRosterRow {
+  email: string;
+  action: 'ASSIGNED' | 'TRANSFERRED' | 'UNCHANGED' | 'FAILED';
+  message: string;
+  membership: AcademicClassGroupMembership | null;
+}
+
+export interface BulkAcademicClassGroupRosterResponse {
+  total: number;
+  assigned: number;
+  transferred: number;
+  unchanged: number;
+  failed: number;
+  rows: BulkAcademicClassGroupRosterRow[];
+}
+
+export interface ReviewAcademicLearningPackageEnrollmentRequest {
+  note: string | null;
+  paymentReference?: string | null;
+}

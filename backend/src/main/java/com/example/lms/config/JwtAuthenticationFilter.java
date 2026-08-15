@@ -68,12 +68,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     )) {
                         return;
                     }
-                } else if (!jwtService.isTokenValid(jwt, userDetails)) {
+                } else if (!jwtService.isAccessToken(jwt) || !jwtService.isTokenValid(jwt, userDetails)) {
                     if (handleAuthenticationFailure(
                             response,
                             publicEndpoint,
                             path,
-                            "JWT token failed validation checks"
+                            "JWT token failed access-token validation checks"
                     )) {
                         return;
                     }

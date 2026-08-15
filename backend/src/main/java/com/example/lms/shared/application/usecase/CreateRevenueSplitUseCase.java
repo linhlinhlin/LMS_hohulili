@@ -55,10 +55,12 @@ public class CreateRevenueSplitUseCase {
         }
         UUID teacherId = courseOpt.get().getTeacherId();
 
-        // Resolve org from teacher
-        UUID orgId = userRepository.findById(UserId.of(teacherId))
-                .map(u -> u.getOrganizationId())
-                .orElse(null);
+        UUID orgId = payment.getOrganizationId();
+        if (orgId == null) {
+            orgId = userRepository.findById(UserId.of(teacherId))
+                    .map(u -> u.getOrganizationId())
+                    .orElse(null);
+        }
 
         // Resolve revenue config (org-specific or platform default)
         var config = revenueConfigPort.resolveConfig(orgId);

@@ -47,6 +47,15 @@ public class PayoutRequestRepositoryAdapter implements PayoutRequestRepository {
     }
 
     @Override
+    public Page<PayoutRequest> findAllByStatusAndOrganizationId(String status, UUID organizationId, Pageable pageable) {
+        if (organizationId == null) {
+            return Page.empty(pageable);
+        }
+        return jpaRepo.findByStatusAndOrganizationIdOrderByRequestedAtDesc(status, organizationId, pageable)
+                .map(this::toDomain);
+    }
+
+    @Override
     public BigDecimal sumCompletedByTeacherId(UUID teacherId) {
         return jpaRepo.sumCompletedByTeacherId(teacherId);
     }
@@ -59,6 +68,7 @@ public class PayoutRequestRepositoryAdapter implements PayoutRequestRepository {
     private PayoutRequestJpaEntity toEntity(PayoutRequest r) {
         return PayoutRequestJpaEntity.builder()
                 .id(r.getId())
+                .organizationId(r.getOrganizationId())
                 .teacherId(r.getTeacherId())
                 .bankAccountId(r.getBankAccountId())
                 .amount(r.getAmount())
@@ -72,7 +82,7 @@ public class PayoutRequestRepositoryAdapter implements PayoutRequestRepository {
     }
 
     private PayoutRequest toDomain(PayoutRequestJpaEntity e) {
-        return PayoutRequest.reconstitute(e.getId(), e.getTeacherId(), e.getBankAccountId(),
+        return PayoutRequest.reconstitute(e.getId(), e.getOrganizationId(), e.getTeacherId(), e.getBankAccountId(),
                 e.getAmount(), PayoutRequest.Status.valueOf(e.getStatus()),
                 e.getTeacherNote(), e.getAdminNote(), e.getProcessedBy(),
                 e.getRequestedAt(), e.getProcessedAt());

@@ -1,5 +1,7 @@
 package com.example.lms.config;
 
+import com.example.lms.communication.domain.model.ConversationId;
+import com.example.lms.communication.domain.repository.ConversationRepository;
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.security.JwtService;
 import com.example.lms.identity.infrastructure.security.UserDetailsServiceImpl;
@@ -12,11 +14,13 @@ import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
 import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import java.security.Principal;
+import java.util.UUID;
 
 /**
  * Intercepts STOMP CONNECT frames and authenticates via JWT token.
@@ -33,6 +37,9 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private final JwtService jwtService;
     @Lazy
     private final UserDetailsServiceImpl userDetailsService;
+    private final ConversationRepository conversationRepository;
+
+    private static final String CONVERSATION_TOPIC_PREFIX = "/topic/conversation/";
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -48,6 +55,7 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
                     UserDetails userDetails = userDetailsService.loadUserByUsername(username);
 
                     if (jwtService.isTokenValid(token, userDetails) &&
+                            jwtService.isAccessToken(token) &&
                             userDetails.isEnabled() && userDetails.isAccountNonLocked()) {
 
                         // Use user ID as Principal name for STOMP user destinations
@@ -72,7 +80,45 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             }
         }
 
+        if (accessor != null && StompCommand.SUBSCRIBE.equals(accessor.getCommand())) {
+            authorizeSubscription(accessor);
+        }
+
         return message;
+    }
+
+    private void authorizeSubscription(StompHeaderAccessor accessor) {
+        String destination = accessor.getDestination();
+        if (destination == null || !destination.startsWith(CONVERSATION_TOPIC_PREFIX)) {
+            return;
+        }
+
+        UUID userId = authenticatedUserId(accessor);
+        UUID conversationId = parseUuid(
+                destination.substring(CONVERSATION_TOPIC_PREFIX.length()),
+                "Invalid conversation topic"
+        );
+        var conversation = conversationRepository.findById(ConversationId.of(conversationId))
+                .orElseThrow(() -> new AccessDeniedException("Conversation subscription denied"));
+        if (!conversation.hasParticipant(userId)) {
+            throw new AccessDeniedException("Conversation subscription denied");
+        }
+    }
+
+    private UUID authenticatedUserId(StompHeaderAccessor accessor) {
+        Principal user = accessor.getUser();
+        if (user == null || user.getName() == null) {
+            throw new AccessDeniedException("WebSocket subscription requires authentication");
+        }
+        return parseUuid(user.getName(), "Invalid WebSocket principal");
+    }
+
+    private UUID parseUuid(String value, String message) {
+        try {
+            return UUID.fromString(value);
+        } catch (RuntimeException e) {
+            throw new AccessDeniedException(message);
+        }
     }
 
     /**

@@ -5,6 +5,7 @@ import com.example.lms.assessment.domain.model.QuestionBank;
 import com.example.lms.assessment.domain.repository.QuestionBankRepository;
 import com.example.lms.assessment.domain.repository.QuestionRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.domain.service.ContentBlockSanitizer;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,6 +33,7 @@ public class CreateQuestionUseCaseV3 {
     @Transactional
     public UUID execute(Command command) {
         log.info("Creating new question for package: {}", command.packageId());
+        List<ContentBlock> contentBlocks = ContentBlockSanitizer.sanitizeBlocks(command.contentBlocks());
 
         // Build domain model options
         List<Question.QuestionOption> domainOptions = null;
@@ -39,7 +41,7 @@ public class CreateQuestionUseCaseV3 {
             domainOptions = command.options().stream()
                     .map(opt -> Question.QuestionOption.create(
                             opt.key(),
-                            opt.contentBlocks(),
+                            ContentBlockSanitizer.sanitizeBlocks(opt.contentBlocks()),
                             opt.orderIndex() != null ? opt.orderIndex() : 0))
                     .collect(Collectors.toList());
         }
@@ -47,7 +49,7 @@ public class CreateQuestionUseCaseV3 {
         // Build domain model
         Question question = Question.builder()
                 .id(UUID.randomUUID())
-                .contentBlocks(command.contentBlocks())
+                .contentBlocks(contentBlocks)
                 .difficulty(command.difficulty())
                 .tags(command.tags())
                 .status(Question.Status.ACTIVE)

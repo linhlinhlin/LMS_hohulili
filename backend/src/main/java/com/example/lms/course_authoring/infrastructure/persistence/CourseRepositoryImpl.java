@@ -4,6 +4,8 @@ import com.example.lms.course_authoring.domain.model.Course;
 import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.infrastructure.persistence.entity.CourseJpaEntity;
 import com.example.lms.course_authoring.infrastructure.persistence.mapper.CourseEntityMapper;
+import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
+import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
 import com.example.lms.shared.domain.valueobject.CourseCode;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -27,11 +29,17 @@ public class CourseRepositoryImpl implements CourseRepository {
 
     private final JpaCourseRepository jpaRepository;
     private final CourseEntityMapper mapper;
+    private final UserJpaRepository userRepository;
 
     @Override
     @Transactional
     public Course save(Course course) {
         CourseJpaEntity entity = mapper.toEntity(course);
+        if (entity.getOrganizationId() == null && entity.getTeacherId() != null) {
+            userRepository.findById(entity.getTeacherId())
+                    .map(UserJpaEntity::getOrganizationId)
+                    .ifPresent(entity::setOrganizationId);
+        }
         CourseJpaEntity saved = jpaRepository.save(entity);
         return mapper.toDomain(saved);
     }
@@ -115,6 +123,44 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Page<Course> findByOrganizationId(UUID organizationId, Pageable pageable) {
+        if (organizationId == null) {
+            return Page.empty(pageable);
+        }
+        return jpaRepository.findByOrganizationId(organizationId, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByOrganizationIdAndStatus(UUID organizationId, Course.CourseStatus status, Pageable pageable) {
+        if (organizationId == null) {
+            return Page.empty(pageable);
+        }
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.findByOrganizationIdAndStatus(organizationId, entityStatus, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByOrganizationIdAndTitleContaining(UUID organizationId, String search, Pageable pageable) {
+        if (organizationId == null) {
+            return Page.empty(pageable);
+        }
+        return jpaRepository.findByOrganizationIdAndTitleContaining(organizationId, search, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
+    public Page<Course> findByOrganizationIdAndStatusAndTitleContaining(UUID organizationId, Course.CourseStatus status, String search, Pageable pageable) {
+        if (organizationId == null) {
+            return Page.empty(pageable);
+        }
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.findByOrganizationIdAndStatusAndTitleContaining(organizationId, entityStatus, search, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public Page<Course> findApproved(Pageable pageable) {
         return jpaRepository.findByStatus(CourseJpaEntity.CourseStatus.APPROVED, pageable)
                 .map(mapper::toDomain);
@@ -148,6 +194,15 @@ public class CourseRepositoryImpl implements CourseRepository {
     }
 
     @Override
+    public Page<Course> findReviewQueueByOrganizationId(UUID organizationId, Pageable pageable) {
+        if (organizationId == null) {
+            return Page.empty(pageable);
+        }
+        return jpaRepository.findReviewQueueByOrganizationId(organizationId, pageable)
+                .map(mapper::toDomain);
+    }
+
+    @Override
     public long countByTeacherId(UUID teacherId) {
         return jpaRepository.countByTeacherId(teacherId);
     }
@@ -167,6 +222,25 @@ public class CourseRepositoryImpl implements CourseRepository {
     public long countReviewQueueByTeacherIds(Set<UUID> teacherIds) {
         if (teacherIds == null || teacherIds.isEmpty()) return 0;
         return jpaRepository.countReviewQueueByTeacherIdIn(teacherIds);
+    }
+
+    @Override
+    public long countByOrganizationId(UUID organizationId) {
+        if (organizationId == null) return 0;
+        return jpaRepository.countByOrganizationId(organizationId);
+    }
+
+    @Override
+    public long countByStatusAndOrganizationId(Course.CourseStatus status, UUID organizationId) {
+        if (organizationId == null) return 0;
+        CourseJpaEntity.CourseStatus entityStatus = mapStatusToEntity(status);
+        return jpaRepository.countByStatusAndOrganizationId(entityStatus, organizationId);
+    }
+
+    @Override
+    public long countReviewQueueByOrganizationId(UUID organizationId) {
+        if (organizationId == null) return 0;
+        return jpaRepository.countReviewQueueByOrganizationId(organizationId);
     }
 
     @Override
@@ -277,6 +351,12 @@ public class CourseRepositoryImpl implements CourseRepository {
     public List<UUID> findCourseIdsByTeacherIdIn(Set<UUID> teacherIds) {
         if (teacherIds == null || teacherIds.isEmpty()) return List.of();
         return jpaRepository.findCourseIdsByTeacherIdIn(teacherIds);
+    }
+
+    @Override
+    public List<UUID> findCourseIdsByOrganizationId(UUID organizationId) {
+        if (organizationId == null) return List.of();
+        return jpaRepository.findCourseIdsByOrganizationId(organizationId);
     }
 
     /**

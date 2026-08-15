@@ -172,8 +172,12 @@ interface EnhancedEnrolledCourse extends EnrolledCourse {
               <div class="course-card-wrapper">
                 <!-- Course Thumbnail -->
                 <div class="course-thumbnail">
-                  @if (course.thumbnail) {
-                    <img [src]="course.thumbnail" [alt]="course.title" class="thumbnail-image" />
+                  @if (course.thumbnail && !brokenThumbnailUrls().has(course.thumbnail)) {
+                    <img
+                      [src]="course.thumbnail"
+                      [alt]="course.title"
+                      class="thumbnail-image"
+                      (error)="markThumbnailBroken(course.thumbnail)" />
                   } @else {
                     <div class="thumbnail-placeholder">
                       <app-icon name="academic-cap" size="lg" />
@@ -1107,6 +1111,7 @@ export class StudentMyCoursesComponent implements OnInit {
   filterNotStarted = signal<boolean>(false);
   filterInProgress = signal<boolean>(false);
   filterCompleted = signal<boolean>(false);
+  brokenThumbnailUrls = signal<Set<string>>(new Set());
   error = signal<string | null>(null);
 
   // Computed
@@ -1341,6 +1346,15 @@ export class StudentMyCoursesComponent implements OnInit {
   onTabChange(tabId: string): void {
     this.activeTab.set(tabId);
     this.resetPagination();
+  }
+
+  markThumbnailBroken(thumbnailUrl: string): void {
+    this.brokenThumbnailUrls.update(urls => {
+      if (urls.has(thumbnailUrl)) {
+        return urls;
+      }
+      return new Set(urls).add(thumbnailUrl);
+    });
   }
 
   goToPage(page: number): void {

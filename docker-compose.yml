@@ -51,7 +51,7 @@ services:
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-lms}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-lms}
       # JWT (externalized)
-      APP_JWT_SECRET: ${JWT_SECRET:-development-only-secret-change-in-prod}
+      APP_JWT_SECRET: ${JWT_SECRET:-ZGV2ZWxvcG1lbnQtb25seS1zZWNyZXQta2V5LWZvci1sbXMtYXBwbGljYXRpb24tbWluaW11bS0yNTYtYml0cw==}
       APP_JWT_EXPIRATION: ${JWT_EXPIRATION:-86400000}
       APP_JWT_REFRESH_EXPIRATION: ${JWT_REFRESH_EXPIRATION:-604800000}
       # Cloudflare R2 Storage

@@ -77,6 +77,26 @@ public interface CourseRepository {
     Page<Course> findByTeacherIdsAndStatusAndTitleContaining(Set<UUID> teacherIds, Course.CourseStatus status, String search, Pageable pageable);
 
     /**
+     * Find courses owned by an organization.
+     */
+    Page<Course> findByOrganizationId(UUID organizationId, Pageable pageable);
+
+    /**
+     * Find organization-owned courses by raw course status.
+     */
+    Page<Course> findByOrganizationIdAndStatus(UUID organizationId, Course.CourseStatus status, Pageable pageable);
+
+    /**
+     * Find organization-owned courses by title search.
+     */
+    Page<Course> findByOrganizationIdAndTitleContaining(UUID organizationId, String search, Pageable pageable);
+
+    /**
+     * Find organization-owned courses by status and title search.
+     */
+    Page<Course> findByOrganizationIdAndStatusAndTitleContaining(UUID organizationId, Course.CourseStatus status, String search, Pageable pageable);
+
+    /**
      * Find all approved courses.
      */
     Page<Course> findApproved(Pageable pageable);
@@ -102,6 +122,11 @@ public interface CourseRepository {
     Page<Course> findReviewQueueByTeacherIds(Set<UUID> teacherIds, Pageable pageable);
 
     /**
+     * Find the review queue scoped to direct organization ownership.
+     */
+    Page<Course> findReviewQueueByOrganizationId(UUID organizationId, Pageable pageable);
+
+    /**
      * Count courses by teacher ID.
      */
     long countByTeacherId(UUID teacherId);
@@ -120,6 +145,21 @@ public interface CourseRepository {
      * Count the review queue for an organization's teachers.
      */
     long countReviewQueueByTeacherIds(Set<UUID> teacherIds);
+
+    /**
+     * Count courses owned by an organization.
+     */
+    long countByOrganizationId(UUID organizationId);
+
+    /**
+     * Count organization-owned courses by status.
+     */
+    long countByStatusAndOrganizationId(Course.CourseStatus status, UUID organizationId);
+
+    /**
+     * Count the review queue scoped to direct organization ownership.
+     */
+    long countReviewQueueByOrganizationId(UUID organizationId);
 
     /**
      * Find all courses with pagination.
@@ -204,4 +244,9 @@ public interface CourseRepository {
      * Used for org-scoped enrollment and revenue analytics.
      */
     List<UUID> findCourseIdsByTeacherIdIn(Set<UUID> teacherIds);
+
+    /**
+     * Find course IDs owned by an organization.
+     */
+    List<UUID> findCourseIdsByOrganizationId(UUID organizationId);
 }

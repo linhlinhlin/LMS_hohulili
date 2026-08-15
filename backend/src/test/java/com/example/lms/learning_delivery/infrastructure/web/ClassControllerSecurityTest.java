@@ -58,6 +58,8 @@ class ClassControllerSecurityTest {
     private UUID courseId;
     private UUID teacherId;
     private UUID otherTeacherId;
+    private UUID organizationId;
+    private UUID otherOrganizationId;
     private UserJpaEntity otherTeacher;
     private CourseJpaEntity course;
 
@@ -66,13 +68,17 @@ class ClassControllerSecurityTest {
         courseId = UUID.randomUUID();
         teacherId = UUID.randomUUID();
         otherTeacherId = UUID.randomUUID();
+        organizationId = UUID.randomUUID();
+        otherOrganizationId = UUID.randomUUID();
 
         otherTeacher = mock(UserJpaEntity.class);
         lenient().when(otherTeacher.getId()).thenReturn(otherTeacherId);
         lenient().when(otherTeacher.getRole()).thenReturn(UserJpaEntity.UserRole.TEACHER);
 
         course = mock(CourseJpaEntity.class);
+        lenient().when(course.getId()).thenReturn(courseId);
         lenient().when(course.getTeacherId()).thenReturn(teacherId);
+        lenient().when(course.getOrganizationId()).thenReturn(organizationId);
         lenient().when(course.getDeliveryMode()).thenReturn(CourseJpaEntity.DeliveryMode.INSTRUCTOR_LED);
     }
 
@@ -217,6 +223,76 @@ class ClassControllerSecurityTest {
     }
 
     @Test
+    @DisplayName("getClassesByCourse: ORG_ADMIN cùng tổ chức được truy cập")
+    void getClassesByCourse_allowsOrgAdminFromSameOrganization() {
+        var orgAdmin = mock(UserJpaEntity.class);
+        when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+        when(orgAdmin.getOrganizationId()).thenReturn(organizationId);
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+        when(classJpaRepository.findByCourseId(courseId)).thenReturn(List.of());
+
+        assertThatCode(() -> controller.getClassesByCourse(courseId, orgAdmin))
+                .doesNotThrowAnyException();
+    }
+
+    @Test
+    @DisplayName("getClassesByCourse: ORG_ADMIN khác tổ chức bị từ chối")
+    void getClassesByCourse_rejectsOrgAdminFromDifferentOrganization() {
+        var orgAdmin = mock(UserJpaEntity.class);
+        when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+        when(orgAdmin.getOrganizationId()).thenReturn(otherOrganizationId);
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> controller.getClassesByCourse(courseId, orgAdmin))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
+    }
+
+    @Test
+    @DisplayName("getClassById: ORG_ADMIN bị chặn theo organization_id trực tiếp của lớp")
+    void getClassById_rejectsOrgAdminWhenClassOrganizationDiffers() {
+        UUID classId = UUID.randomUUID();
+        var orgAdmin = mock(UserJpaEntity.class);
+        when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+        when(orgAdmin.getOrganizationId()).thenReturn(organizationId);
+
+        var classEntity = mock(LearningClassJpaEntity.class);
+        when(classEntity.getCourseId()).thenReturn(courseId);
+        when(classEntity.getOrganizationId()).thenReturn(otherOrganizationId);
+        when(classJpaRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        assertThatThrownBy(() -> controller.getClassById(classId.toString(), orgAdmin))
+                .isInstanceOf(AccessDeniedException.class)
+                .hasMessageContaining(COURSE_ACCESS_DENIED_MESSAGE);
+    }
+
+    @Test
+    @DisplayName("createClass: ORG_ADMIN mặc định gán giảng viên sở hữu khóa học")
+    void createClass_defaultsOrgAdminAssignedTeacherToCourseOwner() {
+        var orgAdmin = mock(UserJpaEntity.class);
+        when(orgAdmin.getRole()).thenReturn(UserJpaEntity.UserRole.ORG_ADMIN);
+        when(orgAdmin.getOrganizationId()).thenReturn(organizationId);
+        when(courseJpaRepository.findById(courseId)).thenReturn(Optional.of(course));
+
+        var teacher = mock(UserJpaEntity.class);
+        when(teacher.getOrganizationId()).thenReturn(organizationId);
+        when(userJpaRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
+        UUID classId = UUID.randomUUID();
+        when(createLearningClassUseCase.execute(any())).thenReturn(classId);
+
+        var request = new ClassControllerV3.CreateClassRequest();
+        request.setName("Lớp điều động");
+        request.setCourseId(courseId.toString());
+
+        controller.createClass(request, orgAdmin);
+
+        var captor = org.mockito.ArgumentCaptor.forClass(CreateLearningClassUseCaseV3.CreateClassCommand.class);
+        verify(createLearningClassUseCase).execute(captor.capture());
+        assertThat(captor.getValue().teacherId()).isEqualTo(teacherId);
+    }
+
+    @Test
     @DisplayName("getClassesByCourse: Chủ sở hữu khóa học được truy cập")
     void getClassesByCourse_allowsOwner() {
         var owner = mock(UserJpaEntity.class);
@@ -283,6 +359,9 @@ class ClassControllerSecurityTest {
         var classEntity = mock(LearningClassJpaEntity.class);
         when(classEntity.getCourseId()).thenReturn(courseId);
         when(classJpaRepository.findById(classId)).thenReturn(Optional.of(classEntity));
+        var newTeacher = mock(UserJpaEntity.class);
+        when(newTeacher.getOrganizationId()).thenReturn(organizationId);
+        when(userJpaRepository.findById(newTeacherId)).thenReturn(Optional.of(newTeacher));
 
         var request = new ClassControllerV3.UpdateClassRequest();
         request.setName("Lớp mới");

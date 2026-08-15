@@ -23,13 +23,11 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.anySet;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -118,19 +116,44 @@ class AdminCoursesControllerV3PendingFilterTest {
     }
 
     @Test
-    @DisplayName("ORG_ADMIN: status=PENDING routes through findReviewQueueByTeacherIds")
+    @DisplayName("ORG_ADMIN: status=PENDING routes through direct organization ownership")
     void orgAdminPendingFilterRoutesThroughOrgScopedReviewQueue() {
-        when(userRepository.findByOrganizationId(orgId))
-                .thenReturn(List.of(teacher(UUID.randomUUID())));
         Page<Course> emptyPage = new PageImpl<>(List.of());
-        when(courseRepository.findReviewQueueByTeacherIds(anySet(), any(Pageable.class)))
+        when(courseRepository.findReviewQueueByOrganizationId(eq(orgId), any(Pageable.class)))
                 .thenReturn(emptyPage);
 
         controller.getAllCourses(0, 10, "PENDING", null, null, null, null, orgAdminUser);
 
-        verify(courseRepository).findReviewQueueByTeacherIds(anySet(), any(Pageable.class));
+        verify(courseRepository).findReviewQueueByOrganizationId(eq(orgId), any(Pageable.class));
+        verify(userRepository, never()).findByOrganizationId(orgId);
         verify(courseRepository, never())
-                .findByTeacherIdsAndStatus(anySet(), eq(Course.CourseStatus.PENDING), any(Pageable.class));
+                .findByOrganizationIdAndStatus(eq(orgId), eq(Course.CourseStatus.PENDING), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("ORG_ADMIN: /pending uses direct organization ownership")
+    void orgAdminPendingEndpointUsesOrganizationOwnership() {
+        Page<Course> emptyPage = new PageImpl<>(List.of());
+        when(courseRepository.findReviewQueueByOrganizationId(eq(orgId), any(Pageable.class)))
+                .thenReturn(emptyPage);
+
+        controller.getPendingCourses(0, 10, orgAdminUser);
+
+        verify(courseRepository).findReviewQueueByOrganizationId(eq(orgId), any(Pageable.class));
+        verify(userRepository, never()).findByOrganizationId(orgId);
+    }
+
+    @Test
+    @DisplayName("ORG_ADMIN: normal status filter uses direct organization ownership")
+    void orgAdminStatusFilterUsesOrganizationOwnership() {
+        Page<Course> emptyPage = new PageImpl<>(List.of());
+        when(courseRepository.findByOrganizationIdAndStatus(eq(orgId), eq(Course.CourseStatus.APPROVED), any(Pageable.class)))
+                .thenReturn(emptyPage);
+
+        controller.getAllCourses(0, 10, "APPROVED", null, null, null, null, orgAdminUser);
+
+        verify(courseRepository).findByOrganizationIdAndStatus(eq(orgId), eq(Course.CourseStatus.APPROVED), any(Pageable.class));
+        verify(userRepository, never()).findByOrganizationId(orgId);
     }
 
     @Test
@@ -162,15 +185,6 @@ class AdminCoursesControllerV3PendingFilterTest {
         var content = response.getBody().getData().getContent();
         assertThat(content).extracting(AdminCoursesControllerV3.CourseAdminResponse::getId)
                 .containsExactly(matchId.toString());
-    }
-
-    private UserJpaEntity teacher(UUID id) {
-        UserJpaEntity teacher = new UserJpaEntity(
-                id, "t", "t@m.edu", "pwd", "Teacher",
-                UserJpaEntity.UserRole.TEACHER, true,
-                java.time.Instant.now(), null);
-        teacher.setOrganizationId(orgId);
-        return teacher;
     }
 
     // Inline mock helper so we don't need to expand the import block.

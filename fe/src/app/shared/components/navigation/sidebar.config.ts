@@ -28,6 +28,12 @@ export const studentSidebarConfig: SidebarConfig = {
       group: 'Học tập'
     },
     {
+      label: 'Gói học',
+      route: '/student/packages',
+      icon: 'briefcase',
+      group: 'Học tập'
+    },
+    {
       label: 'Bài cần làm',
       route: '/student/tasks',
       icon: 'blog',
@@ -295,10 +301,22 @@ const orgAdminMenuItems: SidebarMenuItem[] = [
     group: 'Quản lý'
   },
   {
+    label: 'Cấu trúc đào tạo',
+    route: '/org-admin/academic',
+    icon: 'book',
+    group: 'Quản lý'
+  },
+  {
     label: 'Phân tích',
     route: '/org-admin/analytics',
     icon: 'bar-chart',
     group: 'Báo cáo'
+  },
+  {
+    label: 'Rút tiền',
+    route: '/org-admin/payouts',
+    icon: 'briefcase',
+    group: 'Tài chính'
   },
   {
     label: 'Tổ chức',

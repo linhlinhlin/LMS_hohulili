@@ -24,9 +24,9 @@ public interface FileAttachmentJpaRepository extends JpaRepository<FileAttachmen
      * The query is REFERENTIAL rather than date-based: it explicitly checks every consumer
      * column ({@code courses.thumbnail_attachment_id}, {@code courses.intro_video_attachment_id},
      * {@code users.avatar_attachment_id}, {@code assignment_submissions.file_attachment_id},
-     * {@code video_assets.source_attachment_id}) so a file in active use cannot be deleted
-     * even if its {@code entity_id} got accidentally cleared. PostgreSQL ON DELETE RESTRICT
-     * adds a second physical safety layer at the table level.
+     * {@code video_assets.source_attachment_id}) and published course snapshots so a file in
+     * active use cannot be deleted even if its {@code entity_id} got accidentally cleared.
+     * PostgreSQL ON DELETE RESTRICT adds a second physical safety layer at the table level.
      *
      * Records tagged with {@code entity_type = 'PENDING_LINK_REVIEW'} are excluded as a
      * legacy safeguard from the V129 tactical backfill — they will be reviewed manually
@@ -42,6 +42,11 @@ public interface FileAttachmentJpaRepository extends JpaRepository<FileAttachmen
           AND NOT EXISTS (SELECT 1 FROM users u                  WHERE u.avatar_attachment_id      = f.id)
           AND NOT EXISTS (SELECT 1 FROM assignment_submissions s WHERE s.file_attachment_id        = f.id)
           AND NOT EXISTS (SELECT 1 FROM video_assets v           WHERE v.source_attachment_id      = f.id)
+          AND NOT EXISTS (
+              SELECT 1 FROM course_publications cp
+              WHERE strpos(cp.snapshot::text, f.storage_path) > 0
+                 OR strpos(cp.snapshot::text, f.stored_filename) > 0
+          )
         """,
         nativeQuery = true)
     List<FileAttachmentJpaEntity> findOrphanedBefore(@Param("cutoff") Instant cutoff);

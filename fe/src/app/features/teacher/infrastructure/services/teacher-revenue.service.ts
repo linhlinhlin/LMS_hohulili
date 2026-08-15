@@ -15,6 +15,7 @@ export interface RevenueHistoryItem {
     id: string;
     courseId: string;
     courseName: string;
+    source?: 'COURSE' | 'PACKAGE';
     studentName: string;
     grossAmount: number;
     platformFeePct: number;

@@ -1,6 +1,7 @@
 package com.example.lms.shared.application.usecase;
 
 import com.example.lms.identity.domain.repository.UserRepository;
+import com.example.lms.shared.application.port.LearningPackageRevenuePort;
 import com.example.lms.shared.application.port.RevenueConfigPort;
 import com.example.lms.shared.exception.BusinessRuleException;
 import com.example.lms.shared.domain.model.PayoutRequest;
@@ -26,6 +27,7 @@ public class RequestPayoutUseCase {
     private final TeacherBankAccountRepository bankRepo;
     private final UserRepository             userRepo;
     private final RevenueConfigPort          revenueConfigPort;
+    private final LearningPackageRevenuePort learningPackageRevenuePort;
 
     @Transactional
     public PayoutRequest execute(UUID teacherId, UUID bankAccountId,
@@ -51,7 +53,8 @@ public class RequestPayoutUseCase {
         }
 
         // Compute available balance
-        BigDecimal totalEarned = splitRepo.sumTeacherAmountByTeacherId(teacherId);
+        BigDecimal totalEarned = zeroIfNull(splitRepo.sumTeacherAmountByTeacherId(teacherId))
+                .add(zeroIfNull(learningPackageRevenuePort.sumTeacherAmountByTeacherId(teacherId)));
         BigDecimal completed   = payoutRepo.sumCompletedByTeacherId(teacherId);
         BigDecimal inFlight    = payoutRepo.sumPendingAndApprovedByTeacherId(teacherId);
         BigDecimal available   = totalEarned.subtract(completed).subtract(inFlight);
@@ -61,7 +64,7 @@ public class RequestPayoutUseCase {
                     "Số tiền rút vượt quá số dư khả dụng (" + available.toPlainString() + "đ)");
         }
 
-        var request = PayoutRequest.create(teacherId, bankAccountId, amount, teacherNote);
+        var request = PayoutRequest.create(teacherId, bankAccountId, amount, teacherNote, orgId);
         return payoutRepo.save(request);
     }
 
@@ -78,5 +81,9 @@ public class RequestPayoutUseCase {
         }
         request.cancelByTeacher("Giảng viên đã hủy yêu cầu rút tiền");
         payoutRepo.save(request);
+    }
+
+    private BigDecimal zeroIfNull(BigDecimal value) {
+        return value == null ? BigDecimal.ZERO : value;
     }
 }

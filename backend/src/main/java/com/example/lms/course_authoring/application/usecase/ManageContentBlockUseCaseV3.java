@@ -4,6 +4,7 @@ import com.example.lms.course_authoring.domain.repository.CourseRepository;
 import com.example.lms.course_authoring.domain.repository.LessonRepositoryPort;
 import com.example.lms.learning_delivery.infrastructure.persistence.ClassTeacherJpaRepository;
 import com.example.lms.shared.domain.model.ContentBlock;
+import com.example.lms.shared.domain.service.ContentBlockSanitizer;
 import com.example.lms.shared.exception.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
@@ -39,7 +40,7 @@ public class ManageContentBlockUseCaseV3 {
         ContentBlock block = ContentBlock.builder()
                 .id(UUID.randomUUID().toString())
                 .type(type)
-                .data(data)
+                .data(ContentBlockSanitizer.sanitizeData(data))
                 .build();
 
         List<ContentBlock> updated = new ArrayList<>(blocks);
@@ -84,7 +85,8 @@ public class ManageContentBlockUseCaseV3 {
         }
         mergedData.putAll(data);
 
-        ContentBlock updatedBlock = existingBlock.withData(mergedData);
+        ContentBlock updatedBlock =
+                existingBlock.withData(ContentBlockSanitizer.sanitizeData(mergedData));
         List<ContentBlock> updated = new ArrayList<>(blocks);
         updated.set(blockIndex, updatedBlock);
         lessonRepository.saveContentBlocks(lessonId, updated);
@@ -95,14 +97,14 @@ public class ManageContentBlockUseCaseV3 {
 
     @Transactional(readOnly = true)
     public List<ContentBlock> getBlocks(UUID lessonId) {
-        return lessonRepository.getContentBlocks(lessonId)
-                .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId));
+        return ContentBlockSanitizer.sanitizeBlocks(lessonRepository.getContentBlocks(lessonId)
+                .orElseThrow(() -> new EntityNotFoundException("Lesson", lessonId)));
     }
 
     @Transactional
     public void saveBlocks(UUID lessonId, List<ContentBlock> blocks) {
         courseDraftMutationUseCase.requireEditableCourseByLesson(lessonId);
-        lessonRepository.saveContentBlocks(lessonId, blocks);
+        lessonRepository.saveContentBlocks(lessonId, ContentBlockSanitizer.sanitizeBlocks(blocks));
         courseDraftMutationUseCase.markCourseChangedByLesson(lessonId);
     }
 
@@ -165,7 +167,7 @@ public class ManageContentBlockUseCaseV3 {
         int insertAt = (targetIndex == null || targetIndex < 0 || targetIndex > newTarget.size())
                 ? newTarget.size()
                 : targetIndex;
-        newTarget.add(insertAt, movedBlock);
+        newTarget.add(insertAt, ContentBlockSanitizer.sanitizeBlock(movedBlock));
 
         lessonRepository.saveContentBlocks(fromLessonId, newSource);
         lessonRepository.saveContentBlocks(toLessonId, newTarget);
@@ -190,7 +192,7 @@ public class ManageContentBlockUseCaseV3 {
                 }
                 merged.putAll(patch);
                 List<ContentBlock> updated = new ArrayList<>(blocks);
-                updated.set(i, block.withData(merged));
+                updated.set(i, block.withData(ContentBlockSanitizer.sanitizeData(merged)));
                 lessonRepository.saveContentBlocks(lessonId, updated);
                 return;
             }

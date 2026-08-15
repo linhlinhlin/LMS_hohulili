@@ -63,9 +63,19 @@ export const orgAdminRoutes: Routes = [
         ]
       },
       {
+        path: 'academic',
+        loadComponent: () => import('./academic-catalog.component').then(m => m.OrgAcademicCatalogComponent),
+        title: 'Cấu trúc đào tạo'
+      },
+      {
         path: 'analytics',
         loadComponent: () => import('../admin/presentation/components/admin-analytics.component').then(m => m.AdminAnalyticsComponent),
         title: 'Phân tích tổ chức'
+      },
+      {
+        path: 'payouts',
+        loadComponent: () => import('../admin/presentation/components/admin-payouts.component').then(m => m.AdminPayoutsComponent),
+        title: 'Yêu cầu rút tiền của tổ chức'
       },
       {
         path: 'organization',

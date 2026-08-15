@@ -416,24 +416,22 @@ class PaymentControllerV3Test {
     }
 
     @Test
-    @DisplayName("admin list: ORG_ADMIN only sees payments from courses owned by teachers in the same organization")
+    @DisplayName("admin list: ORG_ADMIN only sees payments from the same organization")
     @SuppressWarnings("unchecked")
     void adminListPaymentsScopesOrgAdminToOwnOrganization() {
         UUID orgId = UUID.randomUUID();
-        UUID teacherId = UUID.randomUUID();
         UUID studentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
 
         UserJpaEntity orgAdmin = user(UUID.randomUUID(), UserJpaEntity.UserRole.ORG_ADMIN, orgId, "Org Admin");
-        UserJpaEntity teacher = user(teacherId, UserJpaEntity.UserRole.TEACHER, orgId, "Teacher Org A");
         UserJpaEntity student = user(studentId, UserJpaEntity.UserRole.STUDENT, null, "Student A");
         CourseJpaEntity course = CourseJpaEntity.builder()
                 .id(courseId)
-                .teacherId(teacherId)
                 .title("Scoped Course")
                 .build();
         PaymentTransactionJpaEntity payment = PaymentTransactionJpaEntity.builder()
                 .id(UUID.randomUUID())
+                .organizationId(orgId)
                 .studentId(studentId)
                 .courseId(courseId)
                 .amount(BigDecimal.valueOf(150000))
@@ -442,9 +440,7 @@ class PaymentControllerV3Test {
                 .paidAt(Instant.now())
                 .build();
 
-        when(userRepository.findByOrganizationId(orgId)).thenReturn(List.of(teacher));
-        when(courseRepository.findCourseIdsByTeacherIdIn(eq(List.of(teacherId)))).thenReturn(List.of(courseId));
-        when(paymentJpaRepository.findByCourseIdIn(eq(List.of(courseId)), any()))
+        when(paymentJpaRepository.findByOrganizationIdOrderByCreatedAtDesc(eq(orgId), any()))
                 .thenReturn(new PageImpl<>(List.of(payment)));
         when(userRepository.findAllById(any())).thenReturn(List.of(student));
         when(courseRepository.findAllById(any())).thenReturn(List.of(course));
@@ -460,6 +456,7 @@ class PaymentControllerV3Test {
         assertThat(content.get(0)).containsEntry("courseTitle", "Scoped Course");
         assertThat(content.get(0)).containsEntry("studentName", "Student A");
         verify(paymentJpaRepository, never()).findAll(any(org.springframework.data.domain.Pageable.class));
+        verify(paymentJpaRepository, never()).findByCourseIdIn(any(), any());
     }
 
     @Test
@@ -469,27 +466,19 @@ class PaymentControllerV3Test {
         UUID orgB = UUID.randomUUID();
         UUID paymentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
-        UUID teacherId = UUID.randomUUID();
 
         UserJpaEntity orgAdmin = user(UUID.randomUUID(), UserJpaEntity.UserRole.ORG_ADMIN, orgA, "Org Admin");
-        UserJpaEntity otherTeacher = user(teacherId, UserJpaEntity.UserRole.TEACHER, orgB, "Teacher Org B");
         PaymentTransactionJpaEntity payment = PaymentTransactionJpaEntity.builder()
                 .id(paymentId)
+                .organizationId(orgB)
                 .courseId(courseId)
                 .studentId(UUID.randomUUID())
                 .amount(BigDecimal.valueOf(200000))
                 .transactionId("TXN-2")
                 .status(PaymentTransactionJpaEntity.PaymentStatus.COMPLETED)
                 .build();
-        CourseJpaEntity course = CourseJpaEntity.builder()
-                .id(courseId)
-                .teacherId(teacherId)
-                .title("Other Org Course")
-                .build();
 
         when(paymentJpaRepository.findById(paymentId)).thenReturn(Optional.of(payment));
-        when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
-        when(userRepository.findById(teacherId)).thenReturn(Optional.of(otherTeacher));
 
         assertThatThrownBy(() -> controller.adminRefundPayment(
                 orgAdmin,
@@ -506,13 +495,12 @@ class PaymentControllerV3Test {
         UUID orgId = UUID.randomUUID();
         UUID paymentId = UUID.randomUUID();
         UUID courseId = UUID.randomUUID();
-        UUID teacherId = UUID.randomUUID();
         UUID studentId = UUID.randomUUID();
 
         UserJpaEntity orgAdmin = user(UUID.randomUUID(), UserJpaEntity.UserRole.ORG_ADMIN, orgId, "Org Admin");
-        UserJpaEntity teacher = user(teacherId, UserJpaEntity.UserRole.TEACHER, orgId, "Teacher Org A");
         PaymentTransactionJpaEntity paymentEntity = PaymentTransactionJpaEntity.builder()
                 .id(paymentId)
+                .organizationId(orgId)
                 .courseId(courseId)
                 .studentId(studentId)
                 .amount(BigDecimal.valueOf(200000))
@@ -521,11 +509,11 @@ class PaymentControllerV3Test {
                 .build();
         CourseJpaEntity course = CourseJpaEntity.builder()
                 .id(courseId)
-                .teacherId(teacherId)
                 .title("Same Org Course")
                 .build();
         PaymentTransaction refunded = PaymentTransaction.reconstitute(
                 paymentId,
+                orgId,
                 studentId,
                 courseId,
                 BigDecimal.valueOf(200000),
@@ -550,7 +538,6 @@ class PaymentControllerV3Test {
 
         when(paymentJpaRepository.findById(paymentId)).thenReturn(Optional.of(paymentEntity));
         when(courseRepository.findById(courseId)).thenReturn(Optional.of(course));
-        when(userRepository.findById(teacherId)).thenReturn(Optional.of(teacher));
         when(userRepository.findById(studentId)).thenReturn(Optional.empty());
         when(refundPaymentUseCase.execute(paymentId, "Duplicate", "Check", orgAdmin.getEmail())).thenReturn(refunded);
 

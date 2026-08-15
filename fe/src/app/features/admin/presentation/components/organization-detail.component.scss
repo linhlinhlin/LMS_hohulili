@@ -779,6 +779,10 @@
   font-size: $text-xs;
   color: $text-disabled;
   margin-top: $spacing-1;
+
+  &--error {
+    color: $error;
+  }
 }
 
 /* ===== DERIVED SHARE BOX ===== */
@@ -903,6 +907,192 @@
 .config-actions {
   padding-top: $spacing-4;
   border-top: 1px solid $border-light;
+}
+
+/* ===== CAPABILITIES TAB ===== */
+.capabilities-card {
+  max-width: 920px;
+}
+
+.capabilities-header {
+  display: flex;
+  justify-content: space-between;
+  gap: $spacing-4;
+  margin-bottom: $spacing-5;
+
+  h3 {
+    font-size: $text-xl;
+    font-weight: $font-bold;
+    color: $text-primary;
+    margin: $spacing-1 0 $spacing-2;
+  }
+
+  p {
+    max-width: 720px;
+    color: $text-secondary;
+    font-size: $text-sm;
+    line-height: $leading-relaxed;
+    margin: 0;
+  }
+}
+
+.section-kicker {
+  color: $blue-primary !important;
+  font-size: $text-xs !important;
+  font-weight: $font-bold;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.capability-role-badge {
+  align-self: flex-start;
+  border: 1px solid rgba($blue-primary, 0.18);
+  border-radius: $radius-full;
+  background: rgba($blue-primary, 0.08);
+  color: $blue-primary;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  padding: $spacing-1 $spacing-3;
+  white-space: nowrap;
+
+  &--readonly {
+    border-color: $border-default;
+    background: $gray-50;
+    color: $text-muted;
+  }
+}
+
+.capability-config-list {
+  display: flex;
+  flex-direction: column;
+  gap: $spacing-3;
+}
+
+.capability-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: $spacing-4;
+  border: 1px solid $border-light;
+  border-radius: $radius-xl;
+  background: $bg-surface;
+  padding: $spacing-4;
+}
+
+.capability-config-main {
+  min-width: 0;
+
+  p {
+    color: $text-secondary;
+    font-size: $text-sm;
+    line-height: $leading-relaxed;
+    margin: $spacing-1 0 0;
+  }
+}
+
+.capability-config-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: $spacing-2;
+
+  span {
+    color: $text-primary;
+    font-weight: $font-semibold;
+  }
+
+  code {
+    border-radius: $radius-sm;
+    background: $gray-100;
+    color: $text-muted;
+    font-family: $font-family-mono;
+    font-size: $text-xs;
+    padding: 2px 8px;
+  }
+}
+
+.capability-config-side {
+  display: flex;
+  align-items: center;
+  gap: $spacing-3;
+  flex-shrink: 0;
+}
+
+.capability-state {
+  color: $text-muted;
+  font-size: $text-xs;
+  font-weight: $font-semibold;
+  white-space: nowrap;
+
+  &--enabled {
+    color: #047857;
+  }
+}
+
+.capability-switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 48px;
+  height: 28px;
+
+  input {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+  }
+
+  span {
+    width: 100%;
+    height: 100%;
+    border-radius: $radius-full;
+    background: $gray-300;
+    transition: background $transition-fast;
+
+    &::after {
+      content: '';
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 20px;
+      height: 20px;
+      border-radius: $radius-full;
+      background: $bg-surface;
+      box-shadow: $shadow-sm;
+      transition: transform $transition-fast;
+    }
+  }
+
+  input:checked + span {
+    background: $blue-primary;
+  }
+
+  input:checked + span::after {
+    transform: translateX(20px);
+  }
+
+  input:disabled {
+    cursor: not-allowed;
+  }
+
+  input:disabled + span {
+    opacity: 0.55;
+  }
+}
+
+.capability-empty,
+.capabilities-note {
+  border-radius: $radius-xl;
+  background: $gray-50;
+  color: $text-secondary;
+  font-size: $text-sm;
+  line-height: $leading-relaxed;
+  padding: $spacing-4;
+}
+
+.capabilities-note {
+  margin: $spacing-4 0 0;
 }
 
 /* ===== SETTINGS TAB ===== */
@@ -1475,6 +1665,20 @@
   border-radius: 6px;
 }
 
+@media (max-width: 768px) {
+  .capabilities-header,
+  .capability-config-row,
+  .capability-config-side {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .capability-config-side {
+    width: 100%;
+    gap: $spacing-2;
+  }
+}
+
 /* ===== PRINT ===== */
 @media print {
   .org-detail-page {
@@ -1496,6 +1700,7 @@
   .new-code-banner,
   .tab-bar,
   .config-actions,
+  .capability-switch,
   .settings-actions,
   .overview-actions-card,
   app-kebab-menu {

@@ -50,6 +50,7 @@ public class OrganizationControllerV3 {
     private final RevokeInviteUseCase revokeInviteUseCase;
     private final PromoteOrgAdminUseCase promoteOrgAdminUseCase;
     private final GetCrossOrgRevenueUseCase getCrossOrgRevenueUseCase;
+    private final ManageOrganizationCapabilitiesUseCase manageOrganizationCapabilitiesUseCase;
     private final UserJpaRepository userJpaRepo;
     private final OrganizationJpaRepository orgJpaRepo;
     private final OrganizationInviteJpaRepository inviteJpaRepo;
@@ -122,6 +123,27 @@ public class OrganizationControllerV3 {
         Organization org = orgRepo.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Tổ chức", id));
         return ResponseEntity.ok(ApiResponse.success(OrganizationResponse.from(org)));
+    }
+
+    @GetMapping("/{id}/capabilities")
+    @PreAuthorize("hasAnyRole('ADMIN', 'ORG_ADMIN')")
+    @Operation(summary = "Danh sách năng lực được bật cho tổ chức")
+    public ResponseEntity<ApiResponse<List<OrganizationCapabilityResponse>>> listCapabilities(
+            @PathVariable UUID id,
+            @AuthenticationPrincipal UserJpaEntity currentUser) {
+        verifyOrgAccess(currentUser, id);
+        return ResponseEntity.ok(ApiResponse.success(manageOrganizationCapabilitiesUseCase.list(id)));
+    }
+
+    @PutMapping("/{id}/capabilities/{key}")
+    @PreAuthorize("hasRole('ADMIN')")
+    @Operation(summary = "Bật/tắt năng lực tổ chức (ADMIN only)")
+    public ResponseEntity<ApiResponse<OrganizationCapabilityResponse>> setCapability(
+            @PathVariable UUID id,
+            @PathVariable String key,
+            @Valid @RequestBody SetCapabilityRequest request) {
+        return ResponseEntity.ok(ApiResponse.success(
+                manageOrganizationCapabilitiesUseCase.setEnabled(id, key, request.enabled())));
     }
 
     @PostMapping
@@ -411,5 +433,9 @@ public class OrganizationControllerV3 {
 
     public record SetMemberTokenExpiryRequest(
         @Min(1) @Max(1095) Integer tokenExpiryDays
+    ) {}
+
+    public record SetCapabilityRequest(
+        @NotNull Boolean enabled
     ) {}
 }

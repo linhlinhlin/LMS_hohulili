@@ -288,7 +288,7 @@ export class AuthService {
     const userStr = localStorage.getItem(this.userKey);
     if (!userStr) return null;
     try {
-      return JSON.parse(userStr);
+      return this.normalizeUser(JSON.parse(userStr));
     } catch {
       localStorage.removeItem(this.userKey);
       return null;
@@ -342,7 +342,7 @@ export class AuthService {
   // Computed properties for template usage
   userName = () => this.getCurrentUser()?.fullName || this.getCurrentUser()?.name || '';
   userEmail = () => this.getCurrentUser()?.email || '';
-  userRole = () => this.getCurrentUser()?.role || '';
+  userRole = () => this.getCurrentUser()?.role?.toLowerCase() || '';
   currentUser = () => this.getCurrentUser();
 
   // Additional properties for backward compatibility
@@ -351,8 +351,7 @@ export class AuthService {
   isLoading = () => false;
 
   hasRole(role: string): boolean {
-    const user = this.getCurrentUser();
-    return user?.role === role;
+    return this.userRole() === role.toLowerCase();
   }
 
   isAuthenticated(): boolean {

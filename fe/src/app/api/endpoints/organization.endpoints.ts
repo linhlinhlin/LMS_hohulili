@@ -9,6 +9,8 @@ export const ORGANIZATION_ENDPOINTS = {
   INVITES: (id: string) => `/api/v3/organizations/${id}/invites`,
   REVOKE_INVITE: (id: string, inviteId: string) => `/api/v3/organizations/${id}/invites/${inviteId}`,
   MEMBER_TOKEN_CONFIG: (orgId: string, userId: string) => `/api/v3/organizations/${orgId}/members/${userId}/token-config`,
+  CAPABILITIES: (orgId: string) => `/api/v3/organizations/${orgId}/capabilities`,
+  CAPABILITY: (orgId: string, key: string) => `/api/v3/organizations/${orgId}/capabilities/${key}`,
 } as const;
 
 export const INVITE_ENDPOINTS = {

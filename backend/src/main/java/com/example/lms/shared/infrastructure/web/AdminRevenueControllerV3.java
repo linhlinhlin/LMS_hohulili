@@ -2,6 +2,7 @@ package com.example.lms.shared.infrastructure.web;
 
 import com.example.lms.identity.infrastructure.persistence.entity.UserJpaEntity;
 import com.example.lms.identity.infrastructure.persistence.repository.UserJpaRepository;
+import com.example.lms.identity.application.usecase.ManageOrganizationCapabilitiesUseCase;
 import com.example.lms.shared.application.support.BankAccountMasking;
 import com.example.lms.shared.application.usecase.ProcessPayoutUseCase;
 import com.example.lms.shared.domain.model.PayoutRequest;
@@ -36,11 +37,13 @@ import java.util.stream.Collectors;
 @Tag(name = "Admin Revenue", description = "Platform revenue overview and payout management")
 @SecurityRequirement(name = "bearerAuth")
 public class AdminRevenueControllerV3 {
+    private static final String ORG_PAYOUT_APPROVAL = "org_payout_approval";
 
     private final ProcessPayoutUseCase processPayoutUseCase;
     private final PayoutRequestRepository payoutRepo;
     private final UserJpaRepository userRepo;
     private final TeacherBankAccountRepository bankAccountRepo;
+    private final ManageOrganizationCapabilitiesUseCase capabilitiesUseCase;
 
     @GetMapping("/payouts")
     @PreAuthorize("hasAnyRole('ADMIN','ORG_ADMIN')")
@@ -50,6 +53,7 @@ public class AdminRevenueControllerV3 {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @AuthenticationPrincipal UserJpaEntity currentUser) {
+        requireOrgPayoutApproval(currentUser);
         PageRequest pageable = PageRequest.of(page, size);
         Page<PayoutRequest> pageResult = resolveScopedPayoutPage(status, pageable, currentUser);
 
@@ -73,6 +77,7 @@ public class AdminRevenueControllerV3 {
             @RequestBody(required = false) AdminNoteBody body,
             @AuthenticationPrincipal UserJpaEntity admin) {
         verifyPayoutAccess(id, admin);
+        requireOrgPayoutApproval(admin);
         var result = processPayoutUseCase.approve(id, admin.getId(), body != null ? body.adminNote() : null);
         return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã duyệt yêu cầu rút tiền"));
     }
@@ -85,6 +90,7 @@ public class AdminRevenueControllerV3 {
             @RequestBody AdminNoteBody body,
             @AuthenticationPrincipal UserJpaEntity admin) {
         verifyPayoutAccess(id, admin);
+        requireOrgPayoutApproval(admin);
         var result = processPayoutUseCase.reject(id, admin.getId(), body.adminNote());
         return ResponseEntity.ok(ApiResponse.success(enrich(result, admin), "Đã từ chối yêu cầu rút tiền"));
     }
@@ -151,12 +157,10 @@ public class AdminRevenueControllerV3 {
         if (!isOrgAdmin(currentUser)) {
             return payoutRepo.findAllByStatus(status, pageable);
         }
-
-        List<UUID> orgTeacherIds = getOrgTeacherIds(currentUser.getOrganizationId());
-        if (orgTeacherIds.isEmpty()) {
+        if (currentUser.getOrganizationId() == null) {
             return Page.empty(pageable);
         }
-        return payoutRepo.findAllByStatusAndTeacherIds(status, orgTeacherIds, pageable);
+        return payoutRepo.findAllByStatusAndOrganizationId(status, currentUser.getOrganizationId(), pageable);
     }
 
     private void verifyPayoutAccess(UUID payoutId, UserJpaEntity admin) {
@@ -166,20 +170,17 @@ public class AdminRevenueControllerV3 {
 
         PayoutRequest payout = payoutRepo.findById(payoutId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Yêu cầu rút tiền không tồn tại"));
+        if (payout.getOrganizationId() != null) {
+            if (!Objects.equals(payout.getOrganizationId(), admin.getOrganizationId())) {
+                throw new AccessDeniedException("Không có quyền truy cập yêu cầu rút tiền của tổ chức khác");
+            }
+            return;
+        }
+
         UserJpaEntity teacher = userRepo.findById(payout.getTeacherId()).orElse(null);
         if (teacher == null || !Objects.equals(teacher.getOrganizationId(), admin.getOrganizationId())) {
             throw new AccessDeniedException("Không có quyền truy cập yêu cầu rút tiền của tổ chức khác");
         }
-    }
-
-    private List<UUID> getOrgTeacherIds(UUID organizationId) {
-        if (organizationId == null) {
-            return List.of();
-        }
-        return userRepo.findByOrganizationId(organizationId).stream()
-                .filter(user -> user.getRole() == UserJpaEntity.UserRole.TEACHER)
-                .map(UserJpaEntity::getId)
-                .toList();
     }
 
     private boolean isOrgAdmin(UserJpaEntity viewer) {
@@ -188,5 +189,14 @@ public class AdminRevenueControllerV3 {
 
     private boolean isSystemAdmin(UserJpaEntity viewer) {
         return viewer != null && viewer.getRole() == UserJpaEntity.UserRole.ADMIN;
+    }
+
+    private void requireOrgPayoutApproval(UserJpaEntity viewer) {
+        if (!isOrgAdmin(viewer) || viewer.getOrganizationId() == null) {
+            return;
+        }
+        if (!capabilitiesUseCase.isEnabled(viewer.getOrganizationId(), ORG_PAYOUT_APPROVAL)) {
+            throw new AccessDeniedException("Organization capability is disabled: " + ORG_PAYOUT_APPROVAL);
+        }
     }
 }
