@@ -73,6 +73,7 @@ Chỉ các boundary đang sống, tên cố định. Snapshot date-stamp đã ch
 
 - [architecture/README.md](architecture/README.md)
 - [architecture/LESSON_VIEW_ARCHITECTURE.md](architecture/LESSON_VIEW_ARCHITECTURE.md)
+- [architecture/OBJECT_STORAGE_CDN_STRATEGY.md](architecture/OBJECT_STORAGE_CDN_STRATEGY.md)
 - [architecture/COURSE_VS_CLASS_LESSON_BOUNDARY.md](architecture/COURSE_VS_CLASS_LESSON_BOUNDARY.md)
 - [architecture/STUDENT_COURSE_FIRST_EXPERIENCE.md](architecture/STUDENT_COURSE_FIRST_EXPERIENCE.md)
 - [architecture/TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md](architecture/TEACHER_ASSESSMENTS_CONTEXT_SPLIT.md)
