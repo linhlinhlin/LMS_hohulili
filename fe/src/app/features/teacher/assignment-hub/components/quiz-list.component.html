@@ -470,10 +470,6 @@
         }
       }
     </div>
-    <div dialogFooter>
-      <button type="button" (click)="closeCreateModal()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
-      <button type="button" (click)="proceedToStep2()" [disabled]="!createSelectedCourseId()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">Tiếp tục</button>
-    </div>
   } @else {
     <div class="space-y-4">
       <div class="flex items-center gap-2 text-sm">
@@ -511,11 +507,16 @@
         <p class="text-sm text-red-600">{{ createError() }}</p>
       }
     </div>
-    <div dialogFooter>
+  }
+  <div dialogFooter>
+    @if (createStep() === 1) {
+      <button type="button" (click)="closeCreateModal()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Hủy</button>
+      <button type="button" (click)="proceedToStep2()" [disabled]="!createSelectedCourseId()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">Tiếp tục</button>
+    } @else {
       <button type="button" (click)="backToStep1()" class="rounded-lg border border-gray-200 px-3.5 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">Quay lại</button>
       <button type="button" (click)="submitCreate()" [disabled]="createLoading() || !createSelectedChapterId() || !createTitle().trim()" class="rounded-lg bg-[#0056D2] px-3.5 py-2 text-sm font-medium text-white hover:bg-[#004BB5] disabled:opacity-40">
         {{ createLoading() ? 'Đang tạo...' : 'Tạo bài kiểm tra' }}
       </button>
-    </div>
-  }
+    }
+  </div>
 </app-dialog>
