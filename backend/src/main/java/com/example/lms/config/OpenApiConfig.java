@@ -28,8 +28,8 @@ public class OpenApiConfig {
                                 .email("support@holilihu.online")
                                 .url("https://holilihu.online"))
                         .license(new License()
-                                .name("GNU AGPL v3.0 only")
-                                .url("https://www.gnu.org/licenses/agpl-3.0.html")))
+                                .name("MIT License")
+                                .url("https://opensource.org/license/mit")))
                 .servers(List.of(
                         new Server()
                                 .url("http://localhost:8080")

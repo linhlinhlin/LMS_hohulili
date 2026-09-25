@@ -1,27 +1,29 @@
 # Licensing rights review
 
-Status: **OWNER ATTESTATION RECORDED - REPOSITORY RELEASE GATE CLEARED**
+Status: **OWNER AUTHORIZATION RECORDED FOR MIT TRANSITION**
 
-On 2026-08-16, Meiiie confirmed that Meiiie owns Maritime LMS / HoLiLiHu and
-controls the rights needed to license the original project material under the
-repository's AGPL and commercial licensing model. The Wiii Lab is the project
-and brand identity operated by Meiiie. This owner attestation clears the
-repository-level rights gate introduced during the licensing transition.
+On 2026-08-16, Meiiie confirmed ownership and control of the rights needed to
+license original Maritime LMS / HoLiLiHu material under the then-current
+AGPL and commercial model. The Wiii Lab is the project and brand identity
+operated by Meiiie.
 
-This public record is not a substitute for private signed assignments,
-employment agreements, or legal opinions when a commercial transaction
-requires them. Meiiie should retain any supporting evidence privately; do not
-commit signatures, identity documents, or private contracts here.
+On 2026-09-26, the project owner reaffirmed licensing authority and requested
+that the original project material be made available under MIT. The change
+applies to revisions containing the updated `LICENSE` and `LICENSING.md`;
+it does not revoke earlier grants or alter third-party licenses.
 
-The following are continuing diligence controls, not release blockers created
-by this record:
+This record documents the owner's authorization. It is not an independent
+audit of every contributor agreement or third-party asset. Supporting private
+records should be retained privately; do not commit signatures, identity
+documents, or private contracts here.
+
+Continuing controls:
 
 - preserve all third-party licenses, copyright notices, and required
   attributions in source and binary distributions;
-- require appropriate inbound rights for future contributions under
-  `CONTRIBUTOR-LICENSE-POLICY.md`;
-- exclude, replace, or separately license material that is later shown not to
-  be within the project owner's licensing authority;
-- have qualified counsel review contributor and commercial agreements for
-  high-value transactions in the relevant jurisdiction; and
-- record the exact source commit used by every AGPL network distribution.
+- retain the Apache-2.0 license and notices in the `sdk/` boundary;
+- require appropriate inbound rights under `CONTRIBUTOR-LICENSE-POLICY.md`;
+- exclude, replace, or separately license material later shown to be outside
+  the project owner's licensing authority; and
+- preserve obligations attached to earlier AGPL distributions and existing
+  contributor or commercial agreements.

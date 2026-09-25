@@ -1,26 +1,20 @@
-# Commercial licensing notice
+# Commercial use and optional agreements
 
-This file is a notice, not a commercial license grant.
-
-The AGPL-covered Maritime LMS / HoLiLiHu material may be available under
-either:
-
-1. `AGPL-3.0-only`; or
-2. a separate commercial agreement signed by Meiiie or an expressly
-   authorized representative of Meiiie.
+Original Maritime LMS / HoLiLiHu material in this revision is available under
+the MIT License in `LICENSE`. MIT permits commercial use, modification,
+distribution, sublicensing, and sale subject to its terms, including preservation
+of copyright and license notices. No separate commercial agreement or payment
+is required for uses already allowed by MIT.
 
 Meiiie is the project owner and licensor. The Wiii Lab is the project and
 brand identity operated by Meiiie.
 
-A commercial agreement may be appropriate for organizations that cannot meet
-the AGPL obligations for proprietary redistribution or network deployment.
-Terms may also cover support, warranty, indemnity, hosted-service terms, or a
-limited trademark license, but none of those rights exist unless they are
-written in an executed agreement.
+Separate written agreements may cover support, warranty, indemnity,
+hosted-service terms, or a limited trademark license. Those additional rights
+exist only as specified in an executed agreement. This file does not grant
+them. Inquiries may be directed to <https://github.com/meiiie>.
 
-No payment, purchase order, email, repository access, or use of the software
-alone creates a commercial license. Start an inquiry through the official
-project owner at <https://github.com/meiiie>.
-
-Apache-2.0 material in `sdk/` remains available under Apache-2.0 regardless of
-whether a commercial agreement is purchased.
+Existing agreements remain subject to their own terms. Earlier AGPL
+source distributions retain their original grants; see `LICENSING.md`.
+Apache-2.0 material in `sdk/` and third-party components retain their own
+licenses and notices. Code licenses do not grant rights to product trademarks.

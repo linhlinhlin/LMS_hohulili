@@ -18,8 +18,8 @@
   </developers>
   <licenses>
     <license>
-      <name>GNU Affero General Public License v3.0 only</name>
-      <url>https://www.gnu.org/licenses/agpl-3.0.html</url>
+      <name>MIT License</name>
+      <url>https://opensource.org/license/mit</url>
       <distribution>repo</distribution>
     </license>
   </licenses>

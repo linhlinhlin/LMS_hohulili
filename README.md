@@ -150,6 +150,13 @@ Start with these files:
 - Repository labels are versioned in [.github/labels.json](.github/labels.json) and synced with [scripts/github/sync-labels.ps1](scripts/github/sync-labels.ps1).
 - Community expectations are documented in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 
+## License
+
+Original project material is available under the [MIT License](LICENSE).
+The `sdk/` boundary remains Apache-2.0, and third-party components retain their
+own licenses and notices. See [LICENSING.md](LICENSING.md) for scope and history,
+and [TRADEMARKS.md](TRADEMARKS.md) for the separate brand policy.
+
 ## Production Notes
 
 - Reverse proxy in production is `Caddy`, not `nginx`

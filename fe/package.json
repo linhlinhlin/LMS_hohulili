@@ -1,7 +1,7 @@
 {
   "name": "lms-angular",
   "version": "0.2.0",
-  "license": "AGPL-3.0-only",
+  "license": "MIT",
   "author": "Meiiie (The Wiii Lab)",
   "scripts": {
     "ng": "ng",

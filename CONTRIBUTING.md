@@ -2,6 +2,11 @@
 
 Tài liệu này mô tả cách làm việc nhất quán trong repo, đặc biệt cho các thay đổi có ảnh hưởng tới runtime, docs, và deploy.
 
+Original project contributions are accepted under MIT; the `sdk/` boundary
+remains Apache-2.0. Preserve third-party licenses and attribution. Read
+[LICENSING.md](LICENSING.md) and
+[CONTRIBUTOR-LICENSE-POLICY.md](CONTRIBUTOR-LICENSE-POLICY.md) before submitting.
+
 ---
 
 ## 0. Git Workflow — QUY TẮC BẮT BUỘC

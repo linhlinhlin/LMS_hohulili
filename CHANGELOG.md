@@ -6,6 +6,12 @@ This file follows the spirit of [Keep a Changelog](https://keepachangelog.com/en
 
 ## [Unreleased]
 
+### Licensing
+
+- Release original project material under MIT with owner authorization;
+  synchronize frontend, backend, package, and OpenAPI license notices. Preserve
+  the Apache-2.0 SDK boundary, third-party terms, and earlier AGPL grants.
+
 ### Security
 
 - Enforced conversation-topic membership, access/refresh JWT type separation, and rich-content sanitization at authoring and delivery boundaries
